@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { EntityService as UsersService } from 'src/entity-modules/user.module';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { jwtConstants } from './constants';
 
 @Injectable()
 export class AuthService {
@@ -30,7 +31,7 @@ export class AuthService {
     return null;
   }
 
-  async login(user: any) {
+  async getCookieWithJwtToken(user: any) {
     const payload = {
       username: user.email,
       id: user.id,
@@ -38,8 +39,11 @@ export class AuthService {
       name: user.name,
       permissions: JSON.parse(user.permissions || '{}')
     };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+    const token = this.jwtService.sign(payload);
+    return `Authentication=${token}; HttpOnly; Path=/; Max-Age=${jwtConstants.maxAge}`;
+  }
+
+  public getCookieForLogOut() {
+    return `Authentication=; HttpOnly; Path=/; Max-Age=0`;
   }
 }
