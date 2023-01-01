@@ -2,6 +2,7 @@ import { CreateManyDto, CrudRequest, Override } from "@nestjsx/crud";
 import { TypeOrmCrudService } from "@nestjsx/crud-typeorm";
 import { DeepPartial } from "typeorm";
 import { RequestContext } from "nestjs-request-context";
+import { snakeCase } from "change-case";
 
 export interface IHasUserId {
     userId: number;
@@ -10,6 +11,10 @@ export interface IHasUserId {
 export class BaseEntityService<T extends IHasUserId> extends TypeOrmCrudService<T>{
     constructor(repo) {
         super(repo);
+    }
+
+    getName(): string {
+        return snakeCase(this.entityType.name);
     }
 
     @Override()
