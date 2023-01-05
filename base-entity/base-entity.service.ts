@@ -3,6 +3,7 @@ import { TypeOrmCrudService } from "@nestjsx/crud-typeorm";
 import { DeepPartial } from "typeorm";
 import { RequestContext } from "nestjs-request-context";
 import { snakeCase } from "change-case";
+import { IHeader } from "@shared/exporter/types";
 
 export interface IHasUserId {
     userId: number;
@@ -50,4 +51,12 @@ export class BaseEntityService<T extends IHasUserId> extends TypeOrmCrudService<
         return req.user;
     }
 
+    async getDataForExport(req: CrudRequest): Promise<any[]> {
+        const data = await this.getMany(req);
+        return Array.isArray(data) ? data : data.data;
+    }
+
+    getExportHeaders(): IHeader[] {
+        return this.entityColumns;
+    }
 }
