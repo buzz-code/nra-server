@@ -1,5 +1,5 @@
 import { Get, StreamableFile, UseInterceptors } from "@nestjs/common";
-import { CrudController, CrudRequest, CrudRequestInterceptor, ParsedRequest } from "@nestjsx/crud";
+import { CrudController, CrudRequest, CrudRequestInterceptor, ParsedRequest } from "@dataui/crud";
 import { ExportFormats } from "@shared/exporter/types";
 import { getExportedFile } from "@shared/exporter/exporterUtil";
 import { BaseEntityService, IHasUserId } from "./base-entity.service";

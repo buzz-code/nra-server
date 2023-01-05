@@ -1,5 +1,5 @@
-import { CreateManyDto, CrudRequest, Override } from "@nestjsx/crud";
-import { TypeOrmCrudService } from "@nestjsx/crud-typeorm";
+import { CreateManyDto, CrudRequest, Override } from "@dataui/crud";
+import { TypeOrmCrudService } from "@dataui/crud-typeorm";
 import { DeepPartial } from "typeorm";
 import { RequestContext } from "nestjs-request-context";
 import { snakeCase } from "change-case";
