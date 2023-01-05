@@ -66,6 +66,12 @@ function getExcelFile<T>(data: T[], headers: IHeader[]): Buffer {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'גליון1');
 
+    wb.Workbook ??= {}
+    wb.Workbook.Views ??= [{}]
+    wb.Workbook.Views.forEach((view) => {
+      view.RTL = true;
+    })
+  
     const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
     return buffer;
 }
