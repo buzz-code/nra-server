@@ -51,7 +51,7 @@ export class BaseEntityService<T extends IHasUserId> extends TypeOrmCrudService<
         return req.user;
     }
 
-    async getDataForExport(req: CrudRequest): Promise<any[]> {
+    async getDataForExport(req: CrudRequest): Promise<T[]> {
         const data = await this.getMany(req);
         return Array.isArray(data) ? data : data.data;
     }
