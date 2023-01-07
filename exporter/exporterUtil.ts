@@ -48,10 +48,10 @@ function getHeaderFormatters(headers: IHeader[]): IFormatter[] {
         if (typeof (item) === 'string') {
             return getSimpleFormatter(item);
         }
-        if (typeof (item.format) === 'string') {
-            return getSimpleFormatter(item.format);
+        if (typeof (item.value) === 'string') {
+            return getSimpleFormatter(item.value);
         }
-        return item.format;
+        return item.value;
     })
 }
 
