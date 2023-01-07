@@ -6,7 +6,7 @@ export enum ExportFormats {
 export interface IColumn {
     label: string;
     value: string | ((value: IContent) => string | number | boolean | Date | IContent);
-    format?: string;
+    // format?: string;
 }
 
 export type IHeader = IColumn | string;
