@@ -1,26 +1,34 @@
 import { StreamableFile } from "@nestjs/common";
 import { ExportFormats, IFormatter, IHeader } from "./types";
 import * as XLSX from 'xlsx';
+import puppeteer from 'puppeteer';
+import { renderToString } from 'react-dom/server';
+import App from "./tableRenderer";
+import { createElement } from "react";
 
 export async function getExportedFile<T>(format: ExportFormats, name: string, data: T[], headers: IHeader[]): Promise<StreamableFile> {
-    const fileBuffer = getFileBuffer(format, data, headers);
+    const fileBuffer = await getFileBuffer(format, data, headers);
     const type = getFileType(format);
     const disposition = getFileDisposition(format, name);
     return new StreamableFile(fileBuffer, { type, disposition })
 };
 
-function getFileBuffer<T>(format: ExportFormats, data: T[], headers: IHeader[]): Buffer {
+async function getFileBuffer<T>(format: ExportFormats, data: T[], headers: IHeader[]): Promise<Buffer> {
+    const headerRow = getHeaderNames(headers);
+    const formatters = getHeaderFormatters(headers)
+    const formattedData = data.map(row => formatters.map(func => func(row)));
+
     switch (format) {
         case ExportFormats.Excel:
-            return getExcelFile(data, headers);
+            return getExcelFile(headerRow, formattedData);
         case ExportFormats.Pdf:
-            return getPdfFile(data, headers);
+            return getPdfFile(headerRow, formattedData);
         default:
             throw new Error('unknown format ' + format);
     }
 }
 
-function getHeaderNames(headers: IHeader[]): String[] {
+function getHeaderNames(headers: IHeader[]): string[] {
     return headers.map(item => {
         if (typeof (item) === 'string') {
             return item;
@@ -39,7 +47,7 @@ function getSimpleFormatter(key: string) {
         for (const part of parts) {
             val = val?.[part];
         }
-        return val;
+        return val?.toString();
     }
 }
 
@@ -55,11 +63,7 @@ function getHeaderFormatters(headers: IHeader[]): IFormatter[] {
     })
 }
 
-function getExcelFile<T>(data: T[], headers: IHeader[]): Buffer {
-    const headerRow = getHeaderNames(headers);
-    const formatters = getHeaderFormatters(headers)
-    const formattedData = data.map(row => formatters.map(func => func(row)));
-
+async function getExcelFile<T>(headerRow: string[], formattedData: string[][]): Promise<Buffer> {
     const ws = XLSX.utils.aoa_to_sheet([headerRow]);
     XLSX.utils.sheet_add_aoa(ws, formattedData, { origin: -1 });
 
@@ -69,16 +73,30 @@ function getExcelFile<T>(data: T[], headers: IHeader[]): Buffer {
     wb.Workbook ??= {}
     wb.Workbook.Views ??= [{}]
     wb.Workbook.Views.forEach((view) => {
-      view.RTL = true;
+        view.RTL = true;
     })
-  
+
     const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
     return buffer;
 }
 
-function getPdfFile<T>(data: T[], headers: IHeader[]): Buffer {
-    // todo: implement pdf file
-    return null;
+async function getPdfFile<T>(headerRow: string[], formattedData: string[][]): Promise<Buffer> {
+    const markup = renderToString(createElement(App, { headers: headerRow, rows: formattedData }));
+
+    const browser = await puppeteer.launch({
+        args: [
+            "--disable-dev-shm-usage",
+            '--no-sandbox',
+            '--disable-setuid-sandbox'
+        ]
+    });
+    const page = await browser.newPage();
+
+    await page.setContent(markup);
+
+    const pdf = await page.pdf({ format: 'A4' });
+    await browser.close();
+    return pdf;
 }
 
 function getFileType(format: ExportFormats): string {
