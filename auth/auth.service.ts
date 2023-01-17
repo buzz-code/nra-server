@@ -3,6 +3,7 @@ import { EntityService as UsersService } from 'src/entity-modules/user.module';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { jwtConstants } from './constants';
+import * as cookie from 'cookie';
 
 @Injectable()
 export class AuthService {
@@ -40,10 +41,20 @@ export class AuthService {
       permissions: JSON.parse(user.permissions || '{}')
     };
     const token = this.jwtService.sign(payload);
-    return `Authentication=${token}; HttpOnly; Path=/; Max-Age=${jwtConstants.maxAge}`;
+    return cookie.serialize('Authentication', token, {
+      httpOnly: true,
+      path: '/',
+      maxAge: jwtConstants.maxAge,
+      sameSite: true
+    });
   }
 
   public getCookieForLogOut() {
-    return `Authentication=; HttpOnly; Path=/; Max-Age=0`;
+    return cookie.serialize('Authentication', '', {
+      httpOnly: true,
+      path: '/',
+      maxAge: 0,
+      sameSite: true
+    });
   }
 }
