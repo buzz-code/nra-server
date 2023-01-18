@@ -3,7 +3,7 @@ export const CrudAuthFilter = {
     filter: (user) => user.permissions.admin
         ? ({})
         : ({
-            userId: user.effective_id,
+            userId: user.effective_id || user.id,
         })
 };
 
