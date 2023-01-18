@@ -16,3 +16,9 @@ export interface IContent {
 }
 
 export type IFormatter = (row: any) => any;
+
+export interface ExportedFileResponse {
+    data: string;
+    type: string;
+    disposition: string;
+}

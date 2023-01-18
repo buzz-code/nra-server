@@ -1,16 +1,20 @@
 import { StreamableFile } from "@nestjs/common";
-import { ExportFormats, IFormatter, IHeader } from "./types";
+import { ExportFormats, ExportedFileResponse, IFormatter, IHeader } from "./types";
 import * as XLSX from 'xlsx';
 import puppeteer from 'puppeteer';
 import { renderToString } from 'react-dom/server';
 import App from "./tableRenderer";
 import { createElement } from "react";
 
-export async function getExportedFile<T>(format: ExportFormats, name: string, data: T[], headers: IHeader[]): Promise<StreamableFile> {
+export async function getExportedFile<T>(format: ExportFormats, name: string, data: T[], headers: IHeader[]): Promise<ExportedFileResponse> {
     const fileBuffer = await getFileBuffer(format, data, headers);
     const type = getFileType(format);
     const disposition = getFileDisposition(format, name);
-    return new StreamableFile(fileBuffer, { type, disposition })
+    return {
+        data: fileBuffer.toString('base64'),
+        type,
+        disposition,
+    }
 };
 
 async function getFileBuffer<T>(format: ExportFormats, data: T[], headers: IHeader[]): Promise<Buffer> {
@@ -96,6 +100,7 @@ async function getPdfFile<T>(headerRow: string[], formattedData: string[][]): Pr
 
     const pdf = await page.pdf({ format: 'A4' });
     await browser.close();
+
     return pdf;
 }
 
