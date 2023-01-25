@@ -1,6 +1,5 @@
-import { StreamableFile } from "@nestjs/common";
 import { ExportFormats, ExportedFileResponse, IFormatter, IHeader } from "./types";
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-color';
 import puppeteer from 'puppeteer';
 import { renderToString } from 'react-dom/server';
 import App from "./tableRenderer";
@@ -74,6 +73,18 @@ async function getExcelFile<T>(headerRow: string[], formattedData: string[][]): 
     const ws = XLSX.utils.aoa_to_sheet([headerRow]);
     XLSX.utils.sheet_add_aoa(ws, formattedData, { origin: -1 });
 
+    for (let index = 0; index < headerRow.length; index++) {
+        var cell_ref = XLSX.utils.encode_cell({ c: index, r: 0 });
+        ws[cell_ref].s = {
+            font: {
+                bold: true
+            },
+            fill: {
+                fgColor: { rgb: "f2f2f2" }
+            }
+        }
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'גליון1');
 
@@ -101,7 +112,10 @@ async function getPdfFile<T>(headerRow: string[], formattedData: string[][]): Pr
 
     await page.setContent(markup);
 
-    const pdf = await page.pdf({ format: 'A4' });
+    const pdf = await page.pdf({
+        format: 'A4',
+        printBackground: true
+    });
     await browser.close();
 
     return pdf;
