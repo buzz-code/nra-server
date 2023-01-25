@@ -51,6 +51,9 @@ function getSimpleFormatter(key: string) {
         for (const part of parts) {
             val = val?.[part];
         }
+        if (val instanceof Date) {
+            return Intl.DateTimeFormat('he', { dateStyle: 'short' }).format(val);
+        }
         return val?.toString();
     }
 }
