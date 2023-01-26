@@ -2,9 +2,10 @@ import { Get, StreamableFile, UseInterceptors } from "@nestjs/common";
 import { CrudController, CrudRequest, CrudRequestInterceptor, ParsedRequest } from "@dataui/crud";
 import { ExportFormats, ExportedFileResponse } from "@shared/exporter/types";
 import { getExportedFile } from "@shared/exporter/exporterUtil";
-import { BaseEntityService, IHasUserId } from "./base-entity.service";
+import { BaseEntityService } from "./base-entity.service";
+import { Entity } from "./interface";
 
-export class BaseEntityController<T extends IHasUserId> implements CrudController<T> {
+export class BaseEntityController<T extends Entity> implements CrudController<T> {
     constructor(public service: BaseEntityService<T>) { }
 
     protected async exportFile(req: CrudRequest, format: ExportFormats): Promise<ExportedFileResponse> {

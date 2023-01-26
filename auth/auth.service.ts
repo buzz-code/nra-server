@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { EntityService as UsersService } from 'src/entity-modules/user.module';
+import { Repository } from 'typeorm';
+import { User } from '@shared/entities/User.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { jwtConstants } from './constants';
@@ -8,7 +10,7 @@ import * as cookie from 'cookie';
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService,
+    @InjectRepository(User) private userRepository: Repository<User>,
     private jwtService: JwtService
   ) { }
 
@@ -21,7 +23,7 @@ export class AuthService {
       }
     }
 
-    const user = await this.usersService.findOne({ where: { email: username } });
+    const user = await this.userRepository.findOne({ where: { email: username } });
     if (user) {
       const passwordMatch = await bcrypt.compare(pass, user.password);
       if (passwordMatch) {
