@@ -41,18 +41,12 @@ export abstract class User {
   })
   updatedAt: Date;
 
-  @Column("varchar", { name: "from_email", nullable: true, length: 500 })
-  fromEmail: string | null;
-
-  @Column("varchar", { name: "reply_to_email", nullable: true, length: 500 })
-  replyToEmail: string | null;
-
-  @Column({nullable: true})
+  @Column({ nullable: true })
   effective_id: number;
 
-  @Column("varchar", { name: "permissions", nullable: true, length: 5000 })
+  @Column("simple-json", { nullable: true })
   permissions: any;
 
-  @Column("varchar", { nullable: true, length: 5000 })
+  @Column("simple-json", { nullable: true })
   additionalData: any;
 }
