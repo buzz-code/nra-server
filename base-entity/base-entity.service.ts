@@ -1,13 +1,13 @@
 import { CreateManyDto, CrudRequest, Override } from "@dataui/crud";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
-import { DeepPartial } from "typeorm";
+import { DeepPartial, Repository } from "typeorm";
 import { RequestContext } from "nestjs-request-context";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/exporter/types";
-import { Entity } from "./interface";
+import { Entity, ExportDefinition } from "./interface";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
-    constructor(repo) {
+    constructor(repo: Repository<T>, private exportDefinition: ExportDefinition) {
         super(repo);
     }
 
@@ -53,11 +53,17 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     }
 
     async getDataForExport(req: CrudRequest): Promise<T[]> {
+        if (this.exportDefinition?.processReqForExport) {
+            await this.exportDefinition.processReqForExport(req);
+        }
         const data = await this.getMany(req);
         return Array.isArray(data) ? data : data.data;
     }
 
     getExportHeaders(): IHeader[] {
+        if (this.exportDefinition?.getExportHeaders) {
+            return this.exportDefinition.getExportHeaders();
+        }
         return this.entityColumns;
     }
 }

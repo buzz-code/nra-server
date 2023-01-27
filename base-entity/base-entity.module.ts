@@ -1,4 +1,4 @@
-import { Controller, DynamicModule, Get, Injectable, Module, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, DynamicModule, Get, Inject, Injectable, Module, UseGuards, UseInterceptors } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Crud, CrudAuth, CrudRequest, CrudRequestInterceptor, ParsedRequest } from '@dataui/crud';
 import { CrudAuthFilter } from '@shared/auth/crud-auth.filter';
@@ -17,7 +17,7 @@ export class BaseEntityModule {
         @Injectable()
         class EntityService extends BaseEntityService<Entity> {
             constructor(@InjectRepository(options.entity) repo) {
-                super(repo);
+                super(repo, options.exporter);
             }
         }
 
@@ -58,7 +58,9 @@ export class BaseEntityModule {
         return {
             module: BaseEntityModule,
             imports: [TypeOrmModule.forFeature([options.entity])],
-            providers: [EntityService],
+            providers: [
+                EntityService,
+            ],
             exports: [EntityService],
             controllers: [EntityController],
         };
