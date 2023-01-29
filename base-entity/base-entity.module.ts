@@ -26,6 +26,7 @@ export class BaseEntityModule {
             model: {
                 type: options.entity,
             },
+            query: options.query,
         })
         @UseGuards(JwtAuthGuard)
         @CrudAuth(options.crudAuth ?? CrudAuthFilter)
