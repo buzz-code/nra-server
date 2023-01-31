@@ -44,8 +44,8 @@ export class BaseEntityModule {
 
             @Get('/export/excel')
             @UseInterceptors(CrudRequestInterceptor)
-            async exportExcel(@ParsedRequest() req: CrudRequest) {
-                return await this.exportFile(req, ExportFormats.Excel);
+            exportExcel(@ParsedRequest() req: CrudRequest) {
+                return this.exportFile(req, ExportFormats.Excel);
             }
 
             @Get('/export/pdf')
