@@ -4,7 +4,7 @@ import { DeepPartial, Repository } from "typeorm";
 import { RequestContext } from "nestjs-request-context";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/exporter/types";
-import { Entity, ExportDefinition } from "./interface";
+import { Entity, ExportDefinition, IHasUserId } from "./interface";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     constructor(repo: Repository<T>, private exportDefinition: ExportDefinition) {
@@ -35,16 +35,17 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     }
 
     insertUserDataBeforeCreate(dto: DeepPartial<T>) {
-        if (!('userId' in dto)) {
+        if (!this.entityColumns.includes('userId')) {
             return;
         }
 
-        if (dto.userId) {
+        const item = dto as IHasUserId;
+        if (item.userId) {
             return dto;
         }
 
         const user = this.getCurrentUser();
-        dto.userId = user.id;
+        item.userId = user.id;
     }
 
     private getCurrentUser() {
