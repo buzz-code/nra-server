@@ -1,10 +1,10 @@
 import { CrudController, CrudRequest } from "@dataui/crud";
-import { ExportFormats, ExportedFileResponse } from "@shared/exporter/types";
-import { getExportedFile } from "@shared/exporter/exporterUtil";
+import { ExportFormats, ExportedFileResponse } from "@shared/utils/exporter/types";
+import { getExportedFile } from "@shared/utils/exporter/exporter.util";
 import { BaseEntityService } from "./base-entity.service";
 import { Entity } from "./interface";
-import { parseExcelFile } from "@shared/importer/importerUtil";
-import { ImportFileBody, defaultReqObject } from "@shared/importer/types";
+import { parseExcelFile } from "@shared/utils/importer/importer.util";
+import { ImportFileBody, defaultReqObject } from "@shared/utils/importer/types";
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
     constructor(public service: BaseEntityService<T>) { }

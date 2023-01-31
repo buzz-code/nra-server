@@ -2,7 +2,7 @@ import { ExportFormats, ExportedFileResponse, IFormatter, IHeader } from "./type
 import * as XLSX from 'xlsx-color';
 import puppeteer from 'puppeteer';
 import { renderToString } from 'react-dom/server';
-import App from "./tableRenderer";
+import App from "./tableRenderer.component";
 import { createElement } from "react";
 
 export async function getExportedFile<T>(format: ExportFormats, name: string, data: T[], headers: IHeader[]): Promise<ExportedFileResponse> {

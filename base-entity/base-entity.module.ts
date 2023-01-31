@@ -3,12 +3,12 @@ import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Crud, CrudAuth, CrudRequest, CrudRequestInterceptor, ParsedRequest } from '@dataui/crud';
 import { CrudAuthFilter } from '@shared/auth/crud-auth.filter';
 import { JwtAuthGuard } from '@shared/auth/jwt-auth.guard';
-import { ExportFormats } from '@shared/exporter/types';
+import { ExportFormats } from '@shared/utils/exporter/types';
 import { snakeCase } from 'change-case';
 import { BaseEntityController } from './base-entity.controller';
 import { BaseEntityService } from './base-entity.service';
 import { BaseEntityModuleOptions, Entity } from './interface';
-import { ImportFileBody } from '@shared/importer/types';
+import { ImportFileBody } from '@shared/utils/importer/types';
 import { Public } from '@shared/auth/public.decorator';
 
 @Module({})
