@@ -18,6 +18,6 @@ export interface BaseEntityModuleOptions {
 }
 
 export interface ExportDefinition {
-    processReqForExport?(req: CrudRequest): Promise<void>;
-    getExportHeaders(): IHeader[];
+    processReqForExport?(req: CrudRequest, innerFunc: (req: CrudRequest) => Promise<any>): Promise<any[]>;
+    getExportHeaders?(entityColumns: string[]): IHeader[];
 }

@@ -52,18 +52,24 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         return req.user;
     }
 
-    async getDataForExport(req: CrudRequest): Promise<T[]> {
+    async getDataForExport(req: CrudRequest): Promise<any[]> {
         if (this.exportDefinition?.processReqForExport) {
-            await this.exportDefinition.processReqForExport(req);
+            return this.exportDefinition.processReqForExport(req, this.getDataForExportInner.bind(this));
+        } else {
+            return this.getDataForExportInner(req);
         }
+    }
+
+    private async getDataForExportInner(req: CrudRequest): Promise<T[]> {
         const data = await this.getMany(req);
         return Array.isArray(data) ? data : data.data;
     }
 
     getExportHeaders(): IHeader[] {
         if (this.exportDefinition?.getExportHeaders) {
-            return this.exportDefinition.getExportHeaders();
+            return this.exportDefinition.getExportHeaders(this.entityColumns);
+        } else {
+            return this.entityColumns;
         }
-        return this.entityColumns;
     }
 }
