@@ -1,4 +1,4 @@
-import { Controller, DynamicModule, Get, Inject, Injectable, Module, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, DynamicModule, Get, Injectable, Module, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Crud, CrudAuth, CrudRequest, CrudRequestInterceptor, ParsedRequest } from '@dataui/crud';
 import { CrudAuthFilter } from '@shared/auth/crud-auth.filter';
@@ -8,6 +8,8 @@ import { snakeCase } from 'change-case';
 import { BaseEntityController } from './base-entity.controller';
 import { BaseEntityService } from './base-entity.service';
 import { BaseEntityModuleOptions, Entity } from './interface';
+import { ImportFileBody } from '@shared/importer/types';
+import { Public } from '@shared/auth/public.decorator';
 
 @Module({})
 export class BaseEntityModule {
@@ -52,6 +54,12 @@ export class BaseEntityModule {
             @UseInterceptors(CrudRequestInterceptor)
             exportPdf(@ParsedRequest() req: CrudRequest) {
                 return this.exportFile(req, ExportFormats.Pdf);
+            }
+
+            @Post('/import')
+            @Public()
+            importExcel(@Body() body: ImportFileBody) {
+                return this.importExcelFile(body);
             }
         }
 

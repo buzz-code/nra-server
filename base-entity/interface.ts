@@ -20,4 +20,5 @@ export interface BaseEntityModuleOptions {
 export interface ExportDefinition {
     processReqForExport?(req: CrudRequest, innerFunc: (req: CrudRequest) => Promise<any>): Promise<any[]>;
     getExportHeaders?(entityColumns: string[]): IHeader[];
+    getImportFields?(entityColumns: string[]): string[];
 }

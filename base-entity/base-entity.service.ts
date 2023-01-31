@@ -73,4 +73,12 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
             return this.entityColumns;
         }
     }
+
+    getImportFields(): string[] {
+        if (this.exportDefinition?.getImportFields) {
+            return this.exportDefinition.getImportFields(this.entityColumns);
+        } else {
+            return this.entityColumns.filter(item => !['id', 'userId'].includes(item));
+        }
+    }
 }
