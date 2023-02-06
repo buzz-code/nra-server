@@ -7,11 +7,9 @@ export const databaseConfig: DataSourceOptions = {
     username: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DATABASE,
-    // entityPrefix: 'miryam_peperman',
     // entities: [__dirname + '/../**/*.entity{.ts,.js}'],
     // synchronize: true,
     logging: "all",
     // migrationsRun: true,
-    // migrationsTableName: 'migration',
-    // migrations: [__dirname + '/../migrations/*{.ts,.js}'],
+    migrations: [__dirname + '/../../src/migrations/*.js'],
 };
