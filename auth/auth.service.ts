@@ -19,7 +19,7 @@ export class AuthService {
       return {
         id: -1,
         name: 'admin',
-        permissions: JSON.stringify({ admin: true })
+        permissions: { admin: true }
       }
     }
 
@@ -40,7 +40,7 @@ export class AuthService {
       id: user.id,
       effective_id: user.effective_id,
       name: user.name,
-      permissions: JSON.parse(user.permissions || '{}')
+      permissions: user.permissions || {}
     };
     const token = this.jwtService.sign(payload);
     return cookie.serialize('Authentication', token, {
