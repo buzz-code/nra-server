@@ -1,11 +1,15 @@
-import { CrudConfigService } from '@nestjsx/crud';
+import { CrudConfigService } from '@dataui/crud';
+import { AuditLogInterceptor } from '@shared/base-entity/audit-log.interceptor';
 
 CrudConfigService.load({
     auth: {
         property: 'user'
     },
     routes: {
-        exclude: []
+        deleteOneBase: {
+            interceptors: [AuditLogInterceptor],
+            returnDeleted: true,
+        },
     },
     //   query: {
     //     limit: 25,
@@ -18,14 +22,6 @@ CrudConfigService.load({
     //         primary: true,
     //     },
     // },
-    //   routes: {
-    //     updateOneBase: {
-    //       allowParamsOverride: true,
-    //     },
-    //     deleteOneBase: {
-    //       returnDeleted: true,
-    //     },
-    //   },
 });
 
 export const CrudConfig = {};
