@@ -1,8 +1,9 @@
+import { join } from "path";
 import { DataSource } from "typeorm";
 import { databaseConfig } from "./database.config";
 
 const dataSource = new DataSource({
     ...databaseConfig,
-    entities: [__dirname + '/../../src/db/*/*.js'],
+    entities: [join(__dirname, '/../../src/db/**/*.ts')],
 });
 export default dataSource;
