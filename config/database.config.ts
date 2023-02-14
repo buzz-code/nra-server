@@ -1,3 +1,4 @@
+import { join } from "path";
 import { DataSourceOptions } from "typeorm";
 
 export const databaseConfig: DataSourceOptions = {
@@ -11,5 +12,5 @@ export const databaseConfig: DataSourceOptions = {
     // synchronize: true,
     logging: "all",
     migrationsRun: process.env.NODE_ENV == 'production',
-    migrations: [__dirname + '/../../src/migrations/*.js'],
+    migrations: [join(__dirname, '/../../src/migrations/*.js')],
 };
