@@ -7,3 +7,6 @@ const dataSource = new DataSource({
     entities: [join(__dirname, '/../../src/db/**/*.ts')],
 });
 export default dataSource;
+
+// run migration like this:
+// yarn typeorm:generate src/migrations/addImportFileTable -p
