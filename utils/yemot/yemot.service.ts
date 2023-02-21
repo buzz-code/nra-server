@@ -41,7 +41,10 @@ export class YemotService {
       activeCall.errorMessage = e.message;
       this.repo.save(activeCall);
 
-      return yemotUtil.hangup();
+      return yemotUtil.send(
+        yemotUtil.id_list_message_v2('שגיאה'),
+        yemotUtil.hangup(),
+      );
     }
   }
 

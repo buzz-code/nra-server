@@ -9,6 +9,7 @@ export abstract class YemotProcessor {
   constructor(protected dataSource: DataSource) { }
 
   steps: { [key: string]: string };
+  params: { [key: string]: string };
 
   protected async getText(textKey: string, ...args): Promise<string> {
     // todo: use cache
