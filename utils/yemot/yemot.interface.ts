@@ -1,7 +1,7 @@
 import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { DataSource } from "typeorm";
 
-export const YEMOT_PROCCESSOR = 'yemot_processor';
+export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
 export const YEMOT_HANGUP_STEP = 'hangup';
 export const YEMOT_NOT_IMPL_STEP = 'error-not-impl-step';
 

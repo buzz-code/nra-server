@@ -3,7 +3,7 @@ import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { DataSource, Repository } from "typeorm";
 import { User } from "../../entities/User.entity";
-import { YemotProcessor, YemotProcessorProvider, YEMOT_HANGUP_STEP, YEMOT_PROCCESSOR } from "./yemot.interface";
+import { YemotProcessor, YemotProcessorProvider, YEMOT_HANGUP_STEP, YEMOT_PROCCESSOR_PROVIDER } from "./yemot.interface";
 import yemotUtil from "./yemot.util";
 
 @Injectable()
@@ -14,7 +14,7 @@ export class YemotService {
     @InjectRepository(YemotCall) private repo: Repository<YemotCall>,
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectDataSource() private dataSource: DataSource,
-    @Inject(YEMOT_PROCCESSOR) yemotProccessorProvider: YemotProcessorProvider
+    @Inject(YEMOT_PROCCESSOR_PROVIDER) yemotProccessorProvider: YemotProcessorProvider
   ) {
     this.yemotProccessor = yemotProccessorProvider(this.dataSource);
   }
