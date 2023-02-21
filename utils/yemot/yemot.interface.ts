@@ -10,6 +10,11 @@ export function FormatString(str: string, val: string[]) {
   return str.replace(/{([\d]*)}/g, (_, index) => val[index]);
 }
 
+export interface YemotResponse {
+  response: string;
+  nextStep: string;
+}
+
 export abstract class YemotProcessor {
   constructor(protected dataSource: DataSource) { }
 
@@ -24,7 +29,7 @@ export abstract class YemotProcessor {
     return FormatString(text.value, args);
   }
 
-  abstract processCall(activeCall: YemotCall, body: YemotParams): Promise<{ response: string; nextStep: string; }>;
+  abstract processCall(activeCall: YemotCall, body: YemotParams): Promise<YemotResponse>;
 }
 
 export type YemotProcessorProvider = (dataSource: DataSource) => YemotProcessor;
