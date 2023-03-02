@@ -4,6 +4,7 @@ import { DataSource } from "typeorm";
 import util from "./yemot.util";
 
 export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
+export const YEMOT_CHAIN = 'yemot_chain';
 export const YEMOT_HANGUP_STEP = 'hangup';
 export const YEMOT_NOT_IMPL_STEP = 'error-not-impl-step';
 
