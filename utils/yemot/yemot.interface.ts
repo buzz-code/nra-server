@@ -1,6 +1,7 @@
 import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { Text } from "src/db/entities/Text.entity";
 import { DataSource } from "typeorm";
+import util from "./yemot.util";
 
 export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
 export const YEMOT_HANGUP_STEP = 'hangup';
@@ -10,10 +11,10 @@ export function FormatString(str: string, val: string[]) {
   return str.replace(/{([\d]*)}/g, (_, index) => val[index]);
 }
 
-export interface YemotResponse {
-  response: string;
-  nextStep: string;
-}
+// export interface YemotResponse {
+//   response: string;
+//   nextStep: string;
+// }
 
 export abstract class YemotProcessor {
   constructor(protected dataSource: DataSource) { }
@@ -33,3 +34,79 @@ export abstract class YemotProcessor {
 }
 
 export type YemotProcessorProvider = (dataSource: DataSource) => YemotProcessor;
+
+export class YemotRequest {
+  constructor(
+    private activeCall: YemotCall,
+    body: YemotParams,
+    public dataSource: DataSource,
+  ) {
+    this.params = body;
+  }
+
+  params: any;
+  async getLessonFromLessonId(lessonId: string) {
+    return { lessonId };
+  }
+  async getTeacherByPhone(phone: string) {
+    return { name: 'teacher', phone };
+  }
+  async getStudentsByUserIdAndKlassIds(userId: number, klassId: number) {
+    return [{ tz: '123' }, { tz: '456' }];
+  }
+  saveReport(attReport: any) {
+    // todo
+  }
+  deleteExistingReports(existingReports: any) {
+    // todo
+  }
+}
+
+
+type PromiseOrSelf<T> = T | Promise<T>;
+
+interface MessageItem {
+  text: PromiseOrSelf<string>;
+  param: string;
+  options: any;
+}
+
+export class YemotResponse {
+  constructor(
+    private dataSource?: DataSource,
+    private userId?: number
+  ) { }
+
+  messages: MessageItem[] = [];
+
+  async getText(textKey: string, ...args) {
+    const text = await this.dataSource.getRepository(Text).findOne({
+      where: {
+        userId: this.userId,
+        name: textKey
+      },
+      cache: true,
+    })
+    return FormatString(text.value, args);
+  }
+
+  send(text: PromiseOrSelf<string>, param: string = null, options: any = {}) {
+    this.messages.push({ text, param, options });
+  }
+
+  async getResponse(): Promise<string> {
+    const userMessages = [];
+    for (const message of this.messages) {
+      if (typeof message.text !== 'string') {
+        message.text = await message.text;
+      }
+
+      if (message.param) {
+        userMessages.push(util.read_v2(message.text, message.param, message.options))
+      } else {
+        userMessages.push(util.id_list_message_v2(message.text));
+      }
+    }
+    return util.send(userMessages);
+  }
+};
