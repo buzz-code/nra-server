@@ -47,7 +47,7 @@ export class YemotRequest {
 
   params: any;
   async getLessonFromLessonId(lessonId: string) {
-    return { lessonId };
+    return { lessonId, name: 'lesson name' };
   }
   async getTeacherByPhone(phone: string) {
     return { name: 'teacher', phone };
@@ -88,7 +88,15 @@ export class YemotResponse {
       },
       cache: true,
     })
-    return FormatString(text.value, args);
+    return FormatString(text?.value || textKey, args);
+  }
+
+  hangup() {
+    return YEMOT_HANGUP_STEP;
+  }
+
+  clear() {
+    this.messages.length = 0;
   }
 
   send(text: PromiseOrSelf<string>, param: string = null, options: any = {}) {
@@ -104,10 +112,13 @@ export class YemotResponse {
 
       if (message.param) {
         userMessages.push(util.read_v2(message.text, message.param, message.options))
+      } else if (message.text === YEMOT_HANGUP_STEP) {
+        userMessages.push(util.hangup());
       } else {
         userMessages.push(util.id_list_message_v2(message.text));
       }
     }
-    return util.send(userMessages);
+    console.log(userMessages)
+    return util.send(...userMessages);
   }
 };

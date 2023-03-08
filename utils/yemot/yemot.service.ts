@@ -78,6 +78,7 @@ export class YemotService {
       isOpen: true,
       history: [],
       data: {},
+      currentStep: 'placeholder'
     })
   }
 
@@ -87,7 +88,7 @@ export class YemotService {
       response,
       time: new Date(),
     })
-    if (response === YEMOT_HANGUP_STEP) {
+    if (response.includes(YEMOT_HANGUP_STEP)) {
       activeCall.isOpen = false;
     }
     this.repo.save(activeCall);
