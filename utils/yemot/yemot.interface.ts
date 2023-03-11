@@ -122,3 +122,9 @@ export class YemotResponse {
     return util.send(...userMessages);
   }
 };
+
+export class YemotResponseMock extends YemotResponse {
+  async getText(textKey: string, ...args) {
+    return textKey;
+  }
+}
