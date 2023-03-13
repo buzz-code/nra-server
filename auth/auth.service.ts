@@ -39,12 +39,13 @@ export class AuthService {
     if (existingUser) {
       throw new UnauthorizedException('כתובת המייל כבר רשומה במערכת');
     }
-    const user = await this.userRepository.create({
+    const userToCreate = this.userRepository.create({
       name: username,
       email: username,
       password: pass,
       permissions: {},
     });
+    const user = await this.userRepository.save(userToCreate);
     const { password, ...result } = user;
     return result;
   }
