@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from '@shared/entities/User.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -32,6 +32,21 @@ export class AuthService {
       }
     }
     return null;
+  }
+
+  async registerUser(username: string, pass: string): Promise<any> {
+    const existingUser = await this.userRepository.findOne({ where: { email: username } });
+    if (existingUser) {
+      throw new UnauthorizedException('כתובת המייל כבר רשומה במערכת');
+    }
+    const user = await this.userRepository.create({
+      name: username,
+      email: username,
+      password: pass,
+      permissions: {},
+    });
+    const { password, ...result } = user;
+    return result;
   }
 
   async getCookieWithJwtToken(user: any) {
