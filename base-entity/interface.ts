@@ -2,6 +2,8 @@ import { AuthOptions, CrudRequest, QueryOptions } from "@dataui/crud";
 import { EntityClassOrSchema } from "@nestjs/typeorm/dist/interfaces/entity-class-or-schema.type";
 import { User } from "@shared/entities/User.entity";
 import { IHeader } from "@shared/utils/exporter/types";
+import { Entity } from "typeorm";
+import { BaseEntityService } from "./base-entity.service";
 
 export interface IHasUserId {
     userId: number;
@@ -15,6 +17,7 @@ export interface BaseEntityModuleOptions {
     query?: QueryOptions;
     crudAuth?: AuthOptions;
     exporter?: ExportDefinition;
+    service?: typeof BaseEntityService;
 }
 
 export interface ExportDefinition {
@@ -22,3 +25,7 @@ export interface ExportDefinition {
     getExportHeaders?(entityColumns: string[]): IHeader[];
     getImportFields?(entityColumns: string[]): string[];
 }
+
+export const ENTITY_REPOSITORY = 'entity_repository';
+export const ENTITY_EXPORTER = 'entity_exporter';
+export const ENTITY_SERVICE = 'entity_service';

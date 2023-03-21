@@ -1,5 +1,5 @@
-import { Body, Controller, DynamicModule, Get, Injectable, Module, Post, UseGuards, UseInterceptors } from '@nestjs/common';
-import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
+import { Body, Controller, DynamicModule, Get, Inject, Module, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Crud, CrudAuth, CrudRequest, CrudRequestInterceptor, ParsedRequest } from '@dataui/crud';
 import { CrudAuthFilter } from '@shared/auth/crud-auth.filter';
 import { JwtAuthGuard } from '@shared/auth/jwt-auth.guard';
@@ -7,7 +7,7 @@ import { ExportFormats } from '@shared/utils/exporter/types';
 import { snakeCase } from 'change-case';
 import { BaseEntityController } from './base-entity.controller';
 import { BaseEntityService } from './base-entity.service';
-import { BaseEntityModuleOptions, Entity } from './interface';
+import { BaseEntityModuleOptions, Entity, ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE } from './interface';
 import { ImportFileBody } from '@shared/utils/importer/types';
 import { Public } from '@shared/auth/public.decorator';
 
@@ -15,14 +15,6 @@ import { Public } from '@shared/auth/public.decorator';
 export class BaseEntityModule {
     static register(options: BaseEntityModuleOptions): DynamicModule {
         const entityName = 'name' in options.entity ? options.entity.name : options.entity.options.name;
-
-        @Injectable()
-        class EntityService extends BaseEntityService<Entity> {
-            constructor(@InjectRepository(options.entity) repo) {
-                super(repo, options.exporter);
-            }
-        }
-
 
         @Crud({
             model: {
@@ -34,7 +26,7 @@ export class BaseEntityModule {
         @CrudAuth(options.crudAuth ?? CrudAuthFilter)
         @Controller(snakeCase(entityName))
         class EntityController extends BaseEntityController<Entity> {
-            constructor(public service: EntityService) {
+            constructor(@Inject(ENTITY_SERVICE) public service: BaseEntityService<Entity>) {
                 super(service);
             }
 
@@ -68,9 +60,10 @@ export class BaseEntityModule {
             module: BaseEntityModule,
             imports: [TypeOrmModule.forFeature([options.entity])],
             providers: [
-                EntityService,
+                { provide: ENTITY_REPOSITORY, useExisting: getRepositoryToken(options.entity) },
+                { provide: ENTITY_EXPORTER, useValue: options.exporter || null },
+                { provide: ENTITY_SERVICE, useClass: options.service ?? BaseEntityService },
             ],
-            exports: [EntityService],
             controllers: [EntityController],
         };
     }
