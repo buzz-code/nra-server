@@ -1,4 +1,5 @@
 import { AuthOptions, CrudRequest, QueryOptions } from "@dataui/crud";
+import { Inject } from "@nestjs/common";
 import { EntityClassOrSchema } from "@nestjs/typeorm/dist/interfaces/entity-class-or-schema.type";
 import { User } from "@shared/entities/User.entity";
 import { IHeader } from "@shared/utils/exporter/types";
@@ -29,3 +30,7 @@ export interface ExportDefinition {
 export const ENTITY_REPOSITORY = 'entity_repository';
 export const ENTITY_EXPORTER = 'entity_exporter';
 export const ENTITY_SERVICE = 'entity_service';
+
+export const InjectEntityRepository = Inject(ENTITY_REPOSITORY);
+export const InjectEntityExporter = Inject(ENTITY_EXPORTER);
+export const InjectEntityService     = Inject(ENTITY_SERVICE);

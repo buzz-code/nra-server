@@ -7,7 +7,7 @@ import { ExportFormats } from '@shared/utils/exporter/types';
 import { snakeCase } from 'change-case';
 import { BaseEntityController } from './base-entity.controller';
 import { BaseEntityService } from './base-entity.service';
-import { BaseEntityModuleOptions, Entity, ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE } from './interface';
+import { BaseEntityModuleOptions, Entity, ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE, InjectEntityService } from './interface';
 import { ImportFileBody } from '@shared/utils/importer/types';
 import { Public } from '@shared/auth/public.decorator';
 
@@ -26,7 +26,7 @@ export class BaseEntityModule {
         @CrudAuth(options.crudAuth ?? CrudAuthFilter)
         @Controller(snakeCase(entityName))
         class EntityController extends BaseEntityController<Entity> {
-            constructor(@Inject(ENTITY_SERVICE) public service: BaseEntityService<Entity>) {
+            constructor(@InjectEntityService public service: BaseEntityService<Entity>) {
                 super(service);
             }
 
