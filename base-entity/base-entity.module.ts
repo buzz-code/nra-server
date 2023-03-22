@@ -10,6 +10,7 @@ import { BaseEntityService } from './base-entity.service';
 import { BaseEntityModuleOptions, Entity, ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE, InjectEntityService } from './interface';
 import { ImportFileBody } from '@shared/utils/importer/types';
 import { Public } from '@shared/auth/public.decorator';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({})
 export class BaseEntityModule {
@@ -21,6 +22,7 @@ export class BaseEntityModule {
                 type: options.entity,
             },
             query: options.query,
+            routes: options.routes,
         })
         @UseGuards(JwtAuthGuard)
         @CrudAuth(options.crudAuth ?? CrudAuthFilter)
@@ -58,7 +60,10 @@ export class BaseEntityModule {
 
         return {
             module: BaseEntityModule,
-            imports: [TypeOrmModule.forFeature([options.entity])],
+            imports: [
+                TypeOrmModule.forFeature([options.entity]),
+                HttpModule,
+            ],
             providers: [
                 { provide: ENTITY_REPOSITORY, useExisting: getRepositoryToken(options.entity) },
                 { provide: ENTITY_EXPORTER, useValue: options.exporter || null },

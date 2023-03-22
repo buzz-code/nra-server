@@ -1,4 +1,4 @@
-import { AuthOptions, CrudRequest, QueryOptions } from "@dataui/crud";
+import { AuthOptions, CrudRequest, QueryOptions, RoutesOptions } from "@dataui/crud";
 import { Inject } from "@nestjs/common";
 import { EntityClassOrSchema } from "@nestjs/typeorm/dist/interfaces/entity-class-or-schema.type";
 import { User } from "@shared/entities/User.entity";
@@ -16,6 +16,7 @@ export type Entity = IHasUserId | User;
 export interface BaseEntityModuleOptions {
     entity: EntityType;
     query?: QueryOptions;
+    routes?: RoutesOptions;
     crudAuth?: AuthOptions;
     exporter?: ExportDefinition;
     service?: typeof BaseEntityService;
