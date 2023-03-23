@@ -18,8 +18,12 @@ export class MailAddressUpdateInterceptor implements NestInterceptor {
 
     private async saveForWebhook(response: MailAddress) {
         try {
+            const body = {
+                ...response,
+                serverName: process.env.DOMAIN_NAME,
+            };
             const { data } = await firstValueFrom(
-                this.httpService.post('https://n8n.yoman.online/webhook/save-mail-address', response)
+                this.httpService.post('https://n8n.yoman.online/webhook/save-mail-address', body)
             );
             console.log('saved mail_address', data);
         } catch (e) {
