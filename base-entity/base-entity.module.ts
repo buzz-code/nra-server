@@ -50,10 +50,19 @@ export class BaseEntityModule {
                 return this.exportFile(req, ExportFormats.Pdf);
             }
 
+            // this is not used
             @Post('/import')
             @Public()
             importExcel(@Body() body: ImportFileBody) {
                 return this.importExcelFile(body);
+            }
+
+            @Post('/handle-email')
+            @Public()
+            handleEmail(@Body() body: ImportFileBody) {
+                // todo: add import logic
+                console.log('email-body', body);
+                return null;
             }
         }
 
