@@ -1,7 +1,7 @@
 import { Inject } from "@nestjs/common";
 import { CreateManyDto, CrudRequest, Override } from "@dataui/crud";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
-import { DeepPartial, Repository } from "typeorm";
+import { DeepPartial, EntityManager, Repository } from "typeorm";
 import { RequestContext } from "nestjs-request-context";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/utils/exporter/types";
@@ -12,6 +12,10 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
 
     constructor(@InjectEntityRepository repo: Repository<T>) {
         super(repo);
+    }
+
+    getEntityManager(): EntityManager {
+        return this.repo.manager;
     }
 
     getName(): string {
