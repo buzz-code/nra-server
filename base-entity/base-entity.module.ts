@@ -8,9 +8,11 @@ import { snakeCase } from 'change-case';
 import { BaseEntityController } from './base-entity.controller';
 import { BaseEntityService } from './base-entity.service';
 import { BaseEntityModuleOptions, Entity, ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE, InjectEntityService } from './interface';
-import { ImportFileBody } from '@shared/utils/importer/types';
 import { Public } from '@shared/auth/public.decorator';
 import { HttpModule } from '@nestjs/axios';
+import { HandleEmailBody } from '@shared/utils/mail/interface';
+import { ImportFileSource } from '@shared/entities/ImportFile.entity';
+import { MailSendService } from '@shared/utils/mail/mail-send.service';
 
 @Module({})
 export class BaseEntityModule {
@@ -28,7 +30,8 @@ export class BaseEntityModule {
         @CrudAuth(options.crudAuth ?? CrudAuthFilter)
         @Controller(snakeCase(entityName))
         class EntityController extends BaseEntityController<Entity> {
-            constructor(@InjectEntityService public service: BaseEntityService<Entity>) {
+            constructor(@InjectEntityService public service: BaseEntityService<Entity>,
+                private mailSendService: MailSendService) {
                 super(service);
             }
 
@@ -50,19 +53,16 @@ export class BaseEntityModule {
                 return this.exportFile(req, ExportFormats.Pdf);
             }
 
-            // this is not used
-            @Post('/import')
-            @Public()
-            importExcel(@Body() body: ImportFileBody) {
-                return this.importExcelFile(body);
-            }
-
             @Post('/handle-email')
             @Public()
-            handleEmail(@Body() body: ImportFileBody) {
-                // todo: add import logic
-                console.log('email-body', body);
-                return null;
+            async handleEmail(@Body() body: HandleEmailBody) {
+                const userId = await this.getUserIdFromMailAddress(body.mail_data.to);
+                const importedFiles = [];
+                for (const attachment of body.mail_data.attachments) {
+                    importedFiles.push(await this.importExcelFile(userId, attachment.data, attachment.filename, ImportFileSource.Email));
+                }
+                await this.saveEmailData(userId, body.mail_data, importedFiles);
+                await this.mailSendService.sendEmailImportResponse(body.mail_data.rcpt_to, body.mail_data.mail_from, body.mail_data.subject, importedFiles);
             }
         }
 
