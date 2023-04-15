@@ -18,10 +18,10 @@ export class RecievedMail {
     @Column()
     to: string;
 
-    @Column('text')
+    @Column('text', { nullable: true })
     subject: string;
 
-    @Column('text')
+    @Column('text', { nullable: true })
     body: string;
 
     @Column()
