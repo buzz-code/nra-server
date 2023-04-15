@@ -6,6 +6,8 @@ import { ImportFile } from '@shared/entities/ImportFile.entity';
 export class MailSendService {
   constructor(private mailerService: MailerService) { }
 
+  readonly lineBreak = '\r\n<br/>';
+
   async sendUserConfirmation(user: any, token: string) {
     const url = `example.com/auth/confirm?token=${token}`;
 
@@ -38,10 +40,12 @@ export class MailSendService {
     let body = `הודעתך התקבלה`;
     if (importedFileData.length) {
       body += `
+      ${this.lineBreak}
       רשימת הקבצים שהתקבלו:
+      ${this.lineBreak}
       ${importedFileData
           .map((item, index) => `${(index + 1)}: ${item.fileName} התקבל, תגובה: ${item.response}`)
-          .join('\r\n')}`
+          .join(this.lineBreak)}`
     }
     return this.sendResponseEmail(from, to, subject, body);
   }
