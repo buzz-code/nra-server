@@ -12,11 +12,9 @@ export class MailAddressUpdateInterceptor implements NestInterceptor {
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         const { body } = context?.switchToHttp()?.getRequest<Request>();
 
-        console.log('test update', 'before validation', body)
         return this.httpService.post(mailWorkflowUrls.validateMailQnique, body)
             .pipe(
                 switchMap(validationResponse => {
-                    console.log('test update', 'after validation', validationResponse)
                     if (body.alias && !validationResponse.data.valid) {
                         return throwError(() => new BadRequestException('כתובת המייל כבר תפוסה'));
                     }
@@ -36,11 +34,9 @@ export class MailAddressUpdateInterceptor implements NestInterceptor {
                 ...response,
                 serverName: process.env.DOMAIN_NAME,
             };
-            console.log('test update', 'before saving', body)
             const { data } = await firstValueFrom(
                 this.httpService.post(mailWorkflowUrls.saveMailAddress, body)
             );
-            console.log('test update', 'after saving', data)
             console.log('saved mail_address', data);
         } catch (e) {
             console.log('could not save mail_address', e);
