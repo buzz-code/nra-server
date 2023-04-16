@@ -1,8 +1,6 @@
-import { Inject } from "@nestjs/common";
 import { CreateManyDto, CrudRequest, Override } from "@dataui/crud";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
 import { DeepPartial, EntityManager, Repository } from "typeorm";
-import { RequestContext } from "nestjs-request-context";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/utils/exporter/types";
 import { Entity, ExportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
@@ -23,14 +21,14 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     }
 
     @Override()
-    createOne(req: CrudRequest, dto: DeepPartial<T>): Promise<T> {
-        this.insertUserDataBeforeCreate(dto);
+    createOne(req: CrudRequest<any>, dto: DeepPartial<T>): Promise<T> {
+        this.insertUserDataBeforeCreate(dto, req.auth.id);
         return super.createOne(req, dto);
     }
 
     @Override()
-    createMany(req: CrudRequest, dto: CreateManyDto<DeepPartial<T>>): Promise<T[]> {
-        dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item));
+    createMany(req: CrudRequest<any>, dto: CreateManyDto<DeepPartial<T>>): Promise<T[]> {
+        dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, req.auth.id));
         return super.createMany(req, dto);
     }
 
@@ -41,7 +39,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         return { count };
     }
 
-    insertUserDataBeforeCreate(dto: DeepPartial<T>) {
+    insertUserDataBeforeCreate(dto: DeepPartial<T>, userId: number) {
         if (!this.entityColumns.includes('userId')) {
             return;
         }
@@ -51,15 +49,8 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
             return dto;
         }
 
-        const user = this.getCurrentUser();
-        item.userId = user.id;
+        item.userId = userId;
     }
-
-    private getCurrentUser() {
-        const req = RequestContext.currentContext.req;
-        return req.user;
-    }
-
     async getDataForExport(req: CrudRequest): Promise<any[]> {
         if (this.exportDefinition?.processReqForExport) {
             return this.exportDefinition.processReqForExport(req, this.getDataForExportInner.bind(this));
