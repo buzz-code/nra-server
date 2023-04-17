@@ -53,6 +53,12 @@ export class BaseEntityModule {
                 return this.exportFile(req, ExportFormats.Pdf);
             }
 
+            @Get('/report')
+            @UseInterceptors(CrudRequestInterceptor)
+            report(@ParsedRequest() req: CrudRequest) {
+                return this.getReportData(req);
+            }
+
             @Post('/handle-email')
             @Public()
             async handleEmail(@Body() body: HandleEmailBody) {

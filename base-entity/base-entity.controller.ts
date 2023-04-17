@@ -74,4 +74,8 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         })
         await recievedMailRepo.save(recievedMail);
     }
+
+    protected async getReportData(req: CrudRequest): Promise<ExportedFileResponse> {
+        return this.service.getReportData(req);
+    }
 }

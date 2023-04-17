@@ -2,7 +2,7 @@ import { CreateManyDto, CrudRequest, Override } from "@dataui/crud";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
 import { DeepPartial, EntityManager, Repository } from "typeorm";
 import { snakeCase } from "change-case";
-import { IHeader } from "@shared/utils/exporter/types";
+import { ExportedFileResponse, IHeader } from "@shared/utils/exporter/types";
 import { Entity, ExportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
@@ -78,5 +78,13 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         } else {
             return this.entityColumns.filter(item => !['id', 'userId'].includes(item));
         }
+    }
+
+    async getReportData(req: CrudRequest): Promise<ExportedFileResponse> {
+        return {
+            data: Buffer.from(JSON.stringify(req.parsed.extra, null, '\t')).toString("base64"),
+            type: 'application/json',
+            disposition: this.getName() + '-extra.json',
+        };
     }
 }
