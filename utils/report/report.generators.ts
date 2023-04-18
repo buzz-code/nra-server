@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer';
 import { renderToString } from 'react-dom/server';
 import * as React from 'react';
 import * as XLSX from 'xlsx-color';
-import ejs from "ejs";
+import * as ejs from "ejs";
 
 
 export interface IReportData { }
