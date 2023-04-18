@@ -4,6 +4,7 @@ import puppeteer from 'puppeteer';
 import { renderToString } from 'react-dom/server';
 import * as React from 'react';
 import * as XLSX from 'xlsx-color';
+import ejs from "ejs";
 
 
 export interface IReportData { }
@@ -47,6 +48,22 @@ export class ReactToPdfReportDefinition<T extends IReportData> extends MarkupToP
 
     async getFileBuffer(data: T) {
         const markup = renderToString(React.createElement(this.component, data));
+        return this.convertMarkupToPdf(markup);
+    }
+}
+
+
+export class EjsToPdfReportDefinition<T extends IReportData> extends MarkupToPdfReportDefinition {
+    template: ejs.TemplateFunction | ejs.AsyncTemplateFunction;
+
+    constructor(reportName: string, getReportData: IGetReportDataFunction, templateStr: string, options: ejs.Options = undefined) {
+        super(reportName, getReportData)
+        this.fileFormat = CommonFileFormat.Pdf;
+        this.template = ejs.compile(templateStr, options);
+    }
+
+    async getFileBuffer(data: T) {
+        const markup = await this.template(data);
         return this.convertMarkupToPdf(markup);
     }
 }
