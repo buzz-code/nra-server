@@ -6,7 +6,7 @@ import * as React from 'react';
 import * as XLSX from 'xlsx-color';
 
 
-export interface IReportData {}
+export interface IReportData { }
 export type IGetReportDataFunction<T = any> = (dataSource: DataSource, params: T) => Promise<IReportData>;
 export abstract class BaseReportDefinition {
     fileFormat: CommonFileFormat;
@@ -15,15 +15,8 @@ export abstract class BaseReportDefinition {
 }
 
 
-export class ReactToPdfReportDefinition<T extends IReportData> extends BaseReportDefinition {
-    constructor(reportName: string, getReportData: IGetReportDataFunction, private component: React.FunctionComponent<T>) {
-        super(reportName, getReportData)
-        this.fileFormat = CommonFileFormat.Pdf;
-    }
-
-    async getFileBuffer(data: T) {
-        const markup = renderToString(React.createElement(this.component, data));
-
+abstract class MarkupToPdfReportDefinition extends BaseReportDefinition {
+    async convertMarkupToPdf(markup: string): Promise<Buffer> {
         const browser = await puppeteer.launch({
             args: [
                 "--disable-dev-shm-usage",
@@ -42,6 +35,19 @@ export class ReactToPdfReportDefinition<T extends IReportData> extends BaseRepor
         await browser.close();
 
         return pdf;
+    }
+}
+
+
+export class ReactToPdfReportDefinition<T extends IReportData> extends MarkupToPdfReportDefinition {
+    constructor(reportName: string, getReportData: IGetReportDataFunction, private component: React.FunctionComponent<T>) {
+        super(reportName, getReportData)
+        this.fileFormat = CommonFileFormat.Pdf;
+    }
+
+    async getFileBuffer(data: T) {
+        const markup = renderToString(React.createElement(this.component, data));
+        return this.convertMarkupToPdf(markup);
     }
 }
 
