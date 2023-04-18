@@ -1,24 +1,24 @@
 import { IFormatter, IHeader } from "./types";
-import * as XLSX from 'xlsx-color';
 import TableRenderer from "./tableRenderer.component";
 import { CommonFileFormat, CommonFileResponse } from "../report/types";
 import { getFileBuffer, getCommonFileResponse } from "../report/report.util";
+import { DataToExcelReportDefinition, IDataToExcelReportDefinition, ReactToPdfReportDefinition } from "../report/report.generators";
 
 export async function getExportedFile<T>(format: CommonFileFormat, name: string, data: T[], headers: IHeader[]): Promise<CommonFileResponse> {
-    const fileBuffer = await getExportFileBuffer(format, data, headers);
+    const fileBuffer = await getExportFileBuffer(name, format, data, headers);
     return getCommonFileResponse(fileBuffer, format, name);
 };
 
-async function getExportFileBuffer<T>(format: CommonFileFormat, data: T[], headers: IHeader[]): Promise<Buffer> {
+async function getExportFileBuffer<T>(name: string, format: CommonFileFormat, data: T[], headers: IHeader[]): Promise<Buffer> {
     const headerRow = getHeaderNames(headers);
     const formatters = getHeaderFormatters(headers)
     const formattedData = data.map(row => formatters.map(func => func(row)));
 
     switch (format) {
         case CommonFileFormat.Excel:
-            return getExcelFile(headerRow, formattedData);
+            return getExcelFile(name, headerRow, formattedData);
         case CommonFileFormat.Pdf:
-            return getPdfFile(headerRow, formattedData);
+            return getPdfFile(name, headerRow, formattedData);
         default:
             throw new Error('unknown format ' + format);
     }
@@ -62,38 +62,14 @@ function getHeaderFormatters(headers: IHeader[]): IFormatter[] {
     })
 }
 
-async function getExcelFile<T>(headerRow: string[], formattedData: string[][]): Promise<Buffer> {
-    const ws = XLSX.utils.aoa_to_sheet([headerRow]);
-    XLSX.utils.sheet_add_aoa(ws, formattedData, { origin: -1 });
-
-    for (let index = 0; index < headerRow.length; index++) {
-        var cell_ref = XLSX.utils.encode_cell({ c: index, r: 0 });
-        ws[cell_ref].s = {
-            font: {
-                bold: true
-            },
-            fill: {
-                fgColor: { rgb: "f2f2f2" }
-            }
-        }
-    }
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'גליון1');
-
-    wb.Workbook ??= {}
-    wb.Workbook.Views ??= [{}]
-    wb.Workbook.Views.forEach((view) => {
-        view.RTL = true;
-    })
-
-    const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-    return buffer;
+async function getExcelFile<T>(name: string, headerRow: string[], formattedData: string[][]): Promise<Buffer> {
+    const definition = new DataToExcelReportDefinition(name, null);
+    const data: IDataToExcelReportDefinition = { headerRow, formattedData };
+    return getFileBuffer(definition, data);
 }
 
-async function getPdfFile<T>(headerRow: string[], formattedData: string[][]): Promise<Buffer> {
-    return getFileBuffer(CommonFileFormat.Pdf, {
-        component: TableRenderer,
-        data: { headers: headerRow, rows: formattedData }
-    })
+async function getPdfFile<T>(name: string, headerRow: string[], formattedData: string[][]): Promise<Buffer> {
+    const definition = new ReactToPdfReportDefinition(name, null, TableRenderer);
+    const data = { headers: headerRow, rows: formattedData };
+    return getFileBuffer(definition, data);
 }
