@@ -1,8 +1,3 @@
-export enum ExportFormats {
-    Excel,
-    Pdf,
-};
-
 export interface IColumn {
     label: string;
     value: string | ((value: IContent) => string | number | boolean | Date | IContent);
@@ -16,9 +11,3 @@ export interface IContent {
 }
 
 export type IFormatter = (row: any) => any;
-
-export interface ExportedFileResponse {
-    data: string;
-    type: string;
-    disposition: string;
-}

@@ -3,7 +3,6 @@ import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Crud, CrudAuth, CrudRequest, CrudRequestInterceptor, ParsedRequest } from '@dataui/crud';
 import { CrudAuthFilter } from '@shared/auth/crud-auth.filter';
 import { JwtAuthGuard } from '@shared/auth/jwt-auth.guard';
-import { ExportFormats } from '@shared/utils/exporter/types';
 import { snakeCase } from 'change-case';
 import { BaseEntityController } from './base-entity.controller';
 import { BaseEntityService } from './base-entity.service';
@@ -13,6 +12,7 @@ import { HttpModule } from '@nestjs/axios';
 import { HandleEmailBody } from '@shared/utils/mail/interface';
 import { ImportFileSource } from '@shared/entities/ImportFile.entity';
 import { MailSendService } from '@shared/utils/mail/mail-send.service';
+import { CommonFileFormat } from '@shared/utils/report/types';
 
 @Module({})
 export class BaseEntityModule {
@@ -44,13 +44,13 @@ export class BaseEntityModule {
             @Get('/export/excel')
             @UseInterceptors(CrudRequestInterceptor)
             exportExcel(@ParsedRequest() req: CrudRequest) {
-                return this.exportFile(req, ExportFormats.Excel);
+                return this.exportFile(req, CommonFileFormat.Excel);
             }
 
             @Get('/export/pdf')
             @UseInterceptors(CrudRequestInterceptor)
             exportPdf(@ParsedRequest() req: CrudRequest) {
-                return this.exportFile(req, ExportFormats.Pdf);
+                return this.exportFile(req, CommonFileFormat.Pdf);
             }
 
             @Get('/report')

@@ -1,5 +1,4 @@
 import { CrudController, CrudRequest } from "@dataui/crud";
-import { ExportFormats, ExportedFileResponse } from "@shared/utils/exporter/types";
 import { getExportedFile } from "@shared/utils/exporter/exporter.util";
 import { BaseEntityService } from "./base-entity.service";
 import { Entity } from "./interface";
@@ -9,6 +8,7 @@ import { ImportFile, ImportFileSource } from "@shared/entities/ImportFile.entity
 import { RecievedMail } from "@shared/entities/RecievedMail.entity";
 import { MailData } from "@shared/utils/mail/interface";
 import { MailAddress } from "@shared/entities/MailAddress.entity";
+import { CommonFileFormat, CommonFileResponse } from "@shared/utils/report/types";
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
     constructor(public service: BaseEntityService<T>) { }
@@ -17,7 +17,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         return this.service.getCount(req);
     }
 
-    protected async exportFile(req: CrudRequest, format: ExportFormats): Promise<ExportedFileResponse> {
+    protected async exportFile(req: CrudRequest, format: CommonFileFormat): Promise<CommonFileResponse> {
         const data = await this.service.getDataForExport(req);
         return getExportedFile(format, this.service.getName(), data, this.service.getExportHeaders());
     }
@@ -75,7 +75,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         await recievedMailRepo.save(recievedMail);
     }
 
-    protected async getReportData(req: CrudRequest): Promise<ExportedFileResponse> {
+    protected async getReportData(req: CrudRequest): Promise<CommonFileResponse> {
         return this.service.getReportData(req);
     }
 }

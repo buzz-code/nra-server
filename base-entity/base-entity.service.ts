@@ -2,8 +2,10 @@ import { CreateManyDto, CrudRequest, Override } from "@dataui/crud";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
 import { DeepPartial, EntityManager, Repository } from "typeorm";
 import { snakeCase } from "change-case";
-import { ExportedFileResponse, IHeader } from "@shared/utils/exporter/types";
+import { IHeader } from "@shared/utils/exporter/types";
 import { Entity, ExportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
+import { CommonFileFormat, CommonFileResponse } from "@shared/utils/report/types";
+import { getCommonFileResponse } from "@shared/utils/report/report.util";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     @InjectEntityExporter private exportDefinition: ExportDefinition;
@@ -80,11 +82,9 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         }
     }
 
-    async getReportData(req: CrudRequest): Promise<ExportedFileResponse> {
-        return {
-            data: Buffer.from(JSON.stringify(req.parsed.extra, null, '\t')).toString("base64"),
-            type: 'application/json',
-            disposition: this.getName() + '-extra.json',
-        };
+    async getReportData(req: CrudRequest): Promise<CommonFileResponse> {
+        const buffer = Buffer.from(JSON.stringify(req.parsed.extra, null, '\t'));
+        const name = this.getName() + '-extra';
+        return getCommonFileResponse(buffer, CommonFileFormat.Json, name);
     }
 }

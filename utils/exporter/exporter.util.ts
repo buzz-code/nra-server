@@ -1,30 +1,23 @@
-import { ExportFormats, ExportedFileResponse, IFormatter, IHeader } from "./types";
+import { IFormatter, IHeader } from "./types";
 import * as XLSX from 'xlsx-color';
-import puppeteer from 'puppeteer';
-import { renderToString } from 'react-dom/server';
-import App from "./tableRenderer.component";
-import { createElement } from "react";
+import TableRenderer from "./tableRenderer.component";
+import { CommonFileFormat, CommonFileResponse } from "../report/types";
+import { getFileBuffer, getCommonFileResponse } from "../report/report.util";
 
-export async function getExportedFile<T>(format: ExportFormats, name: string, data: T[], headers: IHeader[]): Promise<ExportedFileResponse> {
-    const fileBuffer = await getFileBuffer(format, data, headers);
-    const type = getFileType(format);
-    const disposition = getFileDisposition(format, name);
-    return {
-        data: fileBuffer.toString('base64'),
-        type,
-        disposition,
-    }
+export async function getExportedFile<T>(format: CommonFileFormat, name: string, data: T[], headers: IHeader[]): Promise<CommonFileResponse> {
+    const fileBuffer = await getExportFileBuffer(format, data, headers);
+    return getCommonFileResponse(fileBuffer, format, name);
 };
 
-async function getFileBuffer<T>(format: ExportFormats, data: T[], headers: IHeader[]): Promise<Buffer> {
+async function getExportFileBuffer<T>(format: CommonFileFormat, data: T[], headers: IHeader[]): Promise<Buffer> {
     const headerRow = getHeaderNames(headers);
     const formatters = getHeaderFormatters(headers)
     const formattedData = data.map(row => formatters.map(func => func(row)));
 
     switch (format) {
-        case ExportFormats.Excel:
+        case CommonFileFormat.Excel:
             return getExcelFile(headerRow, formattedData);
-        case ExportFormats.Pdf:
+        case CommonFileFormat.Pdf:
             return getPdfFile(headerRow, formattedData);
         default:
             throw new Error('unknown format ' + format);
@@ -99,43 +92,8 @@ async function getExcelFile<T>(headerRow: string[], formattedData: string[][]): 
 }
 
 async function getPdfFile<T>(headerRow: string[], formattedData: string[][]): Promise<Buffer> {
-    const markup = renderToString(createElement(App, { headers: headerRow, rows: formattedData }));
-
-    const browser = await puppeteer.launch({
-        args: [
-            "--disable-dev-shm-usage",
-            '--no-sandbox',
-            '--disable-setuid-sandbox'
-        ]
-    });
-    const page = await browser.newPage();
-
-    await page.setContent(markup);
-
-    const pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true
-    });
-    await browser.close();
-
-    return pdf;
-}
-
-function getFileType(format: ExportFormats): string {
-    switch (format) {
-        case ExportFormats.Excel:
-            return 'application/vnd.ms-excel';
-        case ExportFormats.Pdf:
-            return 'application/pdf';
-    }
-}
-
-function getFileDisposition(format: ExportFormats, name: string): string {
-    const timestamp = new Date().toISOString();
-    switch (format) {
-        case ExportFormats.Excel:
-            return `attachment; filename="${name}-${timestamp}.xlsx"`
-        case ExportFormats.Pdf:
-            return `attachment; filename="${name}-${timestamp}.pdf"`
-    }
+    return getFileBuffer(CommonFileFormat.Pdf, {
+        component: TableRenderer,
+        data: { headers: headerRow, rows: formattedData }
+    })
 }
