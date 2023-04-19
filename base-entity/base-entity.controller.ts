@@ -9,6 +9,7 @@ import { RecievedMail } from "@shared/entities/RecievedMail.entity";
 import { MailData } from "@shared/utils/mail/interface";
 import { MailAddress } from "@shared/entities/MailAddress.entity";
 import { CommonFileFormat, CommonFileResponse } from "@shared/utils/report/types";
+import { generateCommonFileResponse } from "@shared/utils/report/report.util";
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
     constructor(public service: BaseEntityService<T>) { }
@@ -76,6 +77,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
     }
 
     protected async getReportData(req: CrudRequest): Promise<CommonFileResponse> {
-        return this.service.getReportData(req);
+        const { generator, params } = await this.service.getReportData(req);
+        return generateCommonFileResponse(generator, params, this.service.dataSource);
     }
 }

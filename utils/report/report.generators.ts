@@ -7,16 +7,27 @@ import * as XLSX from 'xlsx-color';
 import * as ejs from "ejs";
 
 
-export interface IReportData { }
-export type IGetReportDataFunction<T = any> = (dataSource: DataSource, params: T) => Promise<IReportData>;
-export abstract class BaseReportGenerator {
+export type IGetReportDataFunction<T = any, U = any> = (params: T, dataSource: DataSource) => Promise<U>;
+
+const defaultGetReportData = async x => x;
+
+export abstract class BaseReportGenerator<T = any, U = any> {
     fileFormat: CommonFileFormat;
-    constructor(public reportName: string, public getReportData: IGetReportDataFunction) { }
-    abstract getFileBuffer(data): Promise<Buffer>;
+    constructor(
+        public reportName: string,
+        public getReportData: IGetReportDataFunction<T, U> = null,
+    ) {
+        if (!this.getReportData) {
+            this.getReportData = defaultGetReportData;
+        }
+    }
+    abstract getFileBuffer(data: U): Promise<Buffer>;
 }
 
 
-abstract class MarkupToPdfReportGenerator extends BaseReportGenerator {
+abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseReportGenerator<T, U> {
+    fileFormat: CommonFileFormat = CommonFileFormat.Pdf;
+
     async convertMarkupToPdf(markup: string): Promise<Buffer> {
         const browser = await puppeteer.launch({
             args: [
@@ -40,29 +51,36 @@ abstract class MarkupToPdfReportGenerator extends BaseReportGenerator {
 }
 
 
-export class ReactToPdfReportGenerator<T extends IReportData> extends MarkupToPdfReportGenerator {
-    constructor(reportName: string, getReportData: IGetReportDataFunction, private component: React.FunctionComponent<T>) {
+export class ReactToPdfReportGenerator<T = any, U = any> extends MarkupToPdfReportGenerator<T, U> {
+    constructor(
+        reportName: string,
+        getReportData: IGetReportDataFunction<T, U>,
+        private component: React.FunctionComponent<U>,
+    ) {
         super(reportName, getReportData)
-        this.fileFormat = CommonFileFormat.Pdf;
     }
 
-    async getFileBuffer(data: T) {
+    async getFileBuffer(data: U) {
         const markup = renderToString(React.createElement(this.component, data));
         return this.convertMarkupToPdf(markup);
     }
 }
 
 
-export class EjsToPdfReportGenerator<T extends IReportData> extends MarkupToPdfReportGenerator {
+export class EjsToPdfReportGenerator<T = any, U = any> extends MarkupToPdfReportGenerator<T, U> {
     template: ejs.TemplateFunction | ejs.AsyncTemplateFunction;
 
-    constructor(reportName: string, getReportData: IGetReportDataFunction, templateStr: string, options: ejs.Options = undefined) {
+    constructor(
+        reportName: string,
+        getReportData: IGetReportDataFunction<T, U>,
+        templateStr: string,
+        ejsOptions: ejs.Options = undefined,
+    ) {
         super(reportName, getReportData)
-        this.fileFormat = CommonFileFormat.Pdf;
-        this.template = ejs.compile(templateStr, options);
+        this.template = ejs.compile(templateStr, ejsOptions);
     }
 
-    async getFileBuffer(data: T) {
+    async getFileBuffer(data: U) {
         const markup = await this.template(data);
         return this.convertMarkupToPdf(markup);
     }
@@ -74,11 +92,8 @@ export interface IDataToExcelReportGenerator {
     formattedData: string[][];
     sheetName?: string;
 }
-export class DataToExcelReportGenerator extends BaseReportGenerator {
-    constructor(reportName: string, getReportData: IGetReportDataFunction) {
-        super(reportName, getReportData);
-        this.fileFormat = CommonFileFormat.Excel;
-    }
+export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcelReportGenerator, IDataToExcelReportGenerator> {
+    fileFormat: CommonFileFormat = CommonFileFormat.Excel;
 
     async getFileBuffer(data: IDataToExcelReportGenerator): Promise<Buffer> {
         const ws = XLSX.utils.aoa_to_sheet([data.headerRow]);

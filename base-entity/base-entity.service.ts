@@ -1,15 +1,16 @@
 import { CreateManyDto, CrudRequest, Override } from "@dataui/crud";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
-import { DeepPartial, EntityManager, Repository } from "typeorm";
+import { DataSource, DeepPartial, EntityManager, Repository } from "typeorm";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/utils/exporter/types";
 import { Entity, ExportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
-import { CommonFileFormat, CommonFileResponse } from "@shared/utils/report/types";
-import { getCommonFileResponse } from "@shared/utils/report/report.util";
 import { ParamsToJsonReportGenerator } from "@shared/utils/report/report.generators";
+import { CommonReportData } from "@shared/utils/report/types";
+import { InjectDataSource } from "@nestjs/typeorm";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     @InjectEntityExporter private exportDefinition: ExportDefinition;
+    @InjectDataSource() public dataSource: DataSource;
 
     constructor(@InjectEntityRepository repo: Repository<T>) {
         super(repo);
@@ -83,10 +84,12 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         }
     }
 
-    async getReportData(req: CrudRequest): Promise<CommonFileResponse> {
+    async getReportData(req: CrudRequest): Promise<CommonReportData> {
         const name = this.getName() + '-extra';
-        const generator = new ParamsToJsonReportGenerator(name, null);
-        const buffer = await generator.getFileBuffer(req.parsed.extra);
-        return getCommonFileResponse(buffer, generator.fileFormat, name);
+        const generator = new ParamsToJsonReportGenerator(name);
+        return {
+            generator,
+            params: req.parsed.extra,
+        }
     }
 }

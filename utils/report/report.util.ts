@@ -1,10 +1,14 @@
 import { CommonFileFormat } from "./types";
-import puppeteer from 'puppeteer';
-import { renderToString } from 'react-dom/server';
-import { createElement } from "react";
 import { BaseReportGenerator } from "./report.generators";
+import { DataSource } from "typeorm";
 
-export function getCommonFileResponse(buffer: Buffer, format: CommonFileFormat, name: string) {
+export async function generateCommonFileResponse<T = any>(generator: BaseReportGenerator, params: T, dataSource: DataSource) {
+    const data = await generator.getReportData(params, dataSource);
+    const buffer = await generator.getFileBuffer(data);
+    return getCommonFileResponse(buffer, generator.fileFormat, generator.reportName);
+}
+
+function getCommonFileResponse(buffer: Buffer, format: CommonFileFormat, name: string) {
     const type = getFileType(format);
     const disposition = getFileDisposition(format, name);
     return {
@@ -14,7 +18,7 @@ export function getCommonFileResponse(buffer: Buffer, format: CommonFileFormat, 
     }
 }
 
-export function getFileType(format: CommonFileFormat): string {
+function getFileType(format: CommonFileFormat): string {
     switch (format) {
         case CommonFileFormat.Excel:
             return 'application/vnd.ms-excel';
@@ -25,7 +29,7 @@ export function getFileType(format: CommonFileFormat): string {
     }
 }
 
-export function getFileDisposition(format: CommonFileFormat, name: string): string {
+function getFileDisposition(format: CommonFileFormat, name: string): string {
     const timestamp = new Date().toISOString();
     switch (format) {
         case CommonFileFormat.Excel:
@@ -39,27 +43,4 @@ export function getFileDisposition(format: CommonFileFormat, name: string): stri
 
 export function getFileBuffer(generator: BaseReportGenerator, data: any): Promise<Buffer> {
     return generator.getFileBuffer(data);
-}
-
-export async function getPdfFile({ component, data }): Promise<Buffer> {
-    const markup = renderToString(createElement(component, data));
-
-    const browser = await puppeteer.launch({
-        args: [
-            "--disable-dev-shm-usage",
-            '--no-sandbox',
-            '--disable-setuid-sandbox'
-        ]
-    });
-    const page = await browser.newPage();
-
-    await page.setContent(markup);
-
-    const pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true
-    });
-    await browser.close();
-
-    return pdf;
 }

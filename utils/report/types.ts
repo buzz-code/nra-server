@@ -1,3 +1,5 @@
+import { BaseReportGenerator } from "./report.generators";
+
 export interface CommonFileResponse {
     data: string;
     type: string;
@@ -9,3 +11,8 @@ export enum CommonFileFormat {
     Pdf,
     Json,
 };
+
+export interface CommonReportData<T = any> {
+    generator: BaseReportGenerator;
+    params: T;
+}
