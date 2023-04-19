@@ -74,7 +74,7 @@ export interface IDataToExcelReportDefinition {
     formattedData: string[][];
     sheetName?: string;
 }
-export class DataToExcelReportDefinition<T extends IReportData> extends BaseReportDefinition {
+export class DataToExcelReportDefinition extends BaseReportDefinition {
     constructor(reportName: string, getReportData: IGetReportDataFunction) {
         super(reportName, getReportData);
         this.fileFormat = CommonFileFormat.Excel;
@@ -107,5 +107,14 @@ export class DataToExcelReportDefinition<T extends IReportData> extends BaseRepo
 
         const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
         return buffer;
+    }
+}
+
+
+export class ParamsToJsonReportDefinition extends BaseReportDefinition {
+    fileFormat: CommonFileFormat = CommonFileFormat.Json;
+
+    async getFileBuffer(data: any): Promise<Buffer> {
+        return Buffer.from(JSON.stringify(data, null, 2));
     }
 }
