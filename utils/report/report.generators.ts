@@ -9,14 +9,14 @@ import * as ejs from "ejs";
 
 export interface IReportData { }
 export type IGetReportDataFunction<T = any> = (dataSource: DataSource, params: T) => Promise<IReportData>;
-export abstract class BaseReportDefinition {
+export abstract class BaseReportGenerator {
     fileFormat: CommonFileFormat;
     constructor(public reportName: string, public getReportData: IGetReportDataFunction) { }
     abstract getFileBuffer(data): Promise<Buffer>;
 }
 
 
-abstract class MarkupToPdfReportDefinition extends BaseReportDefinition {
+abstract class MarkupToPdfReportGenerator extends BaseReportGenerator {
     async convertMarkupToPdf(markup: string): Promise<Buffer> {
         const browser = await puppeteer.launch({
             args: [
@@ -40,7 +40,7 @@ abstract class MarkupToPdfReportDefinition extends BaseReportDefinition {
 }
 
 
-export class ReactToPdfReportDefinition<T extends IReportData> extends MarkupToPdfReportDefinition {
+export class ReactToPdfReportGenerator<T extends IReportData> extends MarkupToPdfReportGenerator {
     constructor(reportName: string, getReportData: IGetReportDataFunction, private component: React.FunctionComponent<T>) {
         super(reportName, getReportData)
         this.fileFormat = CommonFileFormat.Pdf;
@@ -53,7 +53,7 @@ export class ReactToPdfReportDefinition<T extends IReportData> extends MarkupToP
 }
 
 
-export class EjsToPdfReportDefinition<T extends IReportData> extends MarkupToPdfReportDefinition {
+export class EjsToPdfReportGenerator<T extends IReportData> extends MarkupToPdfReportGenerator {
     template: ejs.TemplateFunction | ejs.AsyncTemplateFunction;
 
     constructor(reportName: string, getReportData: IGetReportDataFunction, templateStr: string, options: ejs.Options = undefined) {
@@ -69,18 +69,18 @@ export class EjsToPdfReportDefinition<T extends IReportData> extends MarkupToPdf
 }
 
 
-export interface IDataToExcelReportDefinition {
+export interface IDataToExcelReportGenerator {
     headerRow: string[];
     formattedData: string[][];
     sheetName?: string;
 }
-export class DataToExcelReportDefinition extends BaseReportDefinition {
+export class DataToExcelReportGenerator extends BaseReportGenerator {
     constructor(reportName: string, getReportData: IGetReportDataFunction) {
         super(reportName, getReportData);
         this.fileFormat = CommonFileFormat.Excel;
     }
 
-    async getFileBuffer(data: IDataToExcelReportDefinition): Promise<Buffer> {
+    async getFileBuffer(data: IDataToExcelReportGenerator): Promise<Buffer> {
         const ws = XLSX.utils.aoa_to_sheet([data.headerRow]);
         XLSX.utils.sheet_add_aoa(ws, data.formattedData, { origin: -1 });
 
@@ -111,7 +111,7 @@ export class DataToExcelReportDefinition extends BaseReportDefinition {
 }
 
 
-export class ParamsToJsonReportDefinition extends BaseReportDefinition {
+export class ParamsToJsonReportGenerator extends BaseReportGenerator {
     fileFormat: CommonFileFormat = CommonFileFormat.Json;
 
     async getFileBuffer(data: any): Promise<Buffer> {

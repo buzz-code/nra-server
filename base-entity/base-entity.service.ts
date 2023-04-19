@@ -6,7 +6,7 @@ import { IHeader } from "@shared/utils/exporter/types";
 import { Entity, ExportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
 import { CommonFileFormat, CommonFileResponse } from "@shared/utils/report/types";
 import { getCommonFileResponse } from "@shared/utils/report/report.util";
-import { ParamsToJsonReportDefinition } from "@shared/utils/report/report.generators";
+import { ParamsToJsonReportGenerator } from "@shared/utils/report/report.generators";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     @InjectEntityExporter private exportDefinition: ExportDefinition;
@@ -85,8 +85,8 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
 
     async getReportData(req: CrudRequest): Promise<CommonFileResponse> {
         const name = this.getName() + '-extra';
-        const definition = new ParamsToJsonReportDefinition(name, null);
-        const buffer = await definition.getFileBuffer(req.parsed.extra);
-        return getCommonFileResponse(buffer, definition.fileFormat, name);
+        const generator = new ParamsToJsonReportGenerator(name, null);
+        const buffer = await generator.getFileBuffer(req.parsed.extra);
+        return getCommonFileResponse(buffer, generator.fileFormat, name);
     }
 }

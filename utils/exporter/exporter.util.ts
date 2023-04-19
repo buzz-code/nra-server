@@ -2,7 +2,7 @@ import { IFormatter, IHeader } from "./types";
 import TableRenderer from "./tableRenderer.component";
 import { CommonFileFormat, CommonFileResponse } from "../report/types";
 import { getFileBuffer, getCommonFileResponse } from "../report/report.util";
-import { DataToExcelReportDefinition, IDataToExcelReportDefinition, ReactToPdfReportDefinition } from "../report/report.generators";
+import { DataToExcelReportGenerator, IDataToExcelReportGenerator, ReactToPdfReportGenerator } from "../report/report.generators";
 
 export async function getExportedFile<T>(format: CommonFileFormat, name: string, data: T[], headers: IHeader[]): Promise<CommonFileResponse> {
     const fileBuffer = await getExportFileBuffer(name, format, data, headers);
@@ -63,13 +63,13 @@ function getHeaderFormatters(headers: IHeader[]): IFormatter[] {
 }
 
 async function getExcelFile<T>(name: string, headerRow: string[], formattedData: string[][]): Promise<Buffer> {
-    const definition = new DataToExcelReportDefinition(name, null);
-    const data: IDataToExcelReportDefinition = { headerRow, formattedData };
-    return getFileBuffer(definition, data);
+    const generator = new DataToExcelReportGenerator(name, null);
+    const data: IDataToExcelReportGenerator = { headerRow, formattedData };
+    return getFileBuffer(generator, data);
 }
 
 async function getPdfFile<T>(name: string, headerRow: string[], formattedData: string[][]): Promise<Buffer> {
-    const definition = new ReactToPdfReportDefinition(name, null, TableRenderer);
+    const generator = new ReactToPdfReportGenerator(name, null, TableRenderer);
     const data = { headers: headerRow, rows: formattedData };
-    return getFileBuffer(definition, data);
+    return getFileBuffer(generator, data);
 }

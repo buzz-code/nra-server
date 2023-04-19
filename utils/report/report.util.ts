@@ -2,7 +2,7 @@ import { CommonFileFormat } from "./types";
 import puppeteer from 'puppeteer';
 import { renderToString } from 'react-dom/server';
 import { createElement } from "react";
-import { BaseReportDefinition } from "./report.generators";
+import { BaseReportGenerator } from "./report.generators";
 
 export function getCommonFileResponse(buffer: Buffer, format: CommonFileFormat, name: string) {
     const type = getFileType(format);
@@ -37,8 +37,8 @@ export function getFileDisposition(format: CommonFileFormat, name: string): stri
     }
 }
 
-export function getFileBuffer(definition: BaseReportDefinition, data: any): Promise<Buffer> {
-    return definition.getFileBuffer(data);
+export function getFileBuffer(generator: BaseReportGenerator, data: any): Promise<Buffer> {
+    return generator.getFileBuffer(data);
 }
 
 export async function getPdfFile({ component, data }): Promise<Buffer> {
