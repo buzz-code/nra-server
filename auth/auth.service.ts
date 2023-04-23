@@ -34,16 +34,18 @@ export class AuthService {
     return null;
   }
 
-  async registerUser(username: string, pass: string): Promise<any> {
+  async registerUser(username: string, pass: string, userInfo: any): Promise<any> {
     const existingUser = await this.userRepository.findOne({ where: { email: username } });
     if (existingUser) {
       throw new UnauthorizedException('כתובת המייל כבר רשומה במערכת');
     }
     const userToCreate = this.userRepository.create({
-      name: username,
+      name: userInfo?.name ?? username,
       email: username,
+      phoneNumber: userInfo?.phone,
       password: pass,
       permissions: {},
+      userInfo,
     });
     const user = await this.userRepository.save(userToCreate);
     const { password, ...result } = user;

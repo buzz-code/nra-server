@@ -49,4 +49,7 @@ export abstract class User {
 
   @Column("simple-json", { nullable: true })
   additionalData: any;
+
+  @Column("simple-json", { nullable: true })
+  userInfo: any;
 }
