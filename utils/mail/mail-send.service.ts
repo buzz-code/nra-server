@@ -1,6 +1,7 @@
 import { MailerService, } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
 import { ImportFile } from '@shared/entities/ImportFile.entity';
+import { MailData } from './interface';
 
 @Injectable()
 export class MailSendService {
@@ -24,19 +25,20 @@ export class MailSendService {
   }
 
 
-  async sendResponseEmail(from: string, to: string, subject: string, bodyText: string) {
+  async sendResponseEmail(mailData: MailData, bodyText: string) {
     return this.mailerService
       .sendMail({
-        to,
-        from,
-        subject: 'Re:' + subject,
+        to: mailData.mail_from,
+        from: mailData.rcpt_to,
+        subject: 'Re:' + (mailData.subject ?? ''),
         text: bodyText,
         html: bodyText,
-        // template: false,
+        inReplyTo: mailData.message_id,
+        references: mailData.message_id,
       });
   }
 
-  async sendEmailImportResponse(from: string, to: string, subject: string, importedFileData: ImportFile[]) {
+  async sendEmailImportResponse(mailData: MailData, importedFileData: ImportFile[]) {
     let body = `הודעתך התקבלה`;
     if (importedFileData.length) {
       body += `
@@ -47,6 +49,6 @@ export class MailSendService {
           .map((item, index) => `${(index + 1)}: ${item.fileName} התקבל, תגובה: ${item.response}`)
           .join(this.lineBreak)}`
     }
-    return this.sendResponseEmail(from, to, subject, body);
+    return this.sendResponseEmail(mailData, body);
   }
 }

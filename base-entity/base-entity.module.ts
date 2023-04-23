@@ -68,7 +68,7 @@ export class BaseEntityModule {
                     importedFiles.push(await this.importExcelFile(userId, attachment.data, attachment.filename, ImportFileSource.Email));
                 }
                 await this.saveEmailData(userId, body.mail_data, importedFiles);
-                await this.mailSendService.sendEmailImportResponse(body.mail_data.rcpt_to, body.mail_data.mail_from, body.mail_data.subject, importedFiles);
+                await this.mailSendService.sendEmailImportResponse(body.mail_data, importedFiles);
             }
         }
 
