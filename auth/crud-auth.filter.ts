@@ -13,3 +13,10 @@ export const CrudAuthAdminFilter = {
         ? ({})
         : ({ id: -1 })
 }
+
+export const CrudAuthWithPermissionsFilter = (permissionsFunc: (permissions: any) => boolean) => ({
+    property: 'user',
+    filter: (user) => user.permissions.admin || permissionsFunc(user.permissions)
+        ? ({})
+        : ({ id: -1 })
+})
