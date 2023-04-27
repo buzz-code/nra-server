@@ -1,4 +1,4 @@
-import { CreateManyDto, CrudRequest, Override } from "@dataui/crud";
+import { CreateManyDto, CrudRequest, GetManyDefaultResponse, Override } from "@dataui/crud";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
 import { DataSource, DeepPartial, EntityManager, Repository } from "typeorm";
 import { snakeCase } from "change-case";
@@ -91,5 +91,19 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
             generator,
             params: req.parsed.extra,
         }
+    }
+
+    async getPivotData(req: CrudRequest<any, any>): Promise<GetManyDefaultResponse<T> | T[]> {
+        const res = await this.getMany(req);
+        const list = Array.isArray(res) ? res : res.data;
+        if (list.length > 0) {
+            const pivotName = req.parsed.extra.pivot?.replace('?', '');
+            await this.populatePivotData(pivotName, list);
+        }
+        return res;
+    }
+
+    protected async populatePivotData(pivotName: string, data: T[]): Promise<void> {
+        //override this
     }
 }

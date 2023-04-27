@@ -43,14 +43,20 @@ export class BaseEntityModule {
 
             @Get('/export')
             @UseInterceptors(CrudRequestInterceptor)
-            export(@ParsedRequest() req: CrudRequest) {
-                return this.exportFile(req);
+            exportFile(@ParsedRequest() req: CrudRequest) {
+                return super.exportFile(req);
             }
 
             @Get('/report')
             @UseInterceptors(CrudRequestInterceptor)
-            report(@ParsedRequest() req: CrudRequest) {
-                return this.getReportData(req);
+            getReportData(@ParsedRequest() req: CrudRequest) {
+                return super.getReportData(req);
+            }
+
+            @Get('/pivot')
+            @UseInterceptors(CrudRequestInterceptor)
+            getPivotData(@ParsedRequest() req: CrudRequest) {
+                return super.getPivotData(req);
             }
 
             @Post('/handle-email')

@@ -81,4 +81,8 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         const { generator, params } = await this.service.getReportData(req);
         return generateCommonFileResponse(generator, params, this.service.dataSource);
     }
+
+    protected async getPivotData(req: CrudRequest) {
+       return this.service.getPivotData(req);
+    }
 }
