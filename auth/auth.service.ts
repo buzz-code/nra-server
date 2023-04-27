@@ -66,7 +66,6 @@ export class AuthService {
       path: '/',
       maxAge: jwtConstants.maxAge,
       sameSite: true,
-      domain: '.' + process.env.DOMAIN_NAME,
     });
   }
 
