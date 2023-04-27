@@ -8,7 +8,7 @@ import { ImportFile, ImportFileSource } from "@shared/entities/ImportFile.entity
 import { RecievedMail } from "@shared/entities/RecievedMail.entity";
 import { MailData } from "@shared/utils/mail/interface";
 import { MailAddress } from "@shared/entities/MailAddress.entity";
-import { CommonFileFormat, CommonFileResponse } from "@shared/utils/report/types";
+import { CommonFileResponse, exportFormatDict } from "@shared/utils/report/types";
 import { generateCommonFileResponse } from "@shared/utils/report/report.util";
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
@@ -18,8 +18,9 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         return this.service.getCount(req);
     }
 
-    protected async exportFile(req: CrudRequest, format: CommonFileFormat): Promise<CommonFileResponse> {
+    protected async exportFile(req: CrudRequest<any, any>): Promise<CommonFileResponse> {
         const data = await this.service.getDataForExport(req);
+        const format = exportFormatDict[req.parsed.extra.format];
         return getExportedFile(format, this.service.getName(), data, this.service.getExportHeaders());
     }
 

@@ -41,16 +41,10 @@ export class BaseEntityModule {
                 return super.getCount(req);
             }
 
-            @Get('/export/excel')
+            @Get('/export')
             @UseInterceptors(CrudRequestInterceptor)
-            exportExcel(@ParsedRequest() req: CrudRequest) {
-                return this.exportFile(req, CommonFileFormat.Excel);
-            }
-
-            @Get('/export/pdf')
-            @UseInterceptors(CrudRequestInterceptor)
-            exportPdf(@ParsedRequest() req: CrudRequest) {
-                return this.exportFile(req, CommonFileFormat.Pdf);
+            export(@ParsedRequest() req: CrudRequest) {
+                return this.exportFile(req);
             }
 
             @Get('/report')

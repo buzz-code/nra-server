@@ -16,3 +16,9 @@ export interface CommonReportData<T = any> {
     generator: BaseReportGenerator;
     params: T;
 }
+
+export const exportFormatDict = {
+    excel: CommonFileFormat.Excel,
+    pdf: CommonFileFormat.Pdf,
+    json: CommonFileFormat.Json,
+};
