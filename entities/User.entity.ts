@@ -1,4 +1,4 @@
-import { BeforeInsert, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { BeforeInsert, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import * as bcrypt from 'bcrypt';
 
 @Entity("users")
@@ -29,16 +29,10 @@ export abstract class User {
   @Column("tinyint", { name: "active", nullable: true })
   active: number | null;
 
-  @Column("timestamp", {
-    name: "created_at",
-    default: () => "CURRENT_TIMESTAMP",
-  })
+  @CreateDateColumn({ name: "created_at", type: "timestamp" })
   createdAt: Date;
 
-  @Column("timestamp", {
-    name: "updated_at",
-    default: () => "CURRENT_TIMESTAMP",
-  })
+  @UpdateDateColumn({ name: "updated_at", type: 'timestamp' })
   updatedAt: Date;
 
   @Column({ nullable: true })
