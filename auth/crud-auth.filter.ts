@@ -23,7 +23,6 @@ export const CrudAuthWithPermissionsFilter: AuthWithFunc = (permissionsFunc) => 
 })
 
 export const CrudAuthReadOnlyWithPermissionFunc: AuthWithFunc = (permissionsFunc) => ({
-    filter: CrudAuthFilter.filter,
     persist: (user) => user.permissions.admin || permissionsFunc(user.permissions)
         ? ({})
         : ({ id: 'break' })
