@@ -4,7 +4,10 @@ import { databaseConfig } from "./database.config";
 
 const dataSource = new DataSource({
     ...databaseConfig,
-    entities: [join(__dirname, '/../../src/db/**/*.ts')],
+    entities: [
+        join(__dirname, '/../../src/db/**/*.ts'),
+        join(__dirname, '/../../shared/entities/**/*.ts'),
+],
 });
 export default dataSource;
 
