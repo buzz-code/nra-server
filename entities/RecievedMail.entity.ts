@@ -1,4 +1,5 @@
 import { MailData } from "@shared/utils/mail/interface";
+import { IsNotEmpty, MaxLength } from "class-validator";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
@@ -12,9 +13,13 @@ export class RecievedMail {
     @Column('simple-json')
     mailData: MailData;
 
+    @IsNotEmpty({ always: true })
+    @MaxLength(255, { always: true })
     @Column()
     from: string;
 
+    @IsNotEmpty({ always: true })
+    @MaxLength(255, { always: true })
     @Column()
     to: string;
 
@@ -24,6 +29,8 @@ export class RecievedMail {
     @Column('text', { nullable: true })
     body: string;
 
+    @IsNotEmpty({ always: true })
+    @MaxLength(255, { always: true })
     @Column()
     entityName: string;
 
