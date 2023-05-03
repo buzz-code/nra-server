@@ -1,4 +1,4 @@
-import { Body, Controller, DynamicModule, Get, Inject, Module, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, DynamicModule, Get, HttpException, HttpStatus, Module, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Crud, CrudAuth, CrudRequest, CrudRequestInterceptor, ParsedRequest } from '@dataui/crud';
 import { CrudAuthFilter } from '@shared/auth/crud-auth.filter';
@@ -12,7 +12,6 @@ import { HttpModule } from '@nestjs/axios';
 import { HandleEmailBody } from '@shared/utils/mail/interface';
 import { ImportFileSource } from '@shared/entities/ImportFile.entity';
 import { MailSendService } from '@shared/utils/mail/mail-send.service';
-import { CommonFileFormat } from '@shared/utils/report/types';
 
 @Module({})
 export class BaseEntityModule {
@@ -25,6 +24,12 @@ export class BaseEntityModule {
             },
             query: options.query,
             routes: options.routes,
+            validation: {
+                exceptionFactory(errors) {
+                    const errorMessages = errors.flatMap(item => Object.values(item.constraints));
+                    return new HttpException({ message: errorMessages.join(', ') }, HttpStatus.BAD_REQUEST);
+                }
+            }
         })
         @UseGuards(JwtAuthGuard)
         @CrudAuth(options.crudAuth ?? CrudAuthFilter)
