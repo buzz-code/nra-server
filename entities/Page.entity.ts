@@ -18,17 +18,14 @@ export class Page {
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
   @MaxLength(255, { always: true })
   @Column()
-  path: string;
-
-  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-  @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
-  @MaxLength(255, { always: true })
-  @Column()
   description: string;
 
   @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column('longtext')
   value: string;
+
+  @Column({ nullable: true })
+  order: number;
 
   @CreateDateColumn()
   createdAt: Date;
