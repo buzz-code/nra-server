@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from "typeorm";
-import { IsNotEmpty, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
+import { CrudValidationGroups } from "@dataui/crud";
 
 @Entity()
 @Unique(['userId', 'entity'])
@@ -10,12 +11,14 @@ export class MailAddress {
     @Column()
     userId: number;
 
-    @IsNotEmpty({ always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+    @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
     @Column()
     alias: string;
 
-    @IsNotEmpty({ always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+    @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
     @Column()
     entity: string;

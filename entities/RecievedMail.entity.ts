@@ -1,5 +1,6 @@
+import { CrudValidationGroups } from "@dataui/crud";
 import { MailData } from "@shared/utils/mail/interface";
-import { IsNotEmpty, MaxLength } from "class-validator";
+import { IsNotEmpty, IsOptional, MaxLength } from "class-validator";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
@@ -13,12 +14,14 @@ export class RecievedMail {
     @Column('simple-json')
     mailData: MailData;
 
-    @IsNotEmpty({ always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+    @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
     @Column()
     from: string;
 
-    @IsNotEmpty({ always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+    @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
     @Column()
     to: string;
@@ -29,7 +32,8 @@ export class RecievedMail {
     @Column('text', { nullable: true })
     body: string;
 
-    @IsNotEmpty({ always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+    @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
     @Column()
     entityName: string;

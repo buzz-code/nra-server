@@ -1,19 +1,22 @@
 import { BeforeInsert, BeforeUpdate, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import * as bcrypt from 'bcrypt';
-import { IsNotEmpty, MaxLength } from "class-validator";
+import { IsNotEmpty, IsOptional, MaxLength } from "class-validator";
+import { CrudValidationGroups } from "@dataui/crud";
 
 @Entity("users")
 export abstract class User {
   @PrimaryGeneratedColumn({ type: "int", name: "id" })
   id: number;
 
-  @IsNotEmpty({ always: true })
-  @MaxLength(500, { always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+  @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+  @MaxLength(500, {})
   @Column("varchar", { name: "name", length: 500 })
   name: string;
 
-  @IsNotEmpty({ always: true })
-  @MaxLength(500, { always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+  @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+  @MaxLength(500, {})
   @Column("varchar", { name: "email", nullable: true, length: 500 })
   email: string | null;
 
@@ -31,8 +34,9 @@ export abstract class User {
   @Column("varchar", { name: "password", nullable: true, length: 500 })
   password: string | null;
 
-  @IsNotEmpty({ always: true })
-  @MaxLength(11, { always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+  @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+  @MaxLength(11, {})
   @Column("varchar", { name: "phone_number", nullable: true, length: 11 })
   phoneNumber: string | null;
 

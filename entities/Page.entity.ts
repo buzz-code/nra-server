@@ -1,4 +1,5 @@
-import { IsNotEmpty, MaxLength } from "class-validator";
+import { CrudValidationGroups } from "@dataui/crud";
+import { IsNotEmpty, IsOptional, MaxLength } from "class-validator";
 import {
   Column,
   CreateDateColumn,
@@ -13,17 +14,19 @@ export class Page {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @IsNotEmpty({ always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+  @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
   @MaxLength(255, { always: true })
   @Column()
   path: string;
 
-  @IsNotEmpty({ always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+  @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
   @MaxLength(255, { always: true })
   @Column()
   description: string;
 
-  @IsNotEmpty({ always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column('longtext')
   value: string;
 
