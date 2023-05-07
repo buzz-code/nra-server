@@ -1,7 +1,8 @@
 import { BeforeInsert, BeforeUpdate, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import * as bcrypt from 'bcrypt';
-import { IsNotEmpty, IsOptional, MaxLength } from "class-validator";
+import { IsOptional } from "class-validator";
 import { CrudValidationGroups } from "@dataui/crud";
+import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
 
 @Entity("users")
 export abstract class User {

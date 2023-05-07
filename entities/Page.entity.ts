@@ -1,5 +1,5 @@
 import { CrudValidationGroups } from "@dataui/crud";
-import { IsNotEmpty, IsOptional, MaxLength } from "class-validator";
+import { IsOptional } from "class-validator";
 import {
   Column,
   CreateDateColumn,
@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
+import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
 
 
 @Entity()

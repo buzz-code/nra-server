@@ -1,7 +1,8 @@
 import { CrudValidationGroups } from "@dataui/crud";
 import { MailData } from "@shared/utils/mail/interface";
-import { IsNotEmpty, IsOptional, MaxLength } from "class-validator";
+import { IsOptional } from "class-validator";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
 
 @Entity()
 export class RecievedMail {

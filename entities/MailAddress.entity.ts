@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from "typeorm";
-import { IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
+import { IsOptional } from 'class-validator';
 import { CrudValidationGroups } from "@dataui/crud";
+import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
 
 @Entity()
 @Unique(['userId', 'entity'])
