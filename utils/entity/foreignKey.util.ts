@@ -1,13 +1,20 @@
 import { databaseConfig } from "@shared/config/database.config";
-import { DataSource } from "typeorm";
+import { DataSource, DataSourceOptions, EntityTarget, FindOneOptions, ObjectLiteral } from "typeorm";
 
-export async function getDataSource(entities) {
+export async function getDataSource(entities: DataSourceOptions['entities']) {
     const dataSource = new DataSource(Object.assign(Object.assign({}, databaseConfig), { entities }));
     await dataSource.initialize();
     return dataSource;
 }
 
-export async function findOneAndAssignReferenceId(dataSource, repository, where, userId, referenceIdValue, keyValue) {
+export async function findOneAndAssignReferenceId(
+    dataSource: DataSource,
+    repository: EntityTarget<ObjectLiteral>,
+    where: FindOneOptions['where'] = {},
+    userId: number,
+    referenceIdValue: any,
+    keyValue: any,
+) {
     if (keyValue && !referenceIdValue) {
         const item = await dataSource.getRepository(repository)
             .findOne({
