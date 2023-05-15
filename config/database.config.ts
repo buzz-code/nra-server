@@ -11,6 +11,8 @@ export const databaseConfig: DataSourceOptions = {
     // entities: [__dirname + '/../**/*.entity{.ts,.js}'],
     // synchronize: true,
     logging: "all",
-    migrationsRun: process.env.NODE_ENV == 'production',
+    migrationsRun: process.env.NODE_ENV == 'production' ||
+        // true ||
+        false,
     migrations: [join(__dirname, '/../../src/migrations/*.js')],
 };
