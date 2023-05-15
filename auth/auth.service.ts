@@ -7,6 +7,14 @@ import * as bcrypt from 'bcrypt';
 import { jwtConstants } from './constants';
 import * as cookie from 'cookie';
 
+type UserForCookie = Partial<Omit<User, 'password'> & { impersonated?: boolean }>;
+
+const adminUser = {
+  id: -1,
+  name: 'admin',
+  permissions: { admin: true }
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -16,22 +24,22 @@ export class AuthService {
 
   async validateUser(username: string, pass: string): Promise<any> {
     if (`${username}:${pass}` === process.env.ADMIN_USER) {
-      return {
-        id: -1,
-        name: 'admin',
-        permissions: { admin: true }
-      }
+      return adminUser
     }
 
     const user = await this.userRepository.findOne({ where: { email: username } });
     if (user) {
       const passwordMatch = await bcrypt.compare(pass, user.password);
       if (passwordMatch) {
-        const { password, ...result } = user;
-        return result;
+        return this.getUserForCookie(user);
       }
     }
     return null;
+  }
+
+  private getUserForCookie(user: User): UserForCookie {
+    const { password, ...result } = user;
+    return result;
   }
 
   async registerUser(username: string, pass: string, userInfo: any): Promise<any> {
@@ -47,17 +55,17 @@ export class AuthService {
       userInfo,
     });
     const user = await this.userRepository.save(userToCreate);
-    const { password, ...result } = user;
-    return result;
+    return this.getUserForCookie(user);
   }
 
-  async getCookieWithJwtToken(user: any) {
+  async getCookieWithJwtToken(user: UserForCookie) {
     const payload = {
       username: user.email,
       id: user.id,
       effective_id: user.effective_id,
       name: user.name,
-      permissions: user.permissions || {}
+      permissions: user.permissions || {},
+      impersonated: user.impersonated,
     };
     const token = this.jwtService.sign(payload);
     return cookie.serialize('Authentication', token, {
@@ -68,12 +76,23 @@ export class AuthService {
     });
   }
 
-  public getCookieForLogOut() {
-    return cookie.serialize('Authentication', '', {
-      httpOnly: true,
-      path: '/',
-      maxAge: 0,
-      sameSite: true
-    });
+  async getCookieForLogOut(user?: UserForCookie) {
+    if (!user?.impersonated) {
+      return cookie.serialize('Authentication', '', {
+        httpOnly: true,
+        path: '/',
+        maxAge: 0,
+        sameSite: true
+      });
+    } else {
+      return this.getCookieWithJwtToken(adminUser);
+    }
+  }
+
+  async getCookieForImpersonate(userId: number) {
+    const user = await this.userRepository.findOneBy({ id: userId })
+    const userForCookie = this.getUserForCookie(user);
+    userForCookie.impersonated = true
+    return this.getCookieWithJwtToken(userForCookie);
   }
 }
