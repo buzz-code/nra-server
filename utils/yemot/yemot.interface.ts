@@ -1,5 +1,5 @@
 import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
-import { Text } from "src/db/entities/Text.entity";
+import { Text } from "@shared/entities/Text.entity";
 import { DataSource } from "typeorm";
 import util from "./yemot.util";
 
