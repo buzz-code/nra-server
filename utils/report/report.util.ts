@@ -26,19 +26,29 @@ function getFileType(format: CommonFileFormat): string {
             return 'application/pdf';
         case CommonFileFormat.Json:
             return 'application/json';
+        case CommonFileFormat.Zip:
+            return 'application/zip';
     }
 }
 
 function getFileDisposition(format: CommonFileFormat, name: string): string {
     const timestamp = new Date().toISOString();
+    const extension = getFileExtension(format);
+    return `attachment; filename="${name}-${timestamp}.${extension}"`;
+}
+
+export function getFileExtension(format: CommonFileFormat) {
     switch (format) {
         case CommonFileFormat.Excel:
-            return `attachment; filename="${name}-${timestamp}.xlsx"`
+            return 'xlsx';
         case CommonFileFormat.Pdf:
-            return `attachment; filename="${name}-${timestamp}.pdf"`
+            return 'pdf';
         case CommonFileFormat.Json:
-            return `attachment; filename="${name}-${timestamp}.json"`
+            return 'json';
+        case CommonFileFormat.Zip:
+            return 'zip';
     }
+
 }
 
 export function getFileBuffer(generator: BaseReportGenerator, data: any): Promise<Buffer> {

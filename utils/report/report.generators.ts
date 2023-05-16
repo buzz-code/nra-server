@@ -6,6 +6,8 @@ import * as React from 'react';
 import * as XLSX from 'xlsx-color';
 import * as ejs from "ejs";
 import { PDFDocument } from 'pdf-lib';
+import { getFileExtension } from "./report.util";
+import * as JSZip from 'jszip';
 
 
 export type IGetReportDataFunction<T = any, U = any> = (params: T, dataSource: DataSource) => Promise<U>;
@@ -52,6 +54,40 @@ export class BulkToPdfReportGenerator extends BaseReportGenerator {
         const pdfBytes = await pdfDoc.save()
 
         return Buffer.from(pdfBytes);
+    }
+}
+
+export class BulkToZipReportGenerator extends BaseReportGenerator {
+    fileFormat: CommonFileFormat = CommonFileFormat.Zip;
+    generator: BaseReportGenerator;
+
+    constructor(
+        generator: BaseReportGenerator,
+        getReportData?: IGetReportDataFunction<any, any>,
+    ) {
+        super(generator.reportName, null);
+        this.generator = generator;
+        if (getReportData) {
+            this.getReportData = getReportData;
+        } else {
+            this.getReportData = (arr: any[], dataSource: DataSource) =>
+                Promise.all(
+                    arr.map(item => this.generator.getReportData(item, dataSource))
+                );
+        }
+    }
+
+    async getFileBuffer(data: any[]): Promise<Buffer> {
+        var zip = new JSZip();
+        const extension = getFileExtension(this.generator.fileFormat);
+        let counter = 1;
+        for (const item of data) {
+            const buffer = await this.generator.getFileBuffer(item);
+            const filename = `${this.generator.reportName}_${counter}.${extension}`;
+            zip.file(filename, buffer);
+            counter++;
+        }
+        return zip.generateAsync({ type: "nodebuffer" });
     }
 }
 

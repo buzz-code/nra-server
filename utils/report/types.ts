@@ -10,6 +10,7 @@ export enum CommonFileFormat {
     Excel,
     Pdf,
     Json,
+    Zip,
 };
 
 export interface CommonReportData<T = any> {
