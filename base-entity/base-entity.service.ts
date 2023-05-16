@@ -93,6 +93,10 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         }
     }
 
+    async doAction(req: CrudRequest<any, any>): Promise<any> {
+        return 'done nothing';
+    }
+
     async getPivotData(req: CrudRequest<any, any>): Promise<GetManyDefaultResponse<T> | T[]> {
         const res = await this.getMany(req);
         const list = Array.isArray(res) ? res : res.data;

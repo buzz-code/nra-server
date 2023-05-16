@@ -82,7 +82,11 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         return generateCommonFileResponse(generator, params, this.service.dataSource);
     }
 
+    protected async doAction(req: CrudRequest): Promise<any> {
+        return this.service.doAction(req);
+    }
+
     protected async getPivotData(req: CrudRequest) {
-       return this.service.getPivotData(req);
+        return this.service.getPivotData(req);
     }
 }
