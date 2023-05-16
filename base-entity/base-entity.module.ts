@@ -11,7 +11,6 @@ import { Public } from '@shared/auth/public.decorator';
 import { HttpModule } from '@nestjs/axios';
 import { HandleEmailBody } from '@shared/utils/mail/interface';
 import { ImportFileSource } from '@shared/entities/ImportFile.entity';
-import { MailSendService } from '@shared/utils/mail/mail-send.service';
 
 @Module({})
 export class BaseEntityModule {
@@ -35,8 +34,7 @@ export class BaseEntityModule {
         @CrudAuth(options.crudAuth ?? CrudAuthFilter)
         @Controller(snakeCase(entityName))
         class EntityController extends BaseEntityController<Entity> {
-            constructor(@InjectEntityService public service: BaseEntityService<Entity>,
-                private mailSendService: MailSendService) {
+            constructor(@InjectEntityService public service: BaseEntityService<Entity>) {
                 super(service);
             }
 
@@ -79,7 +77,7 @@ export class BaseEntityModule {
                     importedFiles.push(await this.importExcelFile(userId, attachment.data, attachment.filename, ImportFileSource.Email));
                 }
                 await this.saveEmailData(userId, body.mail_data, importedFiles);
-                await this.mailSendService.sendEmailImportResponse(body.mail_data, importedFiles);
+                await this.service.mailSendService.sendEmailImportResponse(body.mail_data, importedFiles);
             }
         }
 
