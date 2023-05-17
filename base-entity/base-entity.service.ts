@@ -88,7 +88,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
 
     async getReportData(req: CrudRequest): Promise<CommonReportData> {
         const name = this.getName() + '-extra';
-        const generator = new ParamsToJsonReportGenerator(name);
+        const generator = new ParamsToJsonReportGenerator(() => name);
         return {
             generator,
             params: req.parsed.extra,

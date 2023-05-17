@@ -83,7 +83,8 @@ export class BulkToZipReportGenerator extends BaseReportGenerator {
         let counter = 1;
         for (const item of data) {
             const buffer = await this.generator.getFileBuffer(item);
-            const filename = `${counter}_${this.generator.getReportName(item)}.${extension}`;
+            const reportName = this.generator.getReportName(item);
+            const filename = `${counter}_${reportName}.${extension}`;
             zip.file(filename, buffer);
             counter++;
         }
