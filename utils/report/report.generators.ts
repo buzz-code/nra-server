@@ -62,10 +62,11 @@ export class BulkToZipReportGenerator extends BaseReportGenerator {
     generator: BaseReportGenerator;
 
     constructor(
+        getReportName: (data: any) => string,
         generator: BaseReportGenerator,
         getReportData?: IGetReportDataFunction<any, any>,
     ) {
-        super(generator.getReportName, null);
+        super(getReportName, null);
         this.generator = generator;
         if (getReportData) {
             this.getReportData = getReportData;
