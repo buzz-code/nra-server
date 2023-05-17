@@ -34,7 +34,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
 
     @Override()
     createMany(req: CrudRequest<any>, dto: CreateManyDto<DeepPartial<T>>): Promise<T[]> {
-        dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, req.auth.id));
+        dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, req.auth?.id));
         return super.createMany(req, dto);
     }
 
@@ -79,10 +79,11 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     }
 
     getImportFields(): string[] {
+        const columns = this.entityColumns.filter(item => !['id', 'userId'].includes(item));
         if (this.exportDefinition?.getImportFields) {
-            return this.exportDefinition.getImportFields(this.entityColumns);
+            return this.exportDefinition.getImportFields(columns);
         } else {
-            return this.entityColumns.filter(item => !['id', 'userId'].includes(item));
+            return columns;
         }
     }
 
