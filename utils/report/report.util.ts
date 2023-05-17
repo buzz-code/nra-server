@@ -5,7 +5,8 @@ import { DataSource } from "typeorm";
 export async function generateCommonFileResponse<T = any>(generator: BaseReportGenerator, params: T, dataSource: DataSource) {
     const data = await generator.getReportData(params, dataSource);
     const buffer = await generator.getFileBuffer(data);
-    return getCommonFileResponse(buffer, generator.fileFormat, generator.reportName);
+    const filename = generator.getReportName(data);
+    return getCommonFileResponse(buffer, generator.fileFormat, filename);
 }
 
 function getCommonFileResponse(buffer: Buffer, format: CommonFileFormat, name: string) {

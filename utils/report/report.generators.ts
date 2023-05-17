@@ -17,7 +17,7 @@ const defaultGetReportData = async x => x;
 export abstract class BaseReportGenerator<T = any, U = any> {
     fileFormat: CommonFileFormat;
     constructor(
-        public reportName: string,
+        public getReportName: (data: U) => string,
         public getReportData: IGetReportDataFunction<T, U> = null,
     ) {
         if (!this.getReportData) {
@@ -35,7 +35,7 @@ export class BulkToPdfReportGenerator extends BaseReportGenerator {
     constructor(
         generator: BaseReportGenerator,
     ) {
-        super(generator.reportName, null);
+        super(generator.getReportName, null);
         this.generator = generator;
         this.getReportData = (arr: any[], dataSource: DataSource) =>
             Promise.all(
@@ -65,7 +65,7 @@ export class BulkToZipReportGenerator extends BaseReportGenerator {
         generator: BaseReportGenerator,
         getReportData?: IGetReportDataFunction<any, any>,
     ) {
-        super(generator.reportName, null);
+        super(generator.getReportName, null);
         this.generator = generator;
         if (getReportData) {
             this.getReportData = getReportData;
@@ -83,7 +83,7 @@ export class BulkToZipReportGenerator extends BaseReportGenerator {
         let counter = 1;
         for (const item of data) {
             const buffer = await this.generator.getFileBuffer(item);
-            const filename = `${this.generator.reportName}_${counter}.${extension}`;
+            const filename = `${counter}_${this.generator.getReportName(item)}.${extension}`;
             zip.file(filename, buffer);
             counter++;
         }
@@ -120,11 +120,11 @@ abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseReportGe
 
 export class ReactToPdfReportGenerator<T = any, U = any> extends MarkupToPdfReportGenerator<T, U> {
     constructor(
-        reportName: string,
+        getReportName: (data: U) => string,
         getReportData: IGetReportDataFunction<T, U>,
         private component: React.FunctionComponent<U>,
     ) {
-        super(reportName, getReportData)
+        super(getReportName, getReportData)
     }
 
     async getFileBuffer(data: U) {
@@ -138,12 +138,12 @@ export class EjsToPdfReportGenerator<T = any, U = any> extends MarkupToPdfReport
     template: ejs.TemplateFunction | ejs.AsyncTemplateFunction;
 
     constructor(
-        reportName: string,
+        getReportName: (data: U) => string,
         getReportData: IGetReportDataFunction<T, U>,
         templateStr: string,
         ejsOptions: ejs.Options = undefined,
     ) {
-        super(reportName, getReportData)
+        super(getReportName, getReportData)
         this.template = ejs.compile(templateStr, ejsOptions);
     }
 

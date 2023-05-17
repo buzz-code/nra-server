@@ -3,6 +3,7 @@ import TableRenderer from "./tableRenderer.component";
 import { CommonFileFormat, CommonFileResponse } from "../report/types";
 import { generateCommonFileResponse } from "../report/report.util";
 import { BaseReportGenerator, DataToExcelReportGenerator, ParamsToJsonReportGenerator, ReactToPdfReportGenerator } from "../report/report.generators";
+import { BadRequestException } from "@nestjs/common";
 
 export async function getExportedFile<T>(format: CommonFileFormat, name: string, data: T[], headers: IHeader[]): Promise<CommonFileResponse> {
     const headerRow = getHeaderNames(headers);
@@ -14,19 +15,20 @@ export async function getExportedFile<T>(format: CommonFileFormat, name: string,
 };
 
 async function getGenerator<T>(format: CommonFileFormat, name: string): Promise<BaseReportGenerator> {
+    const getReportName = () => name;
     switch (format) {
         case CommonFileFormat.Excel: {
-            return new DataToExcelReportGenerator(name);
+            return new DataToExcelReportGenerator(getReportName);
         }
         case CommonFileFormat.Pdf: {
             const getReportData = async ({ headerRow, formattedData }) => ({ headers: headerRow, rows: formattedData });
-            return new ReactToPdfReportGenerator(name, getReportData, TableRenderer);
+            return new ReactToPdfReportGenerator(getReportName, getReportData, TableRenderer);
         }
-        case CommonFileFormat.Json:{
-            return new ParamsToJsonReportGenerator(name);
+        case CommonFileFormat.Json: {
+            return new ParamsToJsonReportGenerator(getReportName);
         }
         default:
-            throw new Error('unknown format ' + format);
+            throw new BadRequestException('unknown format ' + format);
     }
 }
 
