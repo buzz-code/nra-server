@@ -15,8 +15,7 @@ export abstract class User {
   @Column("varchar", { name: "name", length: 500 })
   name: string;
 
-  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-  @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+  @IsOptional({ always: true })
   @MaxLength(500, {})
   @Column("varchar", { name: "email", nullable: true, length: 500 })
   email: string | null;
@@ -35,8 +34,7 @@ export abstract class User {
   @Column("varchar", { name: "password", nullable: true, length: 500 })
   password: string | null;
 
-  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-  @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+  @IsOptional({ always: true })
   @MaxLength(11, {})
   @Column("varchar", { name: "phone_number", nullable: true, length: 11 })
   phoneNumber: string | null;
