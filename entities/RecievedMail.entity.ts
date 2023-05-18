@@ -15,15 +15,15 @@ export class RecievedMail {
     @Column('simple-json')
     mailData: MailData;
 
-    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
     from: string;
 
-    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
     to: string;
 
@@ -33,9 +33,9 @@ export class RecievedMail {
     @Column('text', { nullable: true })
     body: string;
 
-    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
     entityName: string;
 

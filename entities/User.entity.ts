@@ -9,9 +9,9 @@ export abstract class User {
   @PrimaryGeneratedColumn({ type: "int", name: "id" })
   id: number;
 
-  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
   @MaxLength(500, {})
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column("varchar", { name: "name", length: 500 })
   name: string;
 

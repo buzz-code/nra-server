@@ -79,7 +79,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     }
 
     getImportFields(): string[] {
-        const columns = this.entityColumns.filter(item => !['id', 'userId'].includes(item));
+        const columns = this.entityColumns.filter(item => !['id', 'userId', 'createdAt', 'updatedAt'].includes(item));
         if (this.exportDefinition?.getImportFields) {
             return this.exportDefinition.getImportFields(columns);
         } else {

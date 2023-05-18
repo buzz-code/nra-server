@@ -21,21 +21,21 @@ export class Text implements IHasUserId {
   @Column("int", { name: "user_id" })
   userId: number;
 
-  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
   @MaxLength(100, { always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column("varchar", { name: "name", length: 100 })
   name: string;
 
-  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
   @MaxLength(100, { always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column("varchar", { name: "description", length: 100 })
   description: string;
 
-  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
   @MaxLength(10000, { always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column("varchar", { name: "value", length: 10000 })
   value: string;
 

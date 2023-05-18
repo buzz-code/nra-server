@@ -12,16 +12,16 @@ export class MailAddress {
     @Column()
     userId: number;
 
-    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
     alias: string;
 
-    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { always: true })
     @IsUniqueCombination(['userId'], [MailAddress], { always: true })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
     entity: string;
 

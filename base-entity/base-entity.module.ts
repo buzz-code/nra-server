@@ -35,7 +35,7 @@ export class BaseEntityModule {
         @Controller(snakeCase(entityName))
         class EntityController extends BaseEntityController<Entity> {
             constructor(@InjectEntityService public service: BaseEntityService<Entity>) {
-                super(service);
+                super(service, options.entity);
             }
 
             @Get('/get-count')

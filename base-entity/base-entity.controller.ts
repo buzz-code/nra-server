@@ -1,4 +1,4 @@
-import { CrudController, CrudRequest } from "@dataui/crud";
+import { CrudController, CrudRequest, CrudValidationGroups } from "@dataui/crud";
 import { getExportedFile } from "@shared/utils/exporter/exporter.util";
 import { BaseEntityService } from "./base-entity.service";
 import { Entity } from "./interface";
@@ -10,9 +10,14 @@ import { MailData } from "@shared/utils/mail/interface";
 import { MailAddress } from "@shared/entities/MailAddress.entity";
 import { CommonFileResponse, exportFormatDict } from "@shared/utils/report/types";
 import { generateCommonFileResponse } from "@shared/utils/report/report.util";
+import { plainToInstance, Type } from "class-transformer";
+import { ArrayNotEmpty, IsArray, validate, ValidateNested } from "class-validator";
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
-    constructor(public service: BaseEntityService<T>) { }
+    constructor(
+        public service: BaseEntityService<T>,
+        private model: any
+    ) { }
 
     getCount(req: CrudRequest) {
         return this.service.getCount(req);
@@ -38,6 +43,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         try {
             const bulk = await parseExcelFile(fileBase64, this.service.getImportFields());
             bulk.forEach(item => item.userId ??= userId);
+            await validateBulk<T>(bulk, this.model);
             created = await this.service.createMany(defaultReqObject, { bulk });
             response = `${created.length} רשומות נשמרו בהצלחה`;
         } catch (e) {
@@ -89,5 +95,28 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
 
     protected async getPivotData(req: CrudRequest) {
         return this.service.getPivotData(req);
+    }
+}
+
+async function validateBulk<T extends Entity>(bulk: any[], model: any) {
+    class BulkDtoImpl {
+        @IsArray({ always: true })
+        @ArrayNotEmpty({ always: true })
+        @ValidateNested({ each: true, groups: [CrudValidationGroups.CREATE] })
+        @Type(() => model)
+        bulk: T[];
+    }
+    const myDtoObject = plainToInstance(BulkDtoImpl, { bulk });
+    const errors = await validate(myDtoObject, { groups: [CrudValidationGroups.CREATE] });
+    const errorMessages = errors
+        .flatMap(item => item.children)
+        .flatMap(item => item.children)
+        .flatMap(item => item.constraints as any)
+        .filter(item => item)
+        .flatMap(item => Object.values(item))
+        .at(0);
+    // .join(', ');
+    if (errorMessages) {
+        throw new Error(errorMessages as string);
     }
 }

@@ -15,9 +15,9 @@ export class Page {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
   @MaxLength(255, { always: true })
+  @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column()
   description: string;
 

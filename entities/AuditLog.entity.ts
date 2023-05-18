@@ -15,15 +15,15 @@ export class AuditLog {
     @Column()
     entityId: number;
 
-    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { groups: [CrudValidationGroups.CREATE] })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
     entityName: string;
 
-    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { groups: [CrudValidationGroups.CREATE] })
+    @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
     operation: string;
 
