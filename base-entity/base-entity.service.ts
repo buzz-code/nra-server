@@ -28,7 +28,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
 
     @Override()
     createOne(req: CrudRequest<any>, dto: DeepPartial<T>): Promise<T> {
-        this.insertUserDataBeforeCreate(dto, req.auth.id);
+        this.insertUserDataBeforeCreate(dto, req.auth?.id);
         return super.createOne(req, dto);
     }
 

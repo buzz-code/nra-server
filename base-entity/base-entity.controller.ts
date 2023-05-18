@@ -42,6 +42,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
             response = `${created.length} רשומות נשמרו בהצלחה`;
         } catch (e) {
             response = 'לא נשמר, ארעה שגיאה ' + e.message;
+            console.log('file import error', e);
         } finally {
             const importFileRepo = this.service.getEntityManager()
                 .getRepository(ImportFile);
