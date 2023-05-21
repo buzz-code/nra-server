@@ -65,4 +65,10 @@ export abstract class User {
 
   @Column({ nullable: true })
   paymentMethod: string;
+
+  @Column({ nullable: true })
+  mailAddressAlias: string;
+
+  @Column({ nullable: true })
+  mailAddressTitle: string;
 }

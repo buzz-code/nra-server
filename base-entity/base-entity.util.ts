@@ -1,4 +1,5 @@
 import { CrudValidationGroups } from "@dataui/crud";
+import { Address } from "@nestjs-modules/mailer/dist/interfaces/send-mail-options.interface";
 import { BadRequestException } from "@nestjs/common";
 import { User } from "@shared/entities/User.entity";
 import { plainToInstance, Type } from "class-transformer";
@@ -39,4 +40,21 @@ export async function validateUserHasPaid(auth: any, dataSource: DataSource) {
     if (!isUserPaid.isPaid) {
         throw new BadRequestException('לא ניתן לבצע פעולה זו בחשבון חינמי');
     }
+}
+
+export async function getUserMailAddressFrom(auth: any, dataSource: DataSource, domain = 'mail.yoman.online'): Promise<Address> {
+    if (auth.permissions.admin) {
+        return undefined;
+    }
+
+    const userData = await dataSource.getRepository(User)
+        .findOne({ where: { id: auth.id }, select: { mailAddressAlias: true, mailAddressTitle: true } });
+    if (!userData.mailAddressAlias || !userData.mailAddressTitle) {
+        return undefined;
+    }
+
+    return {
+        name: userData.mailAddressTitle,
+        address: userData.mailAddressAlias + '@' + domain,
+    };
 }
