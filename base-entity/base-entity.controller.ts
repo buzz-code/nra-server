@@ -1,4 +1,4 @@
-import { CrudController, CrudRequest, CrudValidationGroups } from "@dataui/crud";
+import { CrudController, CrudRequest } from "@dataui/crud";
 import { getExportedFile } from "@shared/utils/exporter/exporter.util";
 import { BaseEntityService } from "./base-entity.service";
 import { Entity } from "./interface";
@@ -10,11 +10,7 @@ import { MailData } from "@shared/utils/mail/interface";
 import { MailAddress } from "@shared/entities/MailAddress.entity";
 import { CommonFileResponse, exportFormatDict } from "@shared/utils/report/types";
 import { generateCommonFileResponse } from "@shared/utils/report/report.util";
-import { plainToInstance, Type } from "class-transformer";
-import { ArrayNotEmpty, IsArray, validate, ValidateNested } from "class-validator";
-import { DataSource } from "typeorm";
-import { User } from "@shared/entities/User.entity";
-import { BadRequestException } from "@nestjs/common";
+import { validateBulk, validateUserHasPaid } from "./base-entity.util";
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
     constructor(
@@ -100,40 +96,5 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
 
     protected async getPivotData(req: CrudRequest) {
         return this.service.getPivotData(req);
-    }
-}
-
-async function validateBulk<T extends Entity>(bulk: any[], model: any) {
-    class BulkDtoImpl {
-        @IsArray({ always: true })
-        @ArrayNotEmpty({ always: true })
-        @ValidateNested({ each: true, groups: [CrudValidationGroups.CREATE] })
-        @Type(() => model)
-        bulk: T[];
-    }
-    const myDtoObject = plainToInstance(BulkDtoImpl, { bulk });
-    const errors = await validate(myDtoObject, { groups: [CrudValidationGroups.CREATE] });
-    const errorMessages = errors
-        .flatMap(item => item.children)
-        .flatMap(item => item.children)
-        .flatMap(item => item.constraints as any)
-        .filter(item => item)
-        .flatMap(item => Object.values(item))
-        .at(0);
-    // .join(', ');
-    if (errorMessages) {
-        throw new Error(errorMessages as string);
-    }
-}
-
-export async function validateUserHasPaid(auth: any, dataSource: DataSource) {
-    if (auth.permissions.admin) {
-        return;
-    }
-
-    const isUserPaid = await dataSource.getRepository(User)
-        .findOne({ where: { id: auth.id }, select: { isPaid: true } });
-    if (!isUserPaid.isPaid) {
-        throw new BadRequestException('לא ניתן לבצע פעולה זו בחשבון חינמי');
     }
 }
