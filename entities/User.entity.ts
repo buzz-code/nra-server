@@ -63,12 +63,18 @@ export abstract class User {
   @Column({ default: false })
   isPaid: boolean;
 
+  @IsOptional({ always: true })
+  @MaxLength(255, {})
   @Column({ nullable: true })
   paymentMethod: string;
 
+  @IsOptional({ always: true })
+  @MaxLength(255, {})
   @Column({ nullable: true })
   mailAddressAlias: string;
 
+  @IsOptional({ always: true })
+  @MaxLength(255, {})
   @Column({ nullable: true })
   mailAddressTitle: string;
 }
