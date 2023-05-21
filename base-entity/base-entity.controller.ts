@@ -12,6 +12,9 @@ import { CommonFileResponse, exportFormatDict } from "@shared/utils/report/types
 import { generateCommonFileResponse } from "@shared/utils/report/report.util";
 import { plainToInstance, Type } from "class-transformer";
 import { ArrayNotEmpty, IsArray, validate, ValidateNested } from "class-validator";
+import { DataSource } from "typeorm";
+import { User } from "@shared/entities/User.entity";
+import { BadRequestException } from "@nestjs/common";
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
     constructor(
@@ -24,6 +27,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
     }
 
     protected async exportFile(req: CrudRequest<any, any>): Promise<CommonFileResponse> {
+        await validateUserHasPaid(req.auth, this.service.dataSource);
         const data = await this.service.getDataForExport(req);
         const format = exportFormatDict[req.parsed.extra.format];
         return getExportedFile(format, this.service.getName(), data, this.service.getExportHeaders());
@@ -85,6 +89,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
     }
 
     protected async getReportData(req: CrudRequest): Promise<CommonFileResponse> {
+        await validateUserHasPaid(req.auth, this.service.dataSource);
         const { generator, params } = await this.service.getReportData(req);
         return generateCommonFileResponse(generator, params, this.service.dataSource);
     }
@@ -118,5 +123,17 @@ async function validateBulk<T extends Entity>(bulk: any[], model: any) {
     // .join(', ');
     if (errorMessages) {
         throw new Error(errorMessages as string);
+    }
+}
+
+export async function validateUserHasPaid(auth: any, dataSource: DataSource) {
+    if (auth.permissions.admin) {
+        return;
+    }
+
+    const isUserPaid = await dataSource.getRepository(User)
+        .findOne({ where: { id: auth.id }, select: { isPaid: true } });
+    if (!isUserPaid.isPaid) {
+        throw new BadRequestException('לא ניתן לבצע פעולה זו בחשבון חינמי');
     }
 }
