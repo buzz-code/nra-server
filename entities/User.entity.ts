@@ -59,4 +59,10 @@ export abstract class User {
 
   @Column("simple-json", { nullable: true })
   userInfo: any;
+
+  @Column({ default: false })
+  isPaid: boolean;
+
+  @Column({ nullable: true })
+  paymentMethod: string;
 }
