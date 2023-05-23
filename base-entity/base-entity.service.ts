@@ -51,11 +51,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         }
 
         const item = dto as IHasUserId;
-        if (item.userId) {
-            return dto;
-        }
-
-        item.userId = userId;
+        item.userId ??= userId;
     }
     async getDataForExport(req: CrudRequest): Promise<any[]> {
         if (this.exportDefinition?.processReqForExport) {
