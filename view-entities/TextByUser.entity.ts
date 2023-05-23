@@ -7,6 +7,7 @@ import { DataSource, PrimaryColumn, ViewColumn, ViewEntity } from "typeorm";
     expression: (dataSource: DataSource) => dataSource
         .createQueryBuilder()
         .select('CONCAT(users.id, "_", t_base.id)', 'id')
+        .addSelect('users.id', 'userId')
         .addSelect('t_base.name', 'name')
         .addSelect('t_base.description', 'description')
         .addSelect('COALESCE(t_user.value, t_base.value)', 'value')
