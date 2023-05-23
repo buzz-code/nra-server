@@ -3,6 +3,11 @@ import { Text } from "@shared/entities/Text.entity";
 import { DataSource } from "typeorm";
 import util from "./yemot.util";
 import { TextByUser } from "@shared/view-entities/TextByUser.entity";
+import { Lesson } from "src/db/entities/Lesson.entity";
+import { Klass } from "src/db/entities/Klass.entity";
+import { Teacher } from "src/db/entities/Teacher.entity";
+import { StudentKlass } from "src/db/entities/StudentKlass.entity";
+import { AttReport } from "src/db/entities/AttReport.entity";
 
 export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
 export const YEMOT_CHAIN = 'yemot_chain';
@@ -48,20 +53,53 @@ export class YemotRequest {
   }
 
   params: any;
-  async getLessonFromLessonId(lessonId: string) {
-    return { lessonId, name: 'lesson name' };
+
+  async getLessonFromLessonId(lessonId: number) {
+    return this.dataSource.getRepository(Lesson).findOneBy({
+      userId: this.activeCall.userId,
+      key: lessonId,
+    });
+  }
+  async getKlassByKlassId(klassId: number) {
+    return this.dataSource.getRepository(Klass).findOneBy({
+      userId: this.activeCall.userId,
+      key: klassId,
+    });
   }
   async getTeacherByPhone(phone: string) {
-    return { name: 'teacher', phone };
+    return this.dataSource.getRepository(Teacher).findOne({
+      where: [
+        { userId: this.activeCall.userId, phone },
+        { userId: this.activeCall.userId, phone2: phone },
+      ]
+    });
   }
-  async getStudentsByUserIdAndKlassIds(userId: number, klassId: number) {
-    return [{ tz: '123' }, { tz: '456' }];
+  async getStudentsByKlassId(klassId: number) {
+    const res = await this.dataSource.getRepository(StudentKlass).find({
+      where: {
+        userId: this.activeCall.userId,
+        klass: {
+          key: klassId,
+        }
+      },
+      relations: {
+        klass: true,
+        student: true,
+      }
+    });
+
+    return res.map(item => item.student);
   }
-  saveReport(attReport: any) {
-    // todo
+  async saveReport(attReportData: AttReport) {
+    const attReportRepo = this.dataSource.getRepository(AttReport);
+
+    const attReport = attReportRepo.create(attReportData)
+    await attReportRepo.save(attReport);
+
+    return attReport;
   }
   deleteExistingReports(existingReports: any) {
-    // todo
+    //todo - getExistingReports
   }
 }
 
