@@ -4,7 +4,7 @@ import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { DataSource, Repository } from "typeorm";
 import { User } from "../../entities/User.entity";
 import { Chain } from "./chain.interface";
-import { YemotProcessor, YemotProcessorProvider, YemotRequest, YemotResponse, YEMOT_CHAIN, YEMOT_HANGUP_STEP, YEMOT_PROCCESSOR_PROVIDER } from "./yemot.interface";
+import { USER_NOT_FOUND, YemotProcessor, YemotProcessorProvider, YemotRequest, YemotResponse, YEMOT_CHAIN, YEMOT_HANGUP_STEP, YEMOT_PROCCESSOR_PROVIDER } from "./yemot.interface";
 import yemotUtil from "./yemot.util";
 
 @Injectable()
@@ -21,8 +21,9 @@ export class YemotService {
 
   // todo: delete this {"ApiCallId":"754b9ce7c434ea952f2ed99671c274fee143165a","ApiYFCallId":"9da82d44-c071-4c61-877b-1680d75968e6","ApiDID":"035586526","ApiRealDID":"035586526","ApiPhone":"0527609942","ApiExtension":"","ApiTime":"1669485562","reportDateType":"2","reportDate":"10112022","reportDateConfirm":"1","questionAnswer":"1","howManyLessons":"2","howManyWatchOrIndividual":"1","howManyTeachedOrInterfering":"0","wasKamal":"0","howManyDiscussingLessons":"1"}
   async handleCall(body: YemotParams) {
-    const activeCall = await this.getActiveCall(body);
+    let activeCall: YemotCall;
     try {
+      activeCall = await this.getActiveCall(body);
       if (body.hangup) {
         if (activeCall.isOpen) {
           throw new Error('Unexpected hangup ' + activeCall.id);
@@ -40,13 +41,19 @@ export class YemotService {
       }
     }
     catch (e) {
-      activeCall.isOpen = false;
-      activeCall.hasError = true;
-      activeCall.errorMessage = e.message;
-      this.repo.save(activeCall);
-
+      let errorResponse = 'שגיאה';
+      if (activeCall) {
+        activeCall.isOpen = false;
+        activeCall.hasError = true;
+        activeCall.errorMessage = e.message;
+        this.repo.save(activeCall);
+      } else {
+        if (e.message === USER_NOT_FOUND) {
+          errorResponse = 'מספר הטלפון עדיין לא חובר למשתמש באתר יומנט';
+        }
+      }
       return yemotUtil.send(
-        yemotUtil.id_list_message_v2('שגיאה'),
+        yemotUtil.id_list_message_v2(errorResponse),
         yemotUtil.hangup(),
       );
     }
@@ -70,7 +77,10 @@ export class YemotService {
     if (call) {
       return call;
     }
-    const user = await this.userRepo.findOneByOrFail(userFilter)
+    const user = await this.userRepo.findOneBy(userFilter);
+    if (!user) {
+      throw new Error(USER_NOT_FOUND);
+    }
     return this.repo.create({
       user,
       apiCallId: body.ApiCallId,
