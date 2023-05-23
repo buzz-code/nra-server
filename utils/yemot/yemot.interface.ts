@@ -2,6 +2,7 @@ import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { Text } from "@shared/entities/Text.entity";
 import { DataSource } from "typeorm";
 import util from "./yemot.util";
+import { TextByUser } from "@shared/view-entities/TextByUser.entity";
 
 export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
 export const YEMOT_CHAIN = 'yemot_chain';
@@ -25,7 +26,7 @@ export abstract class YemotProcessor {
   params: { [key: string]: string };
 
   protected async getText(userId: number, textKey: string, ...args): Promise<string> {
-    const text = await this.dataSource.getRepository(Text).findOne({
+    const text = await this.dataSource.getRepository(TextByUser).findOne({
       where: { userId, name: textKey },
       cache: true,
     })
@@ -82,7 +83,7 @@ export class YemotResponse {
   messages: MessageItem[] = [];
 
   async getText(textKey: string, ...args) {
-    const text = await this.dataSource.getRepository(Text).findOne({
+    const text = await this.dataSource.getRepository(TextByUser).findOne({
       where: {
         userId: this.userId,
         name: textKey
