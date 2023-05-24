@@ -30,7 +30,7 @@ export async function validateBulk<T extends Entity>(bulk: any[], model: any) {
     }
 }
 
-export async function validateUserHasPaid(auth: any, dataSource: DataSource) {
+export async function validateUserHasPaid(auth: any, dataSource: DataSource, message = 'לא ניתן לבצע פעולה זו בחשבון חינמי') {
     if (auth.permissions.admin) {
         return;
     }
@@ -38,7 +38,7 @@ export async function validateUserHasPaid(auth: any, dataSource: DataSource) {
     const isUserPaid = await dataSource.getRepository(User)
         .findOne({ where: { id: auth.id }, select: { isPaid: true } });
     if (!isUserPaid.isPaid) {
-        throw new BadRequestException('לא ניתן לבצע פעולה זו בחשבון חינמי');
+        throw new BadRequestException(message);
     }
 }
 
