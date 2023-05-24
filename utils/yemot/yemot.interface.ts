@@ -1,6 +1,6 @@
 import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { Text } from "@shared/entities/Text.entity";
-import { DataSource } from "typeorm";
+import { DataSource, In } from "typeorm";
 import util from "./yemot.util";
 import { TextByUser } from "@shared/view-entities/TextByUser.entity";
 import { Lesson } from "src/db/entities/Lesson.entity";
@@ -8,6 +8,7 @@ import { Klass } from "src/db/entities/Klass.entity";
 import { Teacher } from "src/db/entities/Teacher.entity";
 import { StudentKlass } from "src/db/entities/StudentKlass.entity";
 import { AttReport } from "src/db/entities/AttReport.entity";
+import { Grade } from "src/db/entities/Grade.entity";
 
 export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
 export const YEMOT_CHAIN = 'yemot_chain';
@@ -78,12 +79,9 @@ export class YemotRequest {
     const res = await this.dataSource.getRepository(StudentKlass).find({
       where: {
         userId: this.activeCall.userId,
-        klass: {
-          key: klassId,
-        }
+        klassReferenceId: Number(klassId)
       },
       relations: {
-        klass: true,
         student: true,
       }
     });
@@ -98,8 +96,29 @@ export class YemotRequest {
 
     return attReport;
   }
-  deleteExistingReports(existingReports: any) {
-    //todo - getExistingReports
+  getExistingAttReports(klassId: string, lessonId: string, sheetName: string): Promise<AttReport[]> {
+    return this.dataSource.getRepository(AttReport).findBy({
+      userId: this.activeCall.userId,
+      sheetName,
+      lessonReferenceId: Number(lessonId),
+      klassReferenceId: Number(klassId),
+    })
+  }
+  getExistingGradeReports(klassId: string, lessonId: string, sheetName: string): Promise<Grade[]> {
+    return this.dataSource.getRepository(Grade).findBy({
+      userId: this.activeCall.userId,
+      lessonReferenceId: Number(lessonId),
+      klassReferenceId: Number(klassId),
+    })
+  }
+  async deleteExistingReports(existingReports: (AttReport | Grade)[]) {
+    if (existingReports.length) {
+      const entity = existingReports[0] instanceof AttReport ? AttReport : Grade;
+      await this.dataSource.getRepository(entity)
+        .delete({
+          id: In(existingReports.map(item => item.id))
+        });
+    }
   }
 }
 
