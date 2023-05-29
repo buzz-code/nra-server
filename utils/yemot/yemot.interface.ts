@@ -79,7 +79,7 @@ export class YemotRequest {
     const res = await this.dataSource.getRepository(StudentKlass).find({
       where: {
         userId: this.activeCall.userId,
-        klassReferenceId: Number(klassId)
+        klassReferenceId: klassId
       },
       relations: {
         student: true,
