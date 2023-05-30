@@ -61,17 +61,32 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         }
     }
 
-    private async getDataForExportInner(req: CrudRequest): Promise<T[]> {
-        const data = await this.getMany(req);
+    private async getDataForExportInner(req: CrudRequest<any, any>): Promise<T[]> {
+        let data;
+        if (req.parsed.extra?.pivot) {
+            data = await this.getPivotData(req);
+        } else {
+            data = await this.getMany(req);
+        }
         return Array.isArray(data) ? data : data.data;
     }
 
-    getExportHeaders(): IHeader[] {
+    getExportHeaders(req: CrudRequest<any, any>, data: any[]): IHeader[] {
+        let headers: IHeader[];
         if (this.exportDefinition?.getExportHeaders) {
-            return this.exportDefinition.getExportHeaders(this.entityColumns);
+            headers = this.exportDefinition.getExportHeaders(this.entityColumns);
         } else {
-            return this.entityColumns;
+            headers = this.entityColumns;
         }
+
+        if (req.parsed.extra?.pivot && data.length) {
+            headers = [
+                ...headers,
+                ...(data[0].headers ?? []),
+            ];
+        }
+
+        return headers;
     }
 
     getImportFields(): string[] {

@@ -26,7 +26,9 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         await validateUserHasPaid(req.auth, this.service.dataSource);
         const data = await this.service.getDataForExport(req);
         const format = exportFormatDict[req.parsed.extra.format];
-        return getExportedFile(format, this.service.getName(), data, this.service.getExportHeaders());
+        const headers = this.service.getExportHeaders(req, data);
+        const name = this.service.getName();
+        return getExportedFile(format, name, data, headers);
     }
 
     protected async getUserIdFromMailAddress(mailAddress: string) {
@@ -94,7 +96,12 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         return this.service.doAction(req);
     }
 
-    protected async getPivotData(req: CrudRequest) {
+    protected async getPivotData(req: CrudRequest<any, any>) {
+        if (req.parsed.extra?.pivot?.includes('/export?')) {
+            [, req.parsed.extra.format] = req.parsed.extra.pivot.match(/extra.format=(.*)/);
+            req.parsed.extra.pivot = req.parsed.extra.pivot.replace(/\/export\?extra.format=(.*)/, '?');
+            return this.exportFile(req);
+        }
         return this.service.getPivotData(req);
     }
 }
