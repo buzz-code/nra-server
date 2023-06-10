@@ -7,7 +7,7 @@ import * as ejs from "ejs";
 import { PDFDocument } from 'pdf-lib';
 import { getFileExtension } from "./report.util";
 import * as JSZip from 'jszip';
-import * as ExcelJS from 'exceljs';
+// import * as ExcelJS from 'exceljs';
 
 
 export type IGetReportDataFunction<T = any, U = any> = (params: T, dataSource: DataSource) => Promise<U>;
@@ -165,26 +165,27 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
     fileFormat: CommonFileFormat = CommonFileFormat.Excel;
 
     async getFileBuffer(data: IDataToExcelReportGenerator): Promise<Buffer> {
-        const workbook = new ExcelJS.Workbook();
-        const sheetName = data.sheetName || 'גליון1';
-        const worksheet = workbook.addWorksheet(sheetName);
-        worksheet.views = [
-            { state: 'frozen', xSplit: 1, rightToLeft: true }
-        ];
-        worksheet.addTable({
-            name: 'data',
-            ref: 'A1',
-            headerRow: true,
-            style: {
-                theme: 'TableStyleMedium2',
-                showRowStripes: true,
-            },
-            columns: data.headerRow.map(name => ({ name })),
-            rows: data.formattedData,
-        });
+        return null;
+        // const workbook = new ExcelJS.Workbook();
+        // const sheetName = data.sheetName || 'גליון1';
+        // const worksheet = workbook.addWorksheet(sheetName);
+        // worksheet.views = [
+        //     { state: 'frozen', xSplit: 1, rightToLeft: true }
+        // ];
+        // worksheet.addTable({
+        //     name: 'data',
+        //     ref: 'A1',
+        //     headerRow: true,
+        //     style: {
+        //         theme: 'TableStyleMedium2',
+        //         showRowStripes: true,
+        //     },
+        //     columns: data.headerRow.map(name => ({ name })),
+        //     rows: data.formattedData,
+        // });
 
-        const buffer = await workbook.xlsx.writeBuffer();
-        return Buffer.from(buffer);
+        // const buffer = await workbook.xlsx.writeBuffer();
+        // return Buffer.from(buffer);
     }
 }
 
