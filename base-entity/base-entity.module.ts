@@ -25,7 +25,10 @@ export class BaseEntityModule {
             routes: options.routes,
             validation: {
                 exceptionFactory(errors) {
-                    const errorMessages = errors.flatMap(item => Object.values(item.constraints));
+                    if (errors[0]?.children?.flatMap(i => i.children)?.length) {
+                        errors = errors[0].children.flatMap(i => i.children);
+                    }
+                    const errorMessages = errors.flatMap(item => item.constraints ? Object.values(item.constraints) : []);
                     return new HttpException({ message: errorMessages.join(', ') }, HttpStatus.BAD_REQUEST);
                 }
             }
