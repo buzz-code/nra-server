@@ -3,6 +3,9 @@ import { DataSourceOptions } from "typeorm";
 
 export const databaseConfig: DataSourceOptions = {
     type: 'mysql',
+    extra: {
+        decimalNumbers: true
+    },
     host: process.env.MYSQL_HOST,
     port: Number(process.env.MYSQL_PORT),
     username: process.env.MYSQL_USER,
