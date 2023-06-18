@@ -15,6 +15,8 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
             },
             validator: {
                 async validate(value: any, args: ValidationArguments) {
+                    if (!value) return true;
+
                     const fullObject = args.object as any;
                     const uniqueObject = {
                         [propertyName]: value,
