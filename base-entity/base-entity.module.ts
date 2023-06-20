@@ -11,6 +11,7 @@ import { Public } from '@shared/auth/public.decorator';
 import { HttpModule } from '@nestjs/axios';
 import { HandleEmailBody } from '@shared/utils/mail/interface';
 import { ImportFileSource } from '@shared/entities/ImportFile.entity';
+import { isExcelFileExtension } from '@shared/utils/importer/importer.util';
 
 @Module({})
 export class BaseEntityModule {
@@ -77,7 +78,9 @@ export class BaseEntityModule {
                 const userId = await this.getUserIdFromMailAddress(body.mail_data.to);
                 const importedFiles = [];
                 for (const attachment of body.mail_data.attachments) {
-                    importedFiles.push(await this.importExcelFile(userId, attachment.data, attachment.filename, ImportFileSource.Email));
+                    if (isExcelFileExtension(attachment.filename)) {
+                        importedFiles.push(await this.importExcelFile(userId, attachment.data, attachment.filename, ImportFileSource.Email));
+                    }
                 }
                 await this.saveEmailData(userId, body.mail_data, importedFiles);
                 await this.service.mailSendService.sendEmailImportResponse(body.mail_data, importedFiles);

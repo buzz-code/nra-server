@@ -1,5 +1,35 @@
 import * as XLSX from 'xlsx';
 
+export function isExcelFileExtension(filename: string) {
+    const supported = [
+        "xlsx",
+        "xlsm",
+        "xlsb",
+        "xls",
+        "xls",
+        "xls",
+        "xls",
+        "xls",
+        "xls",
+        "numbers",
+        "ods",
+        "fods",
+        "wk3",
+        "csv",
+        "txt",
+        "sylk",
+        "html",
+        "dif",
+        "dbf",
+        "wk1",
+        "rtf",
+        "prn",
+        "eth"
+    ];
+    const ext = filename.split('.').pop();
+    return supported.includes(ext);
+}
+
 export async function parseExcelFile(base64String: string, fields: string[]): Promise<any[]> {
     const workbook = XLSX.read(base64String, { type: 'base64' });
     const worksheet = getFirstWorksheet(workbook);
