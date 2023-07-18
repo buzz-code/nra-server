@@ -1,7 +1,7 @@
 import { CommonFileFormat } from "@shared/utils/report/types";
 import { DataSource } from "typeorm";
 import puppeteer from 'puppeteer';
-import { renderToString } from 'react-dom/server';
+import { renderToStaticMarkup } from 'react-dom/server';
 import * as React from 'react';
 import * as ejs from "ejs";
 import { PDFDocument } from 'pdf-lib';
@@ -134,7 +134,8 @@ export class ReactToPdfReportGenerator<T = any, U = any> extends MarkupToPdfRepo
     }
 
     async getFileBuffer(data: U) {
-        const markup = renderToString(React.createElement(this.component, data));
+        const element = React.createElement(this.component, data);
+        const markup = '<!DOCTYPE html>' + renderToStaticMarkup(element);
         return this.convertMarkupToPdf(markup);
     }
 }
