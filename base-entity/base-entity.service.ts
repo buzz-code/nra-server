@@ -8,7 +8,7 @@ import { ParamsToJsonReportGenerator } from "@shared/utils/report/report.generat
 import { CommonReportData } from "@shared/utils/report/types";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
-import { getUserIdFromUser } from "@shared/auth/auth.service";
+import { getUserIdFromUser } from "@shared/auth/auth.util";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     @InjectEntityExporter private exportDefinition: ExportDefinition;

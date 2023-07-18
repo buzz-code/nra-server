@@ -96,9 +96,3 @@ export class AuthService {
     return this.getCookieWithJwtToken(userForCookie);
   }
 }
-
-export function getUserIdFromUser(user: User) {
-  if (!user) return undefined;
-  if (user.permissions.admin) return undefined;
-  return user.effective_id || user.id;
-}

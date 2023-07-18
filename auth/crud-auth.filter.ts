@@ -1,5 +1,5 @@
 import { AuthOptions } from "@dataui/crud";
-import { getUserIdFromUser } from "./auth.service";
+import { getUserIdFromUser } from "./auth.util";
 
 type AuthWithFunc = (permissionsFunc: (permissions: any) => boolean) => AuthOptions;
 

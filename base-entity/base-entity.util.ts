@@ -1,7 +1,7 @@
 import { CrudValidationGroups } from "@dataui/crud";
 import { Address } from "@nestjs-modules/mailer/dist/interfaces/send-mail-options.interface";
 import { BadRequestException } from "@nestjs/common";
-import { getUserIdFromUser } from "@shared/auth/auth.service";
+import { getUserIdFromUser } from "@shared/auth/auth.util";
 import { User } from "@shared/entities/User.entity";
 import { plainToInstance, Type } from "class-transformer";
 import { ArrayNotEmpty, IsArray, validate, ValidateNested } from "class-validator";

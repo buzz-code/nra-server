@@ -2,7 +2,7 @@ import { registerDecorator, ValidationOptions, ValidationArguments } from 'class
 import { Not } from "typeorm";
 import { RequestContext } from "nestjs-request-context";
 import { getDataSource } from '../entity/foreignKey.util';
-import { getUserIdFromUser } from '@shared/auth/auth.service';
+import { getUserIdFromUser } from '@shared/auth/auth.util';
 
 function getCurrentUser() {
     const req = RequestContext.currentContext.req;
