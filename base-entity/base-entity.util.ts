@@ -1,6 +1,7 @@
 import { CrudValidationGroups } from "@dataui/crud";
 import { Address } from "@nestjs-modules/mailer/dist/interfaces/send-mail-options.interface";
 import { BadRequestException } from "@nestjs/common";
+import { getUserIdFromUser } from "@shared/auth/auth.service";
 import { User } from "@shared/entities/User.entity";
 import { plainToInstance, Type } from "class-transformer";
 import { ArrayNotEmpty, IsArray, validate, ValidateNested } from "class-validator";
@@ -36,7 +37,7 @@ export async function validateUserHasPaid(auth: any, dataSource: DataSource, mes
     }
 
     const isUserPaid = await dataSource.getRepository(User)
-        .findOne({ where: { id: auth.id }, select: { isPaid: true } });
+        .findOne({ where: { id: getUserIdFromUser(auth) }, select: { isPaid: true } });
     if (!isUserPaid.isPaid) {
         throw new BadRequestException(message);
     }
@@ -48,7 +49,7 @@ export async function getUserMailAddressFrom(auth: any, dataSource: DataSource, 
     }
 
     const userData = await dataSource.getRepository(User)
-        .findOne({ where: { id: auth.id }, select: { mailAddressAlias: true, mailAddressTitle: true } });
+        .findOne({ where: { id: getUserIdFromUser(auth) }, select: { mailAddressAlias: true, mailAddressTitle: true } });
     if (!userData.mailAddressAlias || !userData.mailAddressTitle) {
         return undefined;
     }

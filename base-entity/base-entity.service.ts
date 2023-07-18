@@ -8,6 +8,7 @@ import { ParamsToJsonReportGenerator } from "@shared/utils/report/report.generat
 import { CommonReportData } from "@shared/utils/report/types";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
+import { getUserIdFromUser } from "@shared/auth/auth.service";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     @InjectEntityExporter private exportDefinition: ExportDefinition;
@@ -28,13 +29,13 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
 
     @Override()
     createOne(req: CrudRequest<any>, dto: DeepPartial<T>): Promise<T> {
-        this.insertUserDataBeforeCreate(dto, req.auth?.id);
+        this.insertUserDataBeforeCreate(dto, getUserIdFromUser(req.auth));
         return super.createOne(req, dto);
     }
 
     @Override()
     createMany(req: CrudRequest<any>, dto: CreateManyDto<DeepPartial<T>>): Promise<T[]> {
-        dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, req.auth?.id));
+        dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, getUserIdFromUser(req.auth)));
         return super.createMany(req, dto);
     }
 

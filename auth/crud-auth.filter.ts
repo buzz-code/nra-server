@@ -1,4 +1,5 @@
 import { AuthOptions } from "@dataui/crud";
+import { getUserIdFromUser } from "./auth.service";
 
 type AuthWithFunc = (permissionsFunc: (permissions: any) => boolean) => AuthOptions;
 
@@ -6,7 +7,7 @@ export const CrudAuthFilter: AuthOptions = {
     filter: (user) => user.permissions.admin
         ? ({})
         : ({
-            userId: user.effective_id || user.id,
+            userId: getUserIdFromUser(user),
         })
 };
 
