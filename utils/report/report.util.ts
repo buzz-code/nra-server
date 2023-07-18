@@ -29,6 +29,8 @@ function getFileType(format: CommonFileFormat): string {
             return 'application/json';
         case CommonFileFormat.Zip:
             return 'application/zip';
+        case CommonFileFormat.Html:
+            return 'text/html';
     }
 }
 
@@ -48,6 +50,8 @@ export function getFileExtension(format: CommonFileFormat) {
             return 'json';
         case CommonFileFormat.Zip:
             return 'zip';
+        case CommonFileFormat.Html:
+            return 'html';
     }
 
 }

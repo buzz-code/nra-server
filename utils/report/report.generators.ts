@@ -98,6 +98,10 @@ abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseReportGe
     fileFormat: CommonFileFormat = CommonFileFormat.Pdf;
 
     async convertMarkupToPdf(markup: string): Promise<Buffer> {
+        if (this.fileFormat === CommonFileFormat.Html) {
+            return Buffer.from(markup);
+        }
+
         const browser = await puppeteer.launch({
             args: [
                 "--disable-dev-shm-usage",

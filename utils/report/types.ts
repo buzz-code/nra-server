@@ -11,6 +11,7 @@ export enum CommonFileFormat {
     Pdf,
     Json,
     Zip,
+    Html,
 };
 
 export interface CommonReportData<T = any> {
