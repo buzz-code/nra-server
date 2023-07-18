@@ -8,7 +8,7 @@ function getCurrentGregorianYear() {
     return year + (isNextYear ? 1 : 0);
 }
 
-function getCurrentHebrewYear() {
+export function getCurrentHebrewYear() {
     const gregorianYear = getCurrentGregorianYear();
     return gregorianYear + 3760;
 }
