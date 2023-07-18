@@ -22,13 +22,14 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
                         [propertyName]: value,
                     };
                     for (const uniqueProperty of otherProperties) {
+                        if (!fullObject[uniqueProperty]) return true;
                         uniqueObject[uniqueProperty] = fullObject[uniqueProperty];
                     }
 
                     const idFilter = fullObject.id ? Not({ id: fullObject.id }) : {};
                     const dataSource = await getDataSource(entities);
                     return dataSource.getRepository(object.constructor)
-                        .countBy([uniqueObject, idFilter],)
+                        .countBy([uniqueObject, idFilter])
                         .then(res => res === 0);
                 },
             },
