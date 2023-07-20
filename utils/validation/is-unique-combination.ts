@@ -39,9 +39,10 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
 
                     const idFilter = fullObject.id ? Not({ id: fullObject.id }) : {};
                     const dataSource = await getDataSource(entities);
-                    return dataSource.getRepository(object.constructor)
-                        .countBy([uniqueObject, idFilter])
-                        .then(res => res === 0);
+                    const count = await dataSource.getRepository(object.constructor)
+                        .countBy([uniqueObject, idFilter]);
+                    dataSource.destroy();
+                    return count === 0;
                 },
             },
         });
