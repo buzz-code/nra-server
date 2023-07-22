@@ -14,6 +14,7 @@ interface ResponseInterface {
     statusCode: number;
     data: any;
 };
+const MAX_VALUE_LENGTH = 20_000_000;
 
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
@@ -35,11 +36,18 @@ export class AuditLogInterceptor implements NestInterceptor {
     }
 
     private async insertMongo(request: RequestInterface, response: ResponseInterface, user: any) {
+        const data = { ...response.data };
+        Object.entries(data).forEach(([key, value]) => {
+            const jsonValue = JSON.stringify(value);
+            if (jsonValue.length > MAX_VALUE_LENGTH) {
+                data[key] = jsonValue.substr(0, MAX_VALUE_LENGTH);
+            }
+        });
         const logInfo: Partial<AuditLog> = {
             userId: user.id,
             entityId: Number(request.params.id),
             entityName: request.originalUrl.split('/')[1],
-            entityData: response.data,
+            entityData: data,
             operation: request.method,
         };
         this.dataSource.getRepository(AuditLog).save(logInfo);
