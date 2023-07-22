@@ -4,7 +4,8 @@ import { CrudValidationGroups } from "@dataui/crud";
 import { IsNotEmpty, IsUniqueCombination, MaxLength } from "@shared/utils/validation/class-validator-he";
 
 export enum ImageTargetEnum {
-    report_logo = 'לוגו לתעודה',
+    reportLogo = 'לוגו לתעודה',
+    reportBottomLogo = 'לוגו לתחתית התעודה',
 }
 
 export class FileData {
