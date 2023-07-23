@@ -1,4 +1,4 @@
-const startOfYear = new Date('2000-08-16');
+const startOfYear = new Date('2000-08-01');
 
 function getCurrentGregorianYear() {
     const now = new Date();
