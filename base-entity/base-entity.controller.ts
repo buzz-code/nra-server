@@ -87,7 +87,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
     }
 
     protected async getReportData(req: CrudRequest): Promise<CommonFileResponse> {
-        await validateUserHasPaid(req.auth, this.service.dataSource);
+        // await validateUserHasPaid(req.auth, this.service.dataSource);
         const { generator, params } = await this.service.getReportData(req);
         return generateCommonFileResponse(generator, params, this.service.dataSource);
     }
