@@ -7,7 +7,8 @@ import * as ejs from "ejs";
 import { PDFDocument } from 'pdf-lib';
 import { getFileExtension } from "./report.util";
 import * as JSZip from 'jszip';
-import * as ExcelJS from 'exceljs/dist/exceljs.min.js'
+import * as ExcelJS from 'exceljs';
+import { ISpecialField } from "../importer/types";
 
 
 export type IGetReportDataFunction<T = any, U = any> = (params: T, dataSource: DataSource) => Promise<U>;
@@ -165,6 +166,7 @@ export interface IDataToExcelReportGenerator {
     headerRow: string[];
     formattedData: (string | number)[][];
     sheetName?: string;
+    specialFields?: ISpecialField[];
 }
 export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcelReportGenerator, IDataToExcelReportGenerator> {
     fileFormat: CommonFileFormat = CommonFileFormat.Excel;
@@ -173,12 +175,19 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
         const workbook = new ExcelJS.Workbook();
         const sheetName = data.sheetName || 'גליון1';
         const worksheet = workbook.addWorksheet(sheetName);
+        data.specialFields?.forEach(field => {
+            if (worksheet.rowCount <= field.cell.r) {
+                worksheet.addRow([' ']);
+            }
+            worksheet.getCell(field.cell.r + 1, field.cell.c + 1).value = field.value;
+        });
+        const usedRows = data.specialFields?.reduce((prev, curr) => Math.max(prev, curr.cell.r), -1) ?? -1;
         worksheet.views = [
-            { state: 'frozen', xSplit: 1, rightToLeft: true }
+            { state: 'frozen', xSplit: usedRows + 2, rightToLeft: true }
         ];
         worksheet.addTable({
             name: 'data',
-            ref: 'A1',
+            ref: `A${usedRows + 2}`,
             headerRow: true,
             style: {
                 theme: 'TableStyleMedium2',
