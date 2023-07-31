@@ -163,7 +163,7 @@ export class EjsToPdfReportGenerator<T = any, U = any> extends MarkupToPdfReport
 
 export interface IDataToExcelReportGenerator {
     headerRow: string[];
-    formattedData: string[][];
+    formattedData: (string | number)[][];
     sheetName?: string;
 }
 export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcelReportGenerator, IDataToExcelReportGenerator> {
