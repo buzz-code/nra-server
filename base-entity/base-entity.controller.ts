@@ -2,7 +2,7 @@ import { CrudController, CrudRequest } from "@dataui/crud";
 import { getExportedFile } from "@shared/utils/exporter/exporter.util";
 import { BaseEntityService } from "./base-entity.service";
 import { Entity } from "./interface";
-import { parseExcelFile } from "@shared/utils/importer/importer.util";
+import { parseExcelFileAdvanced } from "@shared/utils/importer/importer.util";
 import { defaultReqObject } from "@shared/utils/importer/types";
 import { ImportFile, ImportFileSource } from "@shared/entities/ImportFile.entity";
 import { RecievedMail } from "@shared/entities/RecievedMail.entity";
@@ -43,7 +43,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         let created: any[] = [];
         let response: string = null;
         try {
-            const bulk = await parseExcelFile(fileBase64, this.service.getImportFields());
+            const bulk = await parseExcelFileAdvanced(fileBase64, this.service.getImportFields(), this.service.getSpecialFields());
             bulk.forEach(item => item.userId ??= userId);
             await validateBulk<T>(bulk, this.model);
             created = await this.service.createMany(defaultReqObject, { bulk });
