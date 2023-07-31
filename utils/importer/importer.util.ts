@@ -58,8 +58,8 @@ export async function parseExcelFileAdvanced(base64String: string, fields: strin
 }
 
 function getNumberOfUsedRows(cells: XLSX.CellAddress[]) {
-    const lastUsedRow = cells.reduce((prev, cell) => Math.max(prev, cell.r), 0);
-    return lastUsedRow + 1;
+    const lastUsedRow = cells.reduce((prev, cell) => Math.max(prev, cell.r), -1);
+    return lastUsedRow + 2;
 }
 
 function getDataFromCells(base64String: string, specialFields: ISpecialField[]) {
