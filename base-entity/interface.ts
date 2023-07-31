@@ -1,11 +1,11 @@
 import { AuthOptions, CrudRequest, QueryOptions, RoutesOptions } from "@dataui/crud";
 import { Inject } from "@nestjs/common";
 import { EntityClassOrSchema } from "@nestjs/typeorm/dist/interfaces/entity-class-or-schema.type";
-import * as XLSX from 'xlsx';
 import { User } from "@shared/entities/User.entity";
 import { IHeader } from "@shared/utils/exporter/types";
 import { Entity } from "typeorm";
 import { BaseEntityService } from "./base-entity.service";
+import { ISpecialField } from "@shared/utils/importer/types";
 
 export interface IHasUserId {
     userId: number;
@@ -27,7 +27,7 @@ export interface ExportDefinition {
     processReqForExport?(req: CrudRequest, innerFunc: (req: CrudRequest) => Promise<any>): Promise<any[]>;
     getExportHeaders?(entityColumns: string[]): IHeader[];
     getImportFields?(entityColumns: string[]): string[];
-    getSpecialFields?(): Record<string, XLSX.CellAddress>;
+    getSpecialFields?(): ISpecialField[];
 }
 
 export const ENTITY_REPOSITORY = 'entity_repository';
@@ -36,4 +36,4 @@ export const ENTITY_SERVICE = 'entity_service';
 
 export const InjectEntityRepository = Inject(ENTITY_REPOSITORY);
 export const InjectEntityExporter = Inject(ENTITY_EXPORTER);
-export const InjectEntityService     = Inject(ENTITY_SERVICE);
+export const InjectEntityService = Inject(ENTITY_SERVICE);

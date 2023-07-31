@@ -100,7 +100,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
     }
 
     getSpecialFields() {
-        return this.exportDefinition?.getSpecialFields?.() ?? {};
+        return this.exportDefinition?.getSpecialFields?.() ?? [];
     }
 
     async getReportData(req: CrudRequest): Promise<CommonReportData> {

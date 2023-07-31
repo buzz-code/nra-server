@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { ISpecialField } from './types';
 
 export function isExcelFileExtension(filename: string) {
     const supported = [
@@ -48,8 +49,8 @@ function getFirstWorksheet(workbook: XLSX.WorkBook): XLSX.WorkSheet {
     return worksheet;
 }
 
-export async function parseExcelFileAdvanced(base64String: string, fields: string[], specialFields: Record<string, XLSX.CellAddress>) {
-    const rowsToSkip = getNumberOfUsedRows(Object.values(specialFields));
+export async function parseExcelFileAdvanced(base64String: string, fields: string[], specialFields: ISpecialField[]) {
+    const rowsToSkip = getNumberOfUsedRows(specialFields.map(i => i.cell));
     const specialData = getDataFromCells(base64String, specialFields);
     const data = await parseExcelFile(base64String, fields, rowsToSkip);
     const advancedData = data.map(item => ({ ...specialData, ...item }));
@@ -61,16 +62,15 @@ function getNumberOfUsedRows(cells: XLSX.CellAddress[]) {
     return lastUsedRow + 1;
 }
 
-function getDataFromCells(base64String: string, specialFields: Record<string, XLSX.CellAddress>) {
+function getDataFromCells(base64String: string, specialFields: ISpecialField[]) {
     const worksheet = getWorksheet(base64String);
     const data = Object.fromEntries(
-        Object.entries(specialFields)
-            .map(
-                ([field, cell]) => ([
-                    field,
-                    worksheet[XLSX.utils.encode_cell(cell)].v
-                ])
-            )
+        specialFields.map(
+            ({ cell, value }) => ([
+                value,
+                worksheet[XLSX.utils.encode_cell(cell)].v
+            ])
+        )
     );
     return data;
 }
