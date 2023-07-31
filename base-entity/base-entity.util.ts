@@ -50,8 +50,11 @@ export async function getUserMailAddressFrom(auth: any, dataSource: DataSource, 
 
     const userData = await dataSource.getRepository(User)
         .findOne({ where: { id: getUserIdFromUser(auth) }, select: { mailAddressAlias: true, mailAddressTitle: true } });
-    if (!userData.mailAddressAlias || !userData.mailAddressTitle) {
-        return undefined;
+    if (!userData?.mailAddressAlias || !userData?.mailAddressTitle) {
+        return {
+            name: 'יש להגדיר שם',
+            address: 'test@' + domain,
+        };
     }
 
     return {
