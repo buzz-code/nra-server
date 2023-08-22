@@ -16,3 +16,8 @@ export interface ISpecialField {
     cell: XLSX.CellAddress;
     value: string | number;
 }
+
+export interface IHardCodedField {
+    field: string;
+    value: any;
+}

@@ -26,7 +26,7 @@ export interface BaseEntityModuleOptions {
 export interface ImportDefinition {
     importFields?: string[];
     specialFields?: ISpecialField[];
-    // hardCodedFields?: IHardCodedField[];
+    hardCodedFields?: IHardCodedField[];
 }
 
 export interface ExportDefinition {
