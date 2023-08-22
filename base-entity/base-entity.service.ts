@@ -3,7 +3,7 @@ import { TypeOrmCrudService } from "@dataui/crud-typeorm";
 import { DataSource, DeepPartial, EntityManager, Repository } from "typeorm";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/utils/exporter/types";
-import { Entity, ExportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
+import { Entity, ExportDefinition, ImportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
 import { ParamsToJsonReportGenerator } from "@shared/utils/report/report.generators";
 import { CommonReportData } from "@shared/utils/report/types";
 import { InjectDataSource } from "@nestjs/typeorm";
@@ -90,17 +90,9 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         return headers;
     }
 
-    getImportFields(): string[] {
-        const columns = this.entityColumns.filter(item => !['id', 'userId', 'createdAt', 'updatedAt'].includes(item));
-        if (this.exportDefinition?.getImportFields) {
-            return this.exportDefinition.getImportFields(columns);
-        } else {
-            return columns;
-        }
-    }
-
-    getSpecialFields() {
-        return this.exportDefinition?.getSpecialFields?.() ?? [];
+    getImportDefinition(): ImportDefinition {
+        const importFields = this.entityColumns.filter(item => !['id', 'userId', 'createdAt', 'updatedAt'].includes(item));
+        return this.exportDefinition?.getImportDefinition?.(importFields) ?? { importFields };
     }
 
     async getReportData(req: CrudRequest): Promise<CommonReportData> {

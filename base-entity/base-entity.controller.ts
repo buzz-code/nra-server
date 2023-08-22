@@ -43,7 +43,8 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         let created: any[] = [];
         let response: string = null;
         try {
-            const bulk = await parseExcelFileAdvanced(fileBase64, this.service.getImportFields(), this.service.getSpecialFields());
+            const importDefinition = this.service.getImportDefinition();
+            const bulk = await parseExcelFileAdvanced(fileBase64, importDefinition.importFields, importDefinition.specialFields ?? []);
             bulk.forEach(item => item.userId ??= userId);
             await validateBulk<T>(bulk, this.model);
             created = await this.service.createMany(defaultReqObject, { bulk });

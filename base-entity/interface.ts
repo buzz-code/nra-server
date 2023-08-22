@@ -5,7 +5,7 @@ import { User } from "@shared/entities/User.entity";
 import { IHeader } from "@shared/utils/exporter/types";
 import { Entity } from "typeorm";
 import { BaseEntityService } from "./base-entity.service";
-import { ISpecialField } from "@shared/utils/importer/types";
+import { IHardCodedField, ISpecialField } from "@shared/utils/importer/types";
 
 export interface IHasUserId {
     userId: number;
@@ -23,11 +23,16 @@ export interface BaseEntityModuleOptions {
     service?: typeof BaseEntityService;
 }
 
+export interface ImportDefinition {
+    importFields?: string[];
+    specialFields?: ISpecialField[];
+    // hardCodedFields?: IHardCodedField[];
+}
+
 export interface ExportDefinition {
     processReqForExport?(req: CrudRequest, innerFunc: (req: CrudRequest) => Promise<any>): Promise<any[]>;
     getExportHeaders?(entityColumns: string[]): IHeader[];
-    getImportFields?(entityColumns: string[]): string[];
-    getSpecialFields?(): ISpecialField[];
+    getImportDefinition?(importFields: string[]): ImportDefinition;
 }
 
 export const ENTITY_REPOSITORY = 'entity_repository';
