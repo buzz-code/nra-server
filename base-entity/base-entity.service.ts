@@ -113,12 +113,12 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         const list = Array.isArray(res) ? res : res.data;
         if (list.length > 0) {
             const pivotName = req.parsed.extra.pivot?.replace('?', '');
-            await this.populatePivotData(pivotName, list, req.parsed.extra);
+            await this.populatePivotData(pivotName, list, req.parsed.extra, req.parsed.filter);
         }
         return res;
     }
 
-    protected async populatePivotData(pivotName: string, data: T[], extra: any): Promise<void> {
+    protected async populatePivotData(pivotName: string, data: T[], extra: any, filter: CrudRequest<any, any>['parsed']['filter']): Promise<void> {
         //override this
     }
 }
