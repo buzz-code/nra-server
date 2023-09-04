@@ -77,4 +77,8 @@ export abstract class User {
   @MaxLength(255, {})
   @Column({ nullable: true })
   mailAddressTitle: string;
+
+  @Column({ nullable: true })
+  @IsOptional({ always: true })
+  paymentTrackId: number;
 }
