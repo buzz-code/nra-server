@@ -24,3 +24,21 @@ export async function findOneAndAssignReferenceId(
     }
     return referenceIdValue;
 }
+
+export async function findManyAndAssignReferenceIds(
+    dataSource: DataSource,
+    repository: EntityTarget<ObjectLiteral>,
+    where: FindOneOptions['where'] = {},
+    userId: number,
+    referenceIdValue: any,
+    keyValue: any,
+) {
+    if (keyValue && !referenceIdValue) {
+        const items = await dataSource.getRepository(repository)
+            .find({
+                where: Object.assign(Object.assign({}, where), { userId: userId })
+            });
+        return items.map(item => item.id);
+    }
+    return referenceIdValue;
+}
