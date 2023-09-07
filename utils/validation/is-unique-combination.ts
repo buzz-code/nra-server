@@ -1,13 +1,8 @@
 import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
-import { Not } from "typeorm";
-import { RequestContext } from "nestjs-request-context";
+import { DataSource, Not } from "typeorm";
 import { getDataSource } from '../entity/foreignKey.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
-
-function getCurrentUser() {
-    const req = RequestContext.currentContext.req;
-    return req.user;
-}
+import { getCurrentUser } from './util';
 
 export function IsUniqueCombination(otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) {
     return function (object: Object, propertyName: string) {
@@ -38,11 +33,15 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
                     }
 
                     const idFilter = fullObject.id ? Not({ id: fullObject.id }) : {};
-                    const dataSource = await getDataSource(entities);
-                    const count = await dataSource.getRepository(object.constructor)
-                        .countBy([uniqueObject, idFilter]);
-                    dataSource.destroy();
-                    return count === 0;
+                    let dataSource: DataSource;
+                    try {
+                        dataSource = await getDataSource(entities);
+                        const count = await dataSource.getRepository(object.constructor)
+                            .countBy([uniqueObject, idFilter]);
+                        return count === 0;
+                    } finally {
+                        dataSource.destroy();
+                    }
                 },
             },
         });
