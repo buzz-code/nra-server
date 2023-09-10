@@ -31,13 +31,15 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
                             uniqueObject[uniqueProperty] = fullObject[uniqueProperty];
                         }
                     }
+                    if (fullObject.id) {
+                        uniqueObject.id = Not(fullObject.id);
+                    }
 
-                    const idFilter = fullObject.id ? Not({ id: fullObject.id }) : {};
                     let dataSource: DataSource;
                     try {
                         dataSource = await getDataSource(entities);
                         const count = await dataSource.getRepository(object.constructor)
-                            .countBy([uniqueObject, idFilter]);
+                            .countBy(uniqueObject);
                         return count === 0;
                     } finally {
                         dataSource.destroy();
