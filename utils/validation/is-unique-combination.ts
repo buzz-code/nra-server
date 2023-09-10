@@ -42,7 +42,7 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
                             .countBy(uniqueObject);
                         return count === 0;
                     } finally {
-                        dataSource.destroy();
+                        dataSource?.destroy();
                     }
                 },
             },

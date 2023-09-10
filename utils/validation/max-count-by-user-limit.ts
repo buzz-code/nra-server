@@ -34,7 +34,7 @@ export function MaxCountByUserLimit(entity: Function, getMaxLimit: GetMaxLimitTy
                             .countBy(entityFilter);
                         return count < maxLimit;
                     } finally {
-                        dataSource.destroy();
+                        dataSource?.destroy();
                     }
                 },
             },
