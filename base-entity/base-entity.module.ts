@@ -30,7 +30,8 @@ export class BaseEntityModule {
                         errors = errors[0].children.flatMap(i => i.children);
                     }
                     const errorMessages = errors.flatMap(item => item.constraints ? Object.values(item.constraints) : []);
-                    return new HttpException({ message: errorMessages.join(', ') }, HttpStatus.BAD_REQUEST);
+                    const uniqueErrors = [...new Set(errorMessages)];
+                    return new HttpException({ message: uniqueErrors.join(', ') }, HttpStatus.BAD_REQUEST);
                 }
             }
         })
