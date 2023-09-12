@@ -13,6 +13,7 @@ export const databaseConfig: DataSourceOptions = {
     database: process.env.MYSQL_DATABASE,
     // entities: [__dirname + '/../**/*.entity{.ts,.js}'],
     // synchronize: true,
+    charset: "utf8mb4_0900_ai_ci",
     logging: "all",
     migrationsRun: process.env.NODE_ENV == 'production' ||
         // true ||
