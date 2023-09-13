@@ -17,34 +17,34 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
             },
             validator: {
                 async validate(value: any, args: ValidationArguments) {
-                    return true;
-                    // if (!value) return true;
+                    // return true;
+                    if (!value) return true;
 
-                    // const fullObject = args.object as any;
-                    // const uniqueObject = {
-                    //     [propertyName]: value,
-                    // };
-                    // for (const uniqueProperty of otherProperties) {
-                    //     if (uniqueProperty === 'userId') {
-                    //         const user = getCurrentUser();
-                    //         uniqueObject[uniqueProperty] = fullObject[uniqueProperty] ?? getUserIdFromUser(user);
-                    //     } else {
-                    //         uniqueObject[uniqueProperty] = fullObject[uniqueProperty];
-                    //     }
-                    // }
-                    // if (fullObject.id) {
-                    //     uniqueObject.id = Not(fullObject.id);
-                    // }
+                    const fullObject = args.object as any;
+                    const uniqueObject = {
+                        [propertyName]: value,
+                    };
+                    for (const uniqueProperty of otherProperties) {
+                        if (uniqueProperty === 'userId') {
+                            const user = getCurrentUser();
+                            uniqueObject[uniqueProperty] = fullObject[uniqueProperty] ?? getUserIdFromUser(user);
+                        } else {
+                            uniqueObject[uniqueProperty] = fullObject[uniqueProperty];
+                        }
+                    }
+                    if (fullObject.id) {
+                        uniqueObject.id = Not(fullObject.id);
+                    }
 
-                    // let dataSource: DataSource;
-                    // try {
-                    //     dataSource = await getDataSource(entities);
-                    //     const count = await dataSource.getRepository(object.constructor)
-                    //         .countBy(uniqueObject);
-                    //     return count === 0;
-                    // } finally {
-                    //     dataSource?.destroy();
-                    // }
+                    let dataSource: DataSource;
+                    try {
+                        dataSource = await getDataSource(entities);
+                        const count = await dataSource.getRepository(object.constructor)
+                            .countBy(uniqueObject);
+                        return count === 0;
+                    } finally {
+                        dataSource?.destroy();
+                    }
                 },
             },
         });
