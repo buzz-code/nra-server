@@ -11,6 +11,7 @@ import { MailAddress } from "@shared/entities/MailAddress.entity";
 import { CommonFileResponse, exportFormatDict } from "@shared/utils/report/types";
 import { generateCommonFileResponse } from "@shared/utils/report/report.util";
 import { validateBulk, validateUserHasPaid } from "./base-entity.util";
+import * as addressparser from 'addressparser';
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
     constructor(
@@ -19,7 +20,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
     ) { }
 
     getCount(req: CrudRequest) {
-        return this.service.getCount(req);
+                return this.service.getCount(req);
     }
 
     protected async exportFile(req: CrudRequest<any, any>): Promise<CommonFileResponse> {
@@ -32,7 +33,8 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
     }
 
     protected async getUserIdFromMailAddress(mailAddress: string) {
-        const alias = mailAddress.split('@')[0];
+        const addresses = addressparser(mailAddress);
+        const alias = addresses[0].address.split('@')[0];
         const mailAddressRepo = this.service.getEntityManager()
             .getRepository(MailAddress);
         const matchingRecord = await mailAddressRepo.findOneByOrFail({ alias });
