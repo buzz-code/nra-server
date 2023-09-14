@@ -2,6 +2,9 @@ import {
     ValidationOptions,
     IsNotEmpty as _IsNotEmpty,
     MaxLength as _MaxLength,
+    IsNumber as _IsNumber,
+    IsInt as _IsInt,
+    IsNumberOptions,
 } from "class-validator";
 import { IsUniqueCombination as _IsUniqueCombination } from "./is-unique-combination";
 import { GetMaxLimitType, MaxCountByUserLimit as _MaxCountByUserLimit } from "./max-count-by-user-limit";
@@ -10,6 +13,10 @@ export const IsNotEmpty = (validationOptions?: ValidationOptions): PropertyDecor
     _IsNotEmpty({ ...validationOptions, message: 'הערך של $property לא יכול להיות ריק' });
 export const MaxLength = (max: number, validationOptions?: ValidationOptions): PropertyDecorator =>
     _MaxLength(max, { ...validationOptions, message: '$property לא יכול להיות ארוך יותר מ-$constraint1 תווים' });
+export const IsNumber = (options?: IsNumberOptions, validationOptions?: ValidationOptions): PropertyDecorator =>
+    _IsNumber(options, { ...validationOptions, message: '$property חייב להיות מספר' });
+export const IsInt = (validationOptions?: ValidationOptions): PropertyDecorator =>
+    _IsInt({ ...validationOptions, message: '$property חייב להיות מספר שלם' });
 export const IsUniqueCombination = (otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) =>
     _IsUniqueCombination(otherProperties, entities, { ...validationOptions, message: 'קיימת כבר רשומה עם ערכים זהים למשתמש בשדות $constraint1' });
 export const MaxCountByUserLimit = (entity: Function, getMaxLimit: GetMaxLimitType, entities: Function[] = [], foreignKey = 'id', validationOptions?: ValidationOptions) =>
