@@ -61,10 +61,15 @@ export class YemotRequest {
       key: lessonId,
     });
   }
-  async getKlassByKlassId(klassId: number) {
+  async getKlassByKlassId(klassKey: number, klassId?: number) {
+    if (!!klassId) {
+      return this.dataSource.getRepository(Klass).findOneBy({
+        id: klassId,
+      });
+    }
     return this.dataSource.getRepository(Klass).findOneBy({
       userId: this.activeCall.userId,
-      key: klassId,
+      key: klassKey,
     });
   }
   async getTeacherByPhone(phone: string) {
