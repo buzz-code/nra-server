@@ -5,11 +5,7 @@ export interface IHandler {
 }
 
 export class Chain implements IHandler {
-    handlers: IHandler[];
-
-    constructor(handlers: IHandler[] = []) {
-        this.handlers = handlers;
-    }
+    constructor(private name = 'unknown', private handlers: IHandler[] = []) { }
 
     async handleRequest(req: YemotRequest, res: YemotResponse, callback: Function) {
         let index = 0;
@@ -17,20 +13,22 @@ export class Chain implements IHandler {
             if (index < this.handlers.length) {
                 const handler = this.handlers[index];
                 index++;
-                console.log('handler name:', handler.constructor.name)
-                await handler.handleRequest(req, res, (handled: Boolean) => {
-                    console.log('tempp handled: ', handled, 'stack:', new Error().stack)
+                // console.log('handler name:', handler.constructor.name)
+                return handler.handleRequest(req, res, (handled: Boolean) => {
                     if (handled) {
+                        // console.log('going to return callback() on handled: true', this.name)
                         return callback();
                     } else {
+                        // console.log('going to return next() on handled: false', this.name)
                         return next();
                     }
                 });
             } else {
-                console.log('tempp handlers end')
+                // console.log('going to return callback() on handlers end', this.name)
                 return callback();
             }
         };
+        // console.log('going to return next() on handle request', this.name)
         return next();
     }
 

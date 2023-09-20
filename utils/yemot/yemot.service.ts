@@ -34,10 +34,8 @@ export class YemotService {
         const { req, res } = this.getHandlerObjects(activeCall, body);
         await this.yemotChain.handleRequest(req, res, () => {
           // nothing here, I guess
-          console.log('tempp at handler end')
         })
         const response = await res.getResponse();
-        console.log('tempp got response', response)
         this.saveStep(activeCall, body, response);
         return response;
       }
@@ -48,7 +46,7 @@ export class YemotService {
         activeCall.isOpen = false;
         activeCall.hasError = true;
         activeCall.errorMessage = e.message;
-        console.log('an error has occured', e);
+        console.log('an error has occured in yemot_call', e);
         this.repo.save(activeCall);
       } else {
         if (e.message === USER_NOT_FOUND) {

@@ -164,7 +164,6 @@ export class YemotResponse {
   }
 
   send(text: PromiseOrSelf<string>, param: string = null, options: any = {}) {
-    console.log('temppp res.send', { text, param, options, stack: new Error().stack });
     this.messages.push({ text, param, options });
   }
 
@@ -175,7 +174,6 @@ export class YemotResponse {
         message.text = await message.text;
       }
 
-      console.log('tempp in getReponse loop', message)
       if (message.param) {
         userMessages.push(util.read_v2(message.text, message.param, message.options))
       } else if (message.text === YEMOT_HANGUP_STEP) {
