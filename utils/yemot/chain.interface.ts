@@ -17,7 +17,7 @@ export class Chain implements IHandler {
             if (index < this.handlers.length) {
                 const handler = this.handlers[index];
                 index++;
-                // console.log('handler name:', handler.constructor.name)
+                console.log('handler name:', handler.constructor.name)
                 await handler.handleRequest(req, res, (handled: Boolean) => {
                     console.log('tempp handled: ', handled, 'stack:', new Error().stack)
                     if (handled) {
