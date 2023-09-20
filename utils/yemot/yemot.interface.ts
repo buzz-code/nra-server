@@ -51,6 +51,11 @@ export class YemotRequest {
     public dataSource: DataSource,
   ) {
     this.params = body;
+    for (const key in body) {
+      if (Array.isArray(body[key])) {
+        this.params[key] = body[key].at(-1);
+      }
+    }
   }
 
   params: any;
