@@ -34,8 +34,10 @@ export class YemotService {
         const { req, res } = this.getHandlerObjects(activeCall, body);
         await this.yemotChain.handleRequest(req, res, () => {
           // nothing here, I guess
+          console.log('tempp at handler end')
         })
         const response = await res.getResponse();
+        console.log('tempp got response', response)
         this.saveStep(activeCall, body, response);
         return response;
       }

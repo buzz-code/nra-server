@@ -51,11 +51,6 @@ export class YemotRequest {
     public dataSource: DataSource,
   ) {
     this.params = body;
-    for (const key in body) {
-      if (Array.isArray(body[key])) {
-        this.params[key] = body[key].at(-1);
-      }
-    }
   }
 
   params: any;
@@ -169,6 +164,7 @@ export class YemotResponse {
   }
 
   send(text: PromiseOrSelf<string>, param: string = null, options: any = {}) {
+    console.log('temppp res.send', { text, param, options });
     this.messages.push({ text, param, options });
   }
 
@@ -179,6 +175,7 @@ export class YemotResponse {
         message.text = await message.text;
       }
 
+      console.log('tempp in getReponse loop', message)
       if (message.param) {
         userMessages.push(util.read_v2(message.text, message.param, message.options))
       } else if (message.text === YEMOT_HANGUP_STEP) {
@@ -187,7 +184,7 @@ export class YemotResponse {
         userMessages.push(util.id_list_message_v2(message.text));
       }
     }
-    console.log(userMessages)
+    console.log('userMessages:', userMessages)
     return util.send(...userMessages);
   }
 };
