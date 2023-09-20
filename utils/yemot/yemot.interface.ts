@@ -164,7 +164,7 @@ export class YemotResponse {
   }
 
   send(text: PromiseOrSelf<string>, param: string = null, options: any = {}) {
-    console.log('temppp res.send', { text, param, options });
+    console.log('temppp res.send', { text, param, options, stack: new Error().stack });
     this.messages.push({ text, param, options });
   }
 
