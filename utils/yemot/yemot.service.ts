@@ -46,6 +46,7 @@ export class YemotService {
         activeCall.isOpen = false;
         activeCall.hasError = true;
         activeCall.errorMessage = e.message;
+        console.log('an error has occured', e);
         this.repo.save(activeCall);
       } else {
         if (e.message === USER_NOT_FOUND) {
