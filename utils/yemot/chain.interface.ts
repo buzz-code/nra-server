@@ -19,6 +19,7 @@ export class Chain implements IHandler {
                 index++;
                 // console.log('handler name:', handler.constructor.name)
                 await handler.handleRequest(req, res, (handled: Boolean) => {
+                    console.log('tempp handled: ', handled, 'stack:', new Error().stack)
                     if (handled) {
                         return callback();
                     } else {
@@ -26,6 +27,7 @@ export class Chain implements IHandler {
                     }
                 });
             } else {
+                console.log('tempp handlers end')
                 return callback();
             }
         };
