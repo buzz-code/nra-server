@@ -19,7 +19,7 @@ export class YemotCall {
     @Column()
     phone: string;
 
-    @Column('text', { transformer: new JsonTransformer<YemotStep[]>() })
+    @Column('mediumtext', { transformer: new JsonTransformer<YemotStep[]>() })
     history: YemotStep[];
 
     @Column()
