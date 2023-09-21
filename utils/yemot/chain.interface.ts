@@ -4,12 +4,16 @@ export interface IHandler {
     handleRequest: (req: YemotRequest, res: YemotResponse, callback: Function) => Promise<any>;
 }
 
+// let count = 0;
 export class Chain implements IHandler {
     constructor(private name = 'unknown', public handlers: IHandler[] = []) { }
 
     async handleRequest(req: YemotRequest, res: YemotResponse, callback: Function) {
         let index = 0;
         const next = async () => {
+            // count++;
+            // if (count > 40) return;
+            // console.log('count:', count, this.name)
             if (index < this.handlers.length) {
                 const handler = this.handlers[index];
                 index++;
