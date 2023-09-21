@@ -5,7 +5,7 @@ export interface IHandler {
 }
 
 export class Chain implements IHandler {
-    constructor(private name = 'unknown', private handlers: IHandler[] = []) { }
+    constructor(private name = 'unknown', public handlers: IHandler[] = []) { }
 
     async handleRequest(req: YemotRequest, res: YemotResponse, callback: Function) {
         let index = 0;
