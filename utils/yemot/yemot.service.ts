@@ -106,7 +106,7 @@ export class YemotService {
 
   private saveStep(activeCall: YemotCall, body: YemotParams, response: string) {
     activeCall.history.push({
-      // params: body,
+      params: body,
       response,
       time: new Date(),
     })
