@@ -47,10 +47,9 @@ export type YemotProcessorProvider = (dataSource: DataSource) => YemotProcessor;
 export class YemotRequest {
   constructor(
     private activeCall: YemotCall,
-    body: YemotParams,
     public dataSource: DataSource,
   ) {
-    this.params = body;
+    this.params = this.activeCall.data || {};
   }
 
   params: any;

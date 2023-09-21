@@ -61,7 +61,7 @@ export class YemotService {
   }
 
   getHandlerObjects(activeCall: YemotCall, body: YemotParams) {
-    const req: YemotRequest = new YemotRequest(activeCall, body, this.dataSource);
+    const req: YemotRequest = new YemotRequest(activeCall, this.dataSource);
     const res: YemotResponse = new YemotResponse(this.dataSource, activeCall.userId);
     return { req, res };
   }
@@ -76,6 +76,7 @@ export class YemotService {
       }
     });
     if (call) {
+      call.data = { ...call.data, ...body };
       return call;
     }
     const user = await this.userRepo.findOneBy(userFilter);
@@ -88,7 +89,7 @@ export class YemotService {
       phone: body.ApiPhone,
       isOpen: true,
       history: [],
-      data: {},
+      data: body,
       currentStep: 'placeholder'
     })
   }
