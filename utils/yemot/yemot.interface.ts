@@ -9,6 +9,7 @@ import { Teacher } from "src/db/entities/Teacher.entity";
 import { StudentKlass } from "src/db/entities/StudentKlass.entity";
 import { AttReport } from "src/db/entities/AttReport.entity";
 import { Grade } from "src/db/entities/Grade.entity";
+import { getCurrentHebrewYear } from "../entity/year.util";
 
 export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
 export const YEMOT_CHAIN = 'yemot_chain';
@@ -109,6 +110,7 @@ export class YemotRequest {
       sheetName,
       lessonReferenceId: Number(lessonId),
       klassReferenceId: Number(klassId),
+      year: getCurrentHebrewYear(),
     })
   }
   getExistingGradeReports(klassId: string, lessonId: string, sheetName: string): Promise<Grade[]> {
