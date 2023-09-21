@@ -136,6 +136,8 @@ interface MessageItem {
   options: any;
 }
 
+const invalidCharsRegex = /[\.\-'"&]/g;
+
 export class YemotResponse {
   constructor(
     private dataSource?: DataSource,
@@ -152,7 +154,8 @@ export class YemotResponse {
       },
       cache: true,
     })
-    return FormatString(text?.value || textKey, args);
+    return FormatString(text?.value || textKey, args)
+    ?.replace(invalidCharsRegex, '');
   }
 
   hangup() {
