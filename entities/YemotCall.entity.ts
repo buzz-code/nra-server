@@ -45,7 +45,7 @@ export class YemotCall {
 
 interface YemotStep {
     time: Date;
-    params: any;
+    params?: any;
     response: any;
 }
 
