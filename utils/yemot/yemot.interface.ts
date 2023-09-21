@@ -120,9 +120,9 @@ export class YemotRequest {
       klassReferenceId: Number(klassId),
     })
   }
-  async deleteExistingReports(existingReports: (AttReport | Grade)[]) {
+  async deleteExistingReports(existingReports: (AttReport | Grade)[], type: ReportType) {
     if (existingReports.length) {
-      const entity = existingReports[0] instanceof AttReport ? AttReport : Grade;
+      const entity = type === 'att' ? AttReport : Grade;
       await this.dataSource.getRepository(entity)
         .delete({
           id: In(existingReports.map(item => item.id))
@@ -131,7 +131,7 @@ export class YemotRequest {
   }
 }
 
-
+export type ReportType = 'att' | 'grade';
 type PromiseOrSelf<T> = T | Promise<T>;
 
 interface MessageItem {
