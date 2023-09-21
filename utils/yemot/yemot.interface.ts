@@ -55,6 +55,9 @@ export class YemotRequest {
 
   params: any;
 
+  getUserId() {
+    return this.activeCall.userId;
+  }
   async getLessonFromLessonId(lessonId: number) {
     return this.dataSource.getRepository(Lesson).findOneBy({
       userId: this.activeCall.userId,
@@ -154,8 +157,7 @@ export class YemotResponse {
       },
       cache: true,
     })
-    return FormatString(text?.value || textKey, args)
-    ?.replace(invalidCharsRegex, '');
+    return FormatString(text?.value || textKey, args)?.replace(invalidCharsRegex, '');
   }
 
   hangup() {
