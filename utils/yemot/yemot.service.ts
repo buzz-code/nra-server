@@ -23,6 +23,7 @@ export class YemotService {
   async handleCall(body: YemotParams) {
     let activeCall: YemotCall;
     try {
+      this.cleanBodyDuplicateValues(body);
       activeCall = await this.getActiveCall(body);
       if (body.hangup) {
         if (activeCall.isOpen) {
@@ -64,6 +65,15 @@ export class YemotService {
     const req: YemotRequest = new YemotRequest(activeCall, this.dataSource);
     const res: YemotResponse = new YemotResponse(this.dataSource, activeCall.userId);
     return { req, res };
+  }
+
+  private cleanBodyDuplicateValues(body: YemotParams) {
+    for (const key in body) {
+      const value = body[key];
+      if (Array.isArray(value)) {
+        body[key] = value[value.length - 1];
+      }
+    }
   }
 
   private async getActiveCall(body: YemotParams) {
