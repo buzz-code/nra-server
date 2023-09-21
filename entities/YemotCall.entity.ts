@@ -1,5 +1,6 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { User } from "./User.entity";
+import JsonTransformer from "@shared/utils/entity/jsonTransformer.util";
 
 @Entity()
 export class YemotCall {
@@ -18,7 +19,7 @@ export class YemotCall {
     @Column()
     phone: string;
 
-    @Column('simple-json')
+    @Column('text', { transformer: new JsonTransformer<YemotStep[]>() })
     history: YemotStep[];
 
     @Column()
