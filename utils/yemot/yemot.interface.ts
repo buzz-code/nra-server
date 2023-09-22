@@ -87,7 +87,8 @@ export class YemotRequest {
     const res = await this.dataSource.getRepository(StudentKlass).find({
       where: {
         userId: this.activeCall.userId,
-        klassReferenceId: klassId
+        klassReferenceId: klassId,
+        year: getCurrentHebrewYear(),
       },
       relations: {
         student: true,
@@ -118,6 +119,7 @@ export class YemotRequest {
       userId: this.activeCall.userId,
       lessonReferenceId: Number(lessonId),
       klassReferenceId: Number(klassId),
+      year: getCurrentHebrewYear(),
     })
   }
   async deleteExistingReports(existingReports: (AttReport | Grade)[], type: ReportType) {
