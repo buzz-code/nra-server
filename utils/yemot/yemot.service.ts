@@ -10,6 +10,7 @@ import yemotUtil from "./yemot.util";
 @Injectable()
 export class YemotService {
   yemotProccessor: YemotProcessor;
+  activeCalls: Map<string, YemotCall> = new Map();
 
   constructor(
     @InjectRepository(YemotCall) private repo: Repository<YemotCall>,
@@ -77,18 +78,22 @@ export class YemotService {
   }
 
   private async getActiveCall(body: YemotParams) {
-    const userFilter = {
-      phoneNumber: body.ApiDID
-    };
+    if (this.activeCalls.has(body.ApiCallId)) {
+      return this.activeCalls.get(body.ApiCallId);
+    }
     const call = await this.repo.findOne({
       where: {
         apiCallId: body.ApiCallId
       }
     });
     if (call) {
+      this.activeCalls.set(body.ApiCallId, call);
       call.data = { ...call.data, ...body };
       return call;
     }
+    const userFilter = {
+      phoneNumber: body.ApiDID
+    };
     const user = await this.userRepo.findOneBy(userFilter);
     if (!user) {
       throw new Error(USER_NOT_FOUND);
@@ -116,12 +121,13 @@ export class YemotService {
     this.repo.save(activeCall);
   }
 
-  private closeCall(activeCall: YemotCall, body: YemotParams) {
+  private async closeCall(activeCall: YemotCall, body: YemotParams) {
     activeCall.history.push({
       params: body,
       response: YEMOT_HANGUP_STEP,
       time: new Date(),
     })
-    this.repo.save(activeCall);
+    await this.repo.save(activeCall);
+    this.activeCalls.delete(body.ApiCallId);
   }
 }
