@@ -78,14 +78,16 @@ export class YemotService {
   }
 
   private async getActiveCall(body: YemotParams) {
+    let call: YemotCall;
     if (this.activeCalls.has(body.ApiCallId)) {
-      return this.activeCalls.get(body.ApiCallId);
+      call = this.activeCalls.get(body.ApiCallId);
+    } else {
+      call = await this.repo.findOne({
+        where: {
+          apiCallId: body.ApiCallId
+        }
+      });
     }
-    const call = await this.repo.findOne({
-      where: {
-        apiCallId: body.ApiCallId
-      }
-    });
     if (call) {
       this.activeCalls.set(body.ApiCallId, call);
       call.data = { ...call.data, ...body };
