@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from "typeorm";
 import { User } from "./User.entity";
 import JsonTransformer from "@shared/utils/entity/jsonTransformer.util";
 
@@ -13,6 +13,7 @@ export class YemotCall {
     @ManyToOne(() => User)
     user: User;
 
+    @Index()
     @Column()
     apiCallId: string;
 

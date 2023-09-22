@@ -13,6 +13,8 @@ import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-
 
 
 @Index("texts_users_idx", ["userId"], {})
+@Index("texts_name_idx", ["name"], {})
+@Index("texts_user_id_name_idx", ["userId", "name"], {})
 @Entity("texts")
 export class Text implements IHasUserId {
   @PrimaryGeneratedColumn({ type: "int", name: "id", unsigned: true })

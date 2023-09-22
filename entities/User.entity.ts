@@ -1,4 +1,4 @@
-import { BeforeInsert, BeforeUpdate, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { BeforeInsert, BeforeUpdate, Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import * as bcrypt from 'bcrypt';
 import { IsOptional } from "class-validator";
 import { CrudValidationGroups } from "@dataui/crud";
@@ -36,6 +36,7 @@ export abstract class User {
 
   @IsOptional({ always: true })
   @MaxLength(11, {})
+  @Index()
   @Column("varchar", { name: "phone_number", nullable: true, length: 11 })
   phoneNumber: string | null;
 
