@@ -26,9 +26,9 @@ export const MaxCountByUserLimit = (entity: Function, getMaxLimit: GetMaxLimitTy
 function getErrorMessageFunction(message: string) {
     return function (validationArguments: ValidationArguments) {
         if (!validationArguments.constraints) {
-            console.log('debugging error message in class validation', validationArguments);
+            return null;
         }
-        const translatedConstraints = validationArguments.constraints?.map((constraint) => getTranslatedConstraint(constraint));
+        const translatedConstraints = validationArguments.constraints.map((constraint) => getTranslatedConstraint(constraint));
         const translatedProperty = getTranslatedProperty(validationArguments.property);
         return message
             .replace(/\$constraint(\d+)/g, (match, constraintIndex) => translatedConstraints[parseInt(constraintIndex) - 1])
