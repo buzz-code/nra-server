@@ -80,6 +80,10 @@ export class BulkToZipReportGenerator extends BaseReportGenerator {
     }
 
     async getFileBuffer(data: any[]): Promise<Buffer> {
+        if (data.length === 1 && this.generator.fileFormat === CommonFileFormat.Zip) {
+            return this.generator.getFileBuffer(data[0]);
+        }
+
         var zip = new JSZip();
         const extension = getFileExtension(this.generator.fileFormat);
         let counter = 1;
