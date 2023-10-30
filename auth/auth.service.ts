@@ -6,6 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { jwtConstants } from './constants';
 import * as cookie from 'cookie';
+import { ReportMonth } from 'src/db/entities/ReportMonth.entity';
 
 type UserForCookie = Partial<Omit<User, 'password'> & { impersonated?: boolean }>;
 
@@ -55,6 +56,7 @@ export class AuthService {
       userInfo,
     });
     const user = await this.userRepository.save(userToCreate);
+    await this.generateDataForNewUser(user);
     return this.getUserForCookie(user);
   }
 
@@ -94,5 +96,25 @@ export class AuthService {
     const userForCookie = this.getUserForCookie(user);
     userForCookie.impersonated = true
     return this.getCookieWithJwtToken(userForCookie);
+  }
+
+  async generateDataForNewUser(user: User) {
+    try {
+      const currentYear = new Date().getFullYear();
+      const formatter = new Intl.DateTimeFormat('he', { month: 'long' });
+      const reportMonths: Partial<ReportMonth>[] = [...new Array(12)]
+        .map((_, i) => {
+          const startDate = new Date(currentYear, i, 1);
+          return ({
+            userId: user.id,
+            name: formatter.format(startDate),
+            startDate: startDate,
+            endDate: new Date(currentYear, i + 1, 0),
+          });
+        });
+      await this.userRepository.manager.getRepository(ReportMonth).save(reportMonths);
+    } catch (e) {
+      console.log('error generating data for new user', e);
+    }
   }
 }
