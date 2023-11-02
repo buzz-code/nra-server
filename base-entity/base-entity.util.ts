@@ -45,7 +45,10 @@ export async function validateUserHasPaid(auth: any, dataSource: DataSource, mes
 
 export async function getUserMailAddressFrom(auth: any, dataSource: DataSource, domain = 'mail.yoman.online'): Promise<Address> {
     if (auth.permissions.admin) {
-        return undefined;
+        return {
+            name: 'מערכת יומן',
+            address: 'test@' + domain,
+        };
     }
 
     const userData = await dataSource.getRepository(User)
