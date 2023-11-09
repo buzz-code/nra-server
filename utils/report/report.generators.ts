@@ -7,7 +7,7 @@ import * as ejs from "ejs";
 import { PDFDocument } from 'pdf-lib';
 import { getFileExtension } from "./report.util";
 import * as JSZip from 'jszip';
-import * as ExcelJS from 'exceljs/dist/exceljs.min.js'
+import * as ExcelJS from 'exceljs';
 import { ISpecialField } from "../importer/types";
 
 
@@ -201,8 +201,16 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
             rows: data.formattedData,
         });
 
+        worksheet.columns.forEach((column, index) => {
+            column.width = this.getColumnWidth(data.formattedData, index);
+        });
+
         const buffer = await workbook.xlsx.writeBuffer();
         return Buffer.from(buffer);
+    }
+
+    private getColumnWidth(data: any[][], columnIndex: number, minWidth = 12) {
+        return Math.max(minWidth, ...data.map(item => item[columnIndex]).map(String).map(item => item.length));
     }
 }
 
