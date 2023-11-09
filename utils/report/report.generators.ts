@@ -179,19 +179,31 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
         const workbook = new ExcelJS.Workbook();
         const sheetName = data.sheetName || 'גליון1';
         const worksheet = workbook.addWorksheet(sheetName);
-        data.specialFields?.forEach(field => {
-            if (worksheet.rowCount <= field.cell.r) {
+
+        this.insertSpecialFields(worksheet, data.specialFields);
+        this.addTable(worksheet, data);
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        return Buffer.from(buffer);
+    }
+
+    private insertSpecialFields(worksheet: ExcelJS.Worksheet, specialFields: ISpecialField[]) {
+        specialFields?.forEach(field => {
+            while (worksheet.rowCount <= field.cell.r) {
                 worksheet.addRow([' ']);
             }
             worksheet.getCell(field.cell.r + 1, field.cell.c + 1).value = field.value;
         });
-        const lastUsedRowIndex = data.specialFields?.reduce((prev, curr) => Math.max(prev, curr.cell.r), -1) ?? -1;
+    }
+
+    private addTable(worksheet: ExcelJS.Worksheet, data: IDataToExcelReportGenerator) {
+        const tableFirstRow = worksheet.rowCount + 1;
         worksheet.views = [
-            { state: 'frozen', xSplit: lastUsedRowIndex + 2, rightToLeft: true }
+            { state: 'frozen', xSplit: tableFirstRow, rightToLeft: true }
         ];
         worksheet.addTable({
             name: 'data',
-            ref: `A${lastUsedRowIndex + 2}`,
+            ref: `A${tableFirstRow}`,
             headerRow: true,
             style: {
                 theme: 'TableStyleMedium2',
@@ -200,13 +212,9 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
             columns: data.headerRow.map(name => ({ name })),
             rows: data.formattedData,
         });
-
         worksheet.columns.forEach((column, index) => {
             column.width = this.getColumnWidth(data.formattedData, index);
         });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        return Buffer.from(buffer);
     }
 
     private getColumnWidth(data: any[][], columnIndex: number, minWidth = 12) {
