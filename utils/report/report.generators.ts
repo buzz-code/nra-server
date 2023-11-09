@@ -7,7 +7,7 @@ import * as ejs from "ejs";
 import { PDFDocument } from 'pdf-lib';
 import { getFileExtension } from "./report.util";
 import * as JSZip from 'jszip';
-import * as ExcelJS from 'exceljs';
+import * as ExcelJS from 'exceljs/dist/exceljs.min.js';
 import { ISpecialField } from "../importer/types";
 
 
