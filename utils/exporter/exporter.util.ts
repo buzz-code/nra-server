@@ -2,7 +2,10 @@ import { IFormatter, IHeader } from "./types";
 import TableRenderer from "./tableRenderer.component";
 import { CommonFileFormat, CommonFileResponse } from "../report/types";
 import { generateCommonFileResponse } from "../report/report.util";
-import { BaseReportGenerator, DataToExcelReportGenerator, ParamsToJsonReportGenerator, ReactToPdfReportGenerator } from "../report/report.generators";
+import { BaseReportGenerator } from "../report/report.generators";
+import { ParamsToJsonReportGenerator } from "../report/parame-to-json.generator";
+import { DataToExcelReportGenerator } from "../report/data-to-excel.generator";
+import { ReactToPdfReportGenerator } from "../report/react-to-pdf.generator";
 import { BadRequestException } from "@nestjs/common";
 
 export async function getExportedFile<T>(format: CommonFileFormat, name: string, data: T[], headers: IHeader[]): Promise<CommonFileResponse> {

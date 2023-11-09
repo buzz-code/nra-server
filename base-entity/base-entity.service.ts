@@ -4,7 +4,7 @@ import { DataSource, DeepPartial, EntityManager, Repository } from "typeorm";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/utils/exporter/types";
 import { Entity, ExportDefinition, ImportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
-import { ParamsToJsonReportGenerator } from "@shared/utils/report/report.generators";
+import { ParamsToJsonReportGenerator } from "@shared/utils/report/parame-to-json.generator";
 import { CommonReportData } from "@shared/utils/report/types";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
