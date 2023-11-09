@@ -185,13 +185,13 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
             }
             worksheet.getCell(field.cell.r + 1, field.cell.c + 1).value = field.value;
         });
-        const usedRows = data.specialFields?.reduce((prev, curr) => Math.max(prev, curr.cell.r), -1) ?? -1;
+        const lastUsedRowIndex = data.specialFields?.reduce((prev, curr) => Math.max(prev, curr.cell.r), -1) ?? -1;
         worksheet.views = [
-            { state: 'frozen', xSplit: usedRows + 2, rightToLeft: true }
+            { state: 'frozen', xSplit: lastUsedRowIndex + 2, rightToLeft: true }
         ];
         worksheet.addTable({
             name: 'data',
-            ref: `A${usedRows + 2}`,
+            ref: `A${lastUsedRowIndex + 2}`,
             headerRow: true,
             style: {
                 theme: 'TableStyleMedium2',
