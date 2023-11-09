@@ -30,3 +30,16 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
         return pdf;
     }
 }
+
+export class SimpleMarkupToPdfReportGenerator extends MarkupToPdfReportGenerator {
+    constructor(
+        getReportName: (data: any) => string,
+        private markup: string,
+    ) {
+        super(getReportName);
+    }
+
+    async getFileBuffer(data: any): Promise<Buffer> {
+        return this.convertMarkupToPdf(this.markup);
+    }
+}
