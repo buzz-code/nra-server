@@ -4,7 +4,7 @@ import { getDataSource } from '../entity/foreignKey.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { getCurrentUser } from './util';
 
-export type GetMaxLimitType = (userId: any, dataSource: DataSource) => Promise<Number>;
+export type GetMaxLimitType = (userId: any, dataSource: DataSource) => Promise<number>;
 export function MaxCountByUserLimit(entity: Function, getMaxLimit: GetMaxLimitType, entities: Function[] = [], foreignKey = 'id', validationOptions?: ValidationOptions) {
     return function (object: Object, propertyName: string) {
         registerDecorator({
@@ -33,6 +33,8 @@ export function MaxCountByUserLimit(entity: Function, getMaxLimit: GetMaxLimitTy
                         const count = await dataSource.getRepository(entity)
                             .countBy(entityFilter);
                         return count < maxLimit;
+                    } catch (error) {
+                        return false;
                     } finally {
                         dataSource?.destroy();
                     }
