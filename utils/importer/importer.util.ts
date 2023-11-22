@@ -38,7 +38,7 @@ export async function parseExcelFile(base64String: string, fields: string[], row
 }
 
 function getWorksheet(base64String: string) {
-    const workbook = XLSX.read(base64String, { type: 'base64' });
+    const workbook = XLSX.read(base64String, { type: 'base64', cellText: false, cellDates: true });
     const worksheet = getFirstWorksheet(workbook);
     return worksheet
 }
