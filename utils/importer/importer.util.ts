@@ -68,7 +68,7 @@ function getDataFromCells(base64String: string, specialFields: ISpecialField[]) 
         specialFields.map(
             ({ cell, value }) => ([
                 value,
-                worksheet[XLSX.utils.encode_cell(cell)].v
+                worksheet[XLSX.utils.encode_cell(cell)]?.v
             ])
         )
     );
