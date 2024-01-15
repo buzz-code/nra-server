@@ -11,3 +11,9 @@ export const getHebrewDateFormatter = (value: string) =>
 
 export const formatHebrewDate = (value: any) =>
     value ? formatJewishDateInHebrew(toJewishDate(new Date(value))) : null;
+
+export const getJsonFormatter = (value: string) =>
+    row => formatJson(row[value]);
+
+export const formatJson = (value: any) =>
+    value ? JSON.stringify(value) : null;
