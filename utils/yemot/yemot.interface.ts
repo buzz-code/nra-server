@@ -97,13 +97,14 @@ export class YemotRequest {
 
     return res.map(item => item.student);
   }
-  async saveReport(attReportData: AttReport) {
-    const attReportRepo = this.dataSource.getRepository(AttReport);
+  async saveReport(reportData: AttReport | Grade, type: ReportType) {
+    const reportEntity = type === 'att' ? AttReport : Grade;
+    const reportRepo = this.dataSource.getRepository(reportEntity);
 
-    const attReport = attReportRepo.create(attReportData)
-    await attReportRepo.save(attReport);
+    const report = reportRepo.create(reportData)
+    await reportRepo.save(report);
 
-    return attReport;
+    return report;
   }
   getExistingAttReports(klassId: string, lessonId: string, sheetName: string): Promise<AttReport[]> {
     return this.dataSource.getRepository(AttReport).findBy({
