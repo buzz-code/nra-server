@@ -82,4 +82,8 @@ export abstract class User {
   @Column({ nullable: true })
   @IsOptional({ always: true })
   paymentTrackId: number;
+
+  @Column({ nullable: true })
+  @IsOptional({ always: true })
+  bccAddress: string;
 }

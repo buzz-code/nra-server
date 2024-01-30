@@ -84,7 +84,8 @@ export class BaseEntityModule {
                     }
                 }
                 await this.saveEmailData(userId, body.mail_data, importedFiles);
-                await this.service.mailSendService.sendEmailImportResponse(body.mail_data, importedFiles);
+                const bccAddress = await this.getBccAddressFromUserId(userId);
+                await this.service.mailSendService.sendEmailImportResponse(body.mail_data, importedFiles, bccAddress);
             }
         }
 

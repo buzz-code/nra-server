@@ -30,10 +30,11 @@ export class MailSendService {
   }
 
 
-  async sendResponseEmail(mailData: MailData, bodyText: string) {
+  async sendResponseEmail(mailData: MailData, bodyText: string, bccAddress?: string) {
     return this.sendMail({
       to: mailData.mail_from,
       from: mailData.rcpt_to,
+      bcc: bccAddress,
       subject: 'Re:' + (mailData.subject ?? ''),
       text: bodyText,
       html: bodyText,
@@ -42,7 +43,7 @@ export class MailSendService {
     });
   }
 
-  async sendEmailImportResponse(mailData: MailData, importedFileData: ImportFile[]) {
+  async sendEmailImportResponse(mailData: MailData, importedFileData: ImportFile[], bccAddress?: string) {
     let body = `הודעתך התקבלה`;
     if (importedFileData.length) {
       body += `
@@ -53,6 +54,6 @@ export class MailSendService {
           .map((item, index) => `${(index + 1)}: ${item.fileName} התקבל, תגובה: ${item.response}`)
           .join(this.lineBreak)}`
     }
-    return this.sendResponseEmail(mailData, body);
+    return this.sendResponseEmail(mailData, body, bccAddress);
   }
 }

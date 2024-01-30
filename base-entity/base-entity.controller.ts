@@ -12,6 +12,7 @@ import { CommonFileResponse, exportFormatDict } from "@shared/utils/report/types
 import { generateCommonFileResponse } from "@shared/utils/report/report.util";
 import { validateBulk, validateUserHasPaid } from "./base-entity.util";
 import * as addressparser from 'addressparser';
+import { User } from "@shared/entities/User.entity";
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
     constructor(
@@ -20,7 +21,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
     ) { }
 
     getCount(req: CrudRequest) {
-                return this.service.getCount(req);
+        return this.service.getCount(req);
     }
 
     protected async exportFile(req: CrudRequest<any, any>): Promise<CommonFileResponse> {
@@ -39,6 +40,16 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
             .getRepository(MailAddress);
         const matchingRecord = await mailAddressRepo.findOneByOrFail({ alias });
         return matchingRecord.userId;
+    }
+
+    protected async getBccAddressFromUserId(userId: number) {
+        try {
+            const user = await this.service.dataSource.getRepository(User).findOneOrFail({ where: { id: userId } });
+            return user.bccAddress;
+        } catch (e) {
+            console.log('getBccAddressFromUserId error - user not found', userId);
+            return null;
+        }
     }
 
     protected async importExcelFile(userId: number, fileBase64: string, fileName: string, fileSource: ImportFileSource): Promise<ImportFile> {
