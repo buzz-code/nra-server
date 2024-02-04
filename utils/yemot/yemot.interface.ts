@@ -10,6 +10,7 @@ import { StudentKlass } from "src/db/entities/StudentKlass.entity";
 import { AttReport } from "src/db/entities/AttReport.entity";
 import { Grade } from "src/db/entities/Grade.entity";
 import { getCurrentHebrewYear } from "../entity/year.util";
+import { User } from "@shared/entities/User.entity";
 
 export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
 export const YEMOT_CHAIN = 'yemot_chain';
@@ -57,6 +58,11 @@ export class YemotRequest {
 
   getUserId() {
     return this.activeCall.userId;
+  }
+  async getUserPermissions(){
+    const id = this.getUserId();
+    const user = await this.dataSource.getRepository(User).findOneByOrFail({id});
+    return user.permissions;
   }
   async getLessonFromLessonId(lessonId: number) {
     return this.dataSource.getRepository(Lesson).findOneBy({
