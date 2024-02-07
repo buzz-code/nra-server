@@ -13,6 +13,7 @@ import { generateCommonFileResponse } from "@shared/utils/report/report.util";
 import { validateBulk, validateUserHasPaid } from "./base-entity.util";
 import * as addressparser from 'addressparser';
 import { User } from "@shared/entities/User.entity";
+import { mailDomain } from "@shared/config/mail-workflows";
 
 export class BaseEntityController<T extends Entity> implements CrudController<T> {
     constructor(
@@ -33,9 +34,10 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         return getExportedFile(format, name, data, headers);
     }
 
-    protected async getUserIdFromMailAddress(mailAddress: string) {
+    protected async getUserIdFromMailAddress(mailAddress: string, domain = mailDomain) {
         const addresses = addressparser(mailAddress);
-        const alias = addresses[0].address.split('@')[0];
+        const address = addresses.find(a => a.address.includes(domain));
+        const alias = address.address.split('@')[0];
         const mailAddressRepo = this.service.getEntityManager()
             .getRepository(MailAddress);
         const matchingRecord = await mailAddressRepo.findOneByOrFail({ alias });
