@@ -2,13 +2,14 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { Global, Module } from '@nestjs/common';
 import { MailSendService } from './mail-send.service';
+import { mailDomain } from '@shared/config/mail-workflows';
 
 @Global()
 @Module({
     imports: [
         MailerModule.forRoot({
             transport: {
-                host: 'mail.yoman.online',
+                host: mailDomain,
                 port: 25,
                 auth: {
                     user: process.env.SMTP_USER,
@@ -16,7 +17,7 @@ import { MailSendService } from './mail-send.service';
                 },
             },
             defaults: {
-                from: '"יומן אונליין" <admin@mail.yoman.online>',
+                from: `"יומן אונליין" <admin@${mailDomain}>`,
             },
             template: {
                 dir: __dirname + '/templates',
