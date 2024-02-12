@@ -57,6 +57,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
     protected async importExcelFile(userId: number, fileBase64: string, fileName: string, fileSource: ImportFileSource): Promise<ImportFile> {
         let created: any[] = [];
         let response: string = null;
+        let isFullSuccess = false;
         try {
             const importDefinition = this.service.getImportDefinition();
             const bulk = await parseExcelFileAdvanced(fileBase64, importDefinition.importFields, importDefinition.specialFields ?? []);
@@ -66,6 +67,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
             });
             await validateBulk<T>(bulk, this.model);
             created = await this.service.createMany(defaultReqObject, { bulk });
+            isFullSuccess = created.length === bulk.length;
             response = `${created.length} רשומות נשמרו בהצלחה`;
         } catch (e) {
             response = 'לא נשמר, ארעה שגיאה ' + e.message;
@@ -80,6 +82,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
                 fileSource,
                 entityName: this.service.getName(),
                 entityIds: created.map(item => item.id),
+                fullSuccess: isFullSuccess,
                 response,
             })
             await importFileRepo.save(importFile);

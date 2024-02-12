@@ -32,6 +32,9 @@ export class ImportFile {
     @Column()
     entityName: string;
 
+    @Column({ nullable: true })
+    fullSuccess: boolean;
+
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @MaxLength(255, { groups: [CrudValidationGroups.CREATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
