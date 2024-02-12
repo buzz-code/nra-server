@@ -8,7 +8,7 @@ import { MailData } from './interface';
 export class MailSendService {
   constructor(private mailerService: MailerService) { }
 
-  readonly lineBreak = '\r\n<br/>';
+  readonly lineBreak = '<br/>';
 
   sendMail(sendMailOptions: ISendMailOptions): Promise<SentMessageInfo> {
     return this.mailerService.sendMail(sendMailOptions);
@@ -30,14 +30,14 @@ export class MailSendService {
   }
 
 
-  async sendResponseEmail(mailData: MailData, bodyText: string, bccAddress?: string) {
+  async sendResponseEmail(mailData: MailData, htmlText: string, bccAddress?: string) {
     return this.sendMail({
       to: mailData.mail_from,
       from: mailData.rcpt_to,
       bcc: bccAddress,
       subject: 'Re:' + (mailData.subject ?? ''),
-      text: bodyText,
-      html: bodyText,
+      text: cleanHtml(htmlText),
+      html: htmlText,
       inReplyTo: mailData.message_id,
       references: mailData.message_id,
     });
@@ -51,9 +51,21 @@ export class MailSendService {
       רשימת הקבצים שהתקבלו:
       ${this.lineBreak}
       ${importedFileData
-          .map((item, index) => `${(index + 1)}: ${item.fileName} התקבל, תגובה: ${item.response}`)
+          .map((item, index) => `${(index + 1)}: ${getImportFileResponse(item)}`)
           .join(this.lineBreak)}`
     }
     return this.sendResponseEmail(mailData, body, bccAddress);
   }
+}
+
+function getImportFileResponse(importedFile: ImportFile) {
+  let response = importedFile.response;
+  if (!importedFile.fullSuccess) {
+    response = `<span style="color:red">${response}</span>`;
+  }
+  return `קובץ ${importedFile.fileName} התקבל, תגובה: ${response}`;
+}
+
+function cleanHtml(html: string) {
+  return html.replace(/<[^>]*>/g, '');
 }
