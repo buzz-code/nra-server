@@ -35,7 +35,8 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
 
     @Override()
     createMany(req: CrudRequest<any>, dto: CreateManyDto<DeepPartial<T>>): Promise<T[]> {
-        dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, getUserIdFromUser(req.auth)));
+        const userId = getUserIdFromUser(req.auth);
+        dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, userId));
         return super.createMany(req, dto);
     }
 
