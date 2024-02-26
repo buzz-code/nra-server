@@ -36,7 +36,7 @@ export abstract class User {
 
   @IsOptional({ always: true })
   @MaxLength(11, {})
-  @Index()
+  @Index("user_phone_number_idx")
   @Column("varchar", { name: "phone_number", nullable: true, length: 11 })
   phoneNumber: string | null;
 

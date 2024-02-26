@@ -13,7 +13,7 @@ export class YemotCall {
     @ManyToOne(() => User)
     user: User;
 
-    @Index()
+    @Index("yemot_call_api_call_id_idx")
     @Column()
     apiCallId: string;
 
