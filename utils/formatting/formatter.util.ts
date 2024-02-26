@@ -4,7 +4,7 @@ export const getPercentsFormatter = (value: string, fractionDigits = 0) =>
     row => formatPercent(row[value], fractionDigits);
 
 export const formatPercent = (value: any, fractionDigits = 0) =>
-    value && !isNaN(value) ? `${Number((Number(value) * 100).toFixed(fractionDigits))}%` : null;
+    (value || value === 0) && !isNaN(value) ? `${Number((Number(value) * 100).toFixed(fractionDigits))}%` : null;
 
 export const getHebrewDateFormatter = (value: string) =>
     row => formatHebrewDate(row[value]);
