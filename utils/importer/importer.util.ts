@@ -53,8 +53,10 @@ export async function parseExcelFileAdvanced(base64String: string, fields: strin
     const rowsToSkip = getNumberOfUsedRows(specialFields.map(i => i.cell));
     const specialData = getDataFromCells(base64String, specialFields);
     const data = await parseExcelFile(base64String, fields, rowsToSkip);
-    const advancedData = data.map(item => ({ ...specialData, ...item }));
-    return advancedData;
+    data.forEach((item) => {
+        Object.entries(specialData).forEach(([key, value]) => item[key] ??= value);
+    })
+    return data;
 }
 
 function getNumberOfUsedRows(cells: XLSX.CellAddress[]) {
