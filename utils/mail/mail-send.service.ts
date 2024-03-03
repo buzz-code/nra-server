@@ -37,7 +37,7 @@ export class MailSendService {
       bcc: bccAddress,
       subject: 'Re:' + (mailData.subject ?? ''),
       text: cleanHtml(htmlText),
-      html: htmlText,
+      html: addHtmlDirection(htmlText),
       inReplyTo: mailData.message_id,
       references: mailData.message_id,
     });
@@ -68,4 +68,12 @@ function getImportFileResponse(importedFile: ImportFile) {
 
 function cleanHtml(html: string) {
   return html.replace(/<[^>]*>/g, '');
+}
+
+function addHtmlDirection(html: string) {
+  // if text is hebrew, add dir="rtl" to the html tag
+  if (html.match(/[\u0590-\u05FF]/)) {
+    return `<div dir="rtl">${html}</div>`;
+  }
+  return html;
 }
