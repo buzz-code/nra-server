@@ -3,6 +3,7 @@ import { MailData } from "@shared/utils/mail/interface";
 import { IsOptional } from "class-validator";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
 import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
+import { Type } from "class-transformer";
 
 @Entity()
 export class RecievedMail {
@@ -16,12 +17,14 @@ export class RecievedMail {
     mailData: MailData;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+    @Type(() => String)
     @MaxLength(255, { always: true })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
     from: string;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+    @Type(() => String)
     @MaxLength(255, { always: true })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()

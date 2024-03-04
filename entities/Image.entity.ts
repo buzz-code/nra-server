@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, Updat
 import { IsOptional } from 'class-validator';
 import { CrudValidationGroups } from "@dataui/crud";
 import { IsNotEmpty, IsUniqueCombination, MaxLength } from "@shared/utils/validation/class-validator-he";
+import { Type } from "class-transformer";
 
 export enum ImageTargetEnum {
     reportLogo = 'לוגו לתעודה',
@@ -35,6 +36,7 @@ export class Image {
     fileData: FileData;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+    @Type(() => String)
     @MaxLength(255, { always: true })
     @IsUniqueCombination(['userId'], [Image], { always: true })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })

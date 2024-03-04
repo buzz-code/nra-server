@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
+import { Type } from "class-transformer";
 
 
 @Entity()
@@ -16,6 +17,7 @@ export class Page {
   id: number;
 
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+  @Type(() => String)
   @MaxLength(255, { always: true })
   @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column()
