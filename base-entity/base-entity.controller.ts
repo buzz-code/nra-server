@@ -64,6 +64,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
             bulk.forEach(item => {
                 item.userId ??= userId;
                 importDefinition.hardCodedFields?.forEach(hcf => item[hcf.field] ??= hcf.value);
+                importDefinition.beforeSave?.(item);
             });
             await validateBulk<T>(bulk, this.model);
             created = await this.service.createMany(defaultReqObject, { bulk });
