@@ -15,7 +15,7 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
     async getFileBuffer(data: IDataToExcelReportGenerator): Promise<Buffer> {
         const workbook = new ExcelJS.Workbook();
         const sheetName = data.sheetName || 'גליון1';
-        const worksheet = workbook.addWorksheet(sheetName);
+        const worksheet = workbook.addWorksheet(sheetName.replace(/'$/, ''));
 
         this.insertSpecialFields(worksheet, data.specialFields);
         this.addTable(worksheet, data);
