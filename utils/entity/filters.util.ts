@@ -11,3 +11,11 @@ export function getReportDateFilter(fromDate: Date, toDate: Date): FindOperator<
         return LessThanOrEqual(toDate);
     }
 }
+
+export function dateFromString(dateStr: string): Date {
+    const dateObj = new Date(dateStr);
+    if (dateObj.toString() === 'Invalid Date') {
+        return null;
+    }
+    return dateObj;
+}
