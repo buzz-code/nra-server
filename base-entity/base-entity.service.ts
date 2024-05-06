@@ -105,7 +105,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T>{
         }
     }
 
-    async doAction(req: CrudRequest<any, any>): Promise<any> {
+    async doAction(req: CrudRequest<any, any>, body: any): Promise<any> {
         return 'done nothing';
     }
 

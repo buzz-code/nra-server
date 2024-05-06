@@ -61,10 +61,10 @@ export class BaseEntityModule {
                 return super.getReportData(req);
             }
 
-            @Get('/action')
+            @Post('/action')
             @UseInterceptors(CrudRequestInterceptor)
-            doAction(@ParsedRequest() req: CrudRequest) {
-                return super.doAction(req);
+            doAction(@ParsedRequest() req: CrudRequest, @Body() body: any) {
+                return super.doAction(req, body);
             }
 
             @Get('/pivot')
