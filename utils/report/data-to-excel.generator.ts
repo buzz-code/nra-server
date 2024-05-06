@@ -18,7 +18,9 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
         const worksheet = workbook.addWorksheet(sheetName.replace(/'$/, ''));
 
         this.insertSpecialFields(worksheet, data.specialFields);
-        this.addTable(worksheet, data);
+        if (data.headerRow.length > 0) {
+            this.addTable(worksheet, data);
+        }
 
         const buffer = await workbook.xlsx.writeBuffer();
         return Buffer.from(buffer);
