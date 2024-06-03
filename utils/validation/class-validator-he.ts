@@ -36,7 +36,7 @@ function getErrorMessageFunction(message: string) {
     }
 }
 
-function getTranslatedConstraint(constraint: any) {
+export function getTranslatedConstraint(constraint: any) {
     if (constraint === 'StudentByYear') {
         return 'שיוך תלמידות';
     }

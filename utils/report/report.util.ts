@@ -19,7 +19,7 @@ function getCommonFileResponse(buffer: Buffer, format: CommonFileFormat, name: s
     }
 }
 
-function getFileType(format: CommonFileFormat): string {
+export function getFileType(format: CommonFileFormat): string {
     switch (format) {
         case CommonFileFormat.Excel:
             return 'application/vnd.ms-excel';

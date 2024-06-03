@@ -70,6 +70,34 @@ describe('foreignKeyUtil', () => {
             expect(result).toEqual(1);
             expect(findSpy).toHaveBeenCalledWith({ where: { userId: 1 } });
         });
+
+        it('should set default value to where if not defined', async () => {
+            const referenceIdValue = undefined;
+            const repository = {} as any;
+            const findSpy = jest
+                .spyOn(dataSource.getRepository(repository), 'findOne')
+                .mockResolvedValue({ id: 1 });
+            const result = await foreignKeyUtil
+                .findOneAndAssignReferenceId(
+                    dataSource, repository, undefined, 1, referenceIdValue, 1
+                );
+            expect(result).toEqual(1);
+            expect(findSpy).toHaveBeenCalledWith({ where: { userId: 1 } });
+        });
+
+        it('should return void 0 if not found', async () => {
+            const referenceIdValue = undefined;
+            const repository = {} as any;
+            const findSpy = jest
+                .spyOn(dataSource.getRepository(repository), 'findOne')
+                .mockResolvedValue(null);
+            const result = await foreignKeyUtil
+                .findOneAndAssignReferenceId(
+                    dataSource, repository, {}, 1, referenceIdValue, 1
+                );
+            expect(result).toEqual(undefined);
+            expect(findSpy).toHaveBeenCalledWith({ where: { userId: 1 } });
+        });
     });
 
     describe('findManyAndAssignReferenceIds', () => {
@@ -116,6 +144,20 @@ describe('foreignKeyUtil', () => {
             const result = await foreignKeyUtil
                 .findManyAndAssignReferenceIds(
                     dataSource, repository, {}, 1, referenceIdValue, [1]
+                );
+            expect(result).toEqual([1]);
+            expect(findSpy).toHaveBeenCalledWith({ where: { userId: 1 } });
+        });
+
+        it('should set default value to where if not defined', async () => {
+            const referenceIdValue = undefined;
+            const repository = {} as any;
+            const findSpy = jest
+                .spyOn(dataSource.getRepository(repository), 'find')
+                .mockResolvedValue([{ id: 1 }]);
+            const result = await foreignKeyUtil
+                .findManyAndAssignReferenceIds(
+                    dataSource, repository, undefined, 1, referenceIdValue, [1]
                 );
             expect(result).toEqual([1]);
             expect(findSpy).toHaveBeenCalledWith({ where: { userId: 1 } });
