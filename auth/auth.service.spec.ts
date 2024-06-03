@@ -158,6 +158,28 @@ describe('AuthService', () => {
             await expect(service.registerUser(username, pass, { name: 'test' })).rejects.toThrow(UnauthorizedException);
             expect(findOneMock).toHaveBeenCalledWith({ where: { email: username } });
         });
+
+        it('should create a user with userInfo', async () => {
+            const username = 'test@example.com';
+            const pass = 'password';
+
+            const userToCreate = {
+                name: username,
+                email: username,
+                password: pass,
+                permissions: {},
+                userInfo: null,
+            } as any as User;
+
+            const createMock = jest.spyOn(userRepository, 'create').mockReturnValue(userToCreate);
+            const saveMock = jest.spyOn(userRepository, 'save').mockImplementation(() => Promise.resolve(userToCreate));
+
+            const result = await service.registerUser(username, pass, userToCreate.userInfo);
+
+            expect(createMock).toHaveBeenCalledWith(userToCreate);
+            expect(saveMock).toHaveBeenCalledWith(userToCreate);
+            expect(result).toEqual({ ...userToCreate, password: undefined });
+        });
     });
 
     describe('getCookieWithJwtToken', () => {
@@ -166,7 +188,22 @@ describe('AuthService', () => {
                 id: 1,
                 email: 'test@example.com',
                 name: 'test',
-                permissions: {},
+                permissions: null,
+            }
+
+            const result = await service.getCookieWithJwtToken(user);
+
+            expect(jwtService.sign).toHaveBeenCalledWith({ username: user.email, id: user.id, name: user.name, permissions: {} });
+        });
+
+        it('should generate token for user with permissions', async () => {
+            const user = {
+                id: 1,
+                email: 'test@example.com',
+                name: 'test',
+                permissions: {
+                    admin: true,
+                },
             }
 
             const result = await service.getCookieWithJwtToken(user);
@@ -253,6 +290,21 @@ describe('AuthService', () => {
                 startDate: new Date(currentYear, 0, 1),
                 endDate: new Date(currentYear, 1, 0),
             });
+        });
+
+        it('should simulate an error', async () => {
+            const user = {
+                id: 1,
+                email: 'test@example.com',
+                name: 'test',
+                permissions: {},
+            } as any as User;
+
+            const saveMock = jest.spyOn(userRepository, 'save').mockImplementation(async () => {
+                throw new Error('test error');
+            });
+
+            await expect(service.generateDataForNewUser(user)).resolves.not.toThrowError();
         });
     });
 });
