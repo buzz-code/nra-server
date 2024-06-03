@@ -1,4 +1,4 @@
-import { Chain, IHandler } from "./chain.interface";
+import { Chain, Handler, HandlerBase, IHandler } from "./chain.interface";
 import { YemotRequest, YemotResponse } from "./yemot.interface";
 
 const req = new YemotRequest({} as any, {} as any);
@@ -71,6 +71,27 @@ describe('Chain', () => {
         }).rejects.toThrowError('Handler error');
 
         expect(handler.handleRequest).toHaveBeenCalledTimes(1);
+        done();
+    });
+
+    it('should call callback when no handlers', (done) => {
+        class MockHandler extends HandlerBase { }
+
+        const handler = new MockHandler();
+        const chain = new Chain();
+        chain.addHandler(handler);
+        const next = jest.fn();
+
+        chain.handleRequest(req, res, next);
+
+        expect(next).toHaveBeenCalledTimes(1);
+        done();
+    });
+
+    it('should use handler class', (done) => {
+        const handle = jest.fn();
+        const handler = new Handler(handle);
+        expect(handler.handleRequest).toBe(handle);
         done();
     });
 });
