@@ -3,7 +3,7 @@ import * as bcrypt from 'bcrypt';
 import { IsOptional } from "class-validator";
 import { CrudValidationGroups } from "@dataui/crud";
 import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
-import { Type } from "class-transformer";
+import { StringType } from "@shared/utils/entity/class-transformer";
 
 @Entity("users")
 export abstract class User {
@@ -11,14 +11,14 @@ export abstract class User {
   id: number;
 
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
-  @Type(() => String)
+  @StringType
   @MaxLength(500, {})
   @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column("varchar", { name: "name", length: 500 })
   name: string;
 
   @IsOptional({ always: true })
-  @Type(() => String)
+  @StringType
   @MaxLength(500, {})
   @Column("varchar", { name: "email", nullable: true, length: 500 })
   email: string | null;
@@ -38,7 +38,7 @@ export abstract class User {
   password: string | null;
 
   @IsOptional({ always: true })
-  @Type(() => String)
+  @StringType
   @MaxLength(11, {})
   @Index("user_phone_number_idx")
   @Column("varchar", { name: "phone_number", nullable: true, length: 11 })
@@ -69,19 +69,19 @@ export abstract class User {
   isPaid: boolean;
 
   @IsOptional({ always: true })
-  @Type(() => String)
+  @StringType
   @MaxLength(255, {})
   @Column({ nullable: true })
   paymentMethod: string;
 
   @IsOptional({ always: true })
-  @Type(() => String)
+  @StringType
   @MaxLength(255, {})
   @Column({ nullable: true })
   mailAddressAlias: string;
 
   @IsOptional({ always: true })
-  @Type(() => String)
+  @StringType
   @MaxLength(255, {})
   @Column({ nullable: true })
   mailAddressTitle: string;

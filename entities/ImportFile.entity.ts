@@ -2,8 +2,7 @@ import { CrudValidationGroups } from "@dataui/crud";
 import { IsOptional } from "class-validator";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
 import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
-import { Type } from "class-transformer";
-
+import { StringType } from "@shared/utils/entity/class-transformer";
 @Entity()
 export class ImportFile {
     @PrimaryGeneratedColumn()
@@ -13,14 +12,14 @@ export class ImportFile {
     userId: number;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
-    @Type(() => String)
+    @StringType
     @MaxLength(255, { groups: [CrudValidationGroups.CREATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
     fileName: string;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
-    @Type(() => String)
+    @StringType
     @MaxLength(255, { groups: [CrudValidationGroups.CREATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
@@ -30,7 +29,7 @@ export class ImportFile {
     entityIds: number[];
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
-    @Type(() => String)
+    @StringType
     @MaxLength(255, { groups: [CrudValidationGroups.CREATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()
@@ -40,7 +39,7 @@ export class ImportFile {
     fullSuccess: boolean;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
-    @Type(() => String)
+    @StringType
     @MaxLength(255, { groups: [CrudValidationGroups.CREATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
     @Column()

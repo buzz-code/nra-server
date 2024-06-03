@@ -10,8 +10,7 @@ import { IHasUserId } from "@shared/base-entity/interface";
 import { IsOptional } from "class-validator";
 import { CrudValidationGroups } from "@dataui/crud";
 import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
-import { Type } from "class-transformer";
-
+import { StringType } from "@shared/utils/entity/class-transformer";
 
 @Index("texts_users_idx", ["userId"], {})
 @Index("texts_name_idx", ["name"], {})
@@ -25,21 +24,21 @@ export class Text implements IHasUserId {
   userId: number;
 
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
-  @Type(() => String)
+  @StringType
   @MaxLength(100, { always: true })
   @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column("varchar", { name: "name", length: 100 })
   name: string;
 
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
-  @Type(() => String)
+  @StringType
   @MaxLength(100, { always: true })
   @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column("varchar", { name: "description", length: 100 })
   description: string;
 
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
-  @Type(() => String)
+  @StringType
   @MaxLength(10000, { always: true })
   @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
   @Column("varchar", { name: "value", length: 10000 })
