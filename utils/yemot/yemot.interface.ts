@@ -38,7 +38,8 @@ export abstract class YemotProcessor {
       where: { userId, name: textKey },
       cache: true,
     })
-    return FormatString(text.value, args);
+    const textValue = text?.value || textKey
+    return FormatString(textValue, args);
   }
 
   abstract processCall(activeCall: YemotCall, body: YemotParams): Promise<YemotResponse>;
@@ -167,7 +168,8 @@ export class YemotResponse {
       },
       cache: true,
     })
-    return FormatString(text?.value || textKey, args)?.replace(invalidCharsRegex, '');
+    const textValue = text?.value || textKey
+    return FormatString(textValue, args)?.replace(invalidCharsRegex, '');
   }
 
   hangup() {
