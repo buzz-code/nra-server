@@ -1,6 +1,6 @@
 import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { Text } from "@shared/entities/Text.entity";
-import { DataSource, In } from "typeorm";
+import { Between, DataSource, In } from "typeorm";
 import util from "./yemot.util";
 import { TextByUser } from "@shared/view-entities/TextByUser.entity";
 import { Lesson } from "src/db/entities/Lesson.entity";
@@ -60,9 +60,9 @@ export class YemotRequest {
   getUserId() {
     return this.activeCall.userId;
   }
-  async getUserPermissions(){
+  async getUserPermissions() {
     const id = this.getUserId();
-    const user = await this.dataSource.getRepository(User).findOneByOrFail({id});
+    const user = await this.dataSource.getRepository(User).findOneByOrFail({ id });
     return user.permissions;
   }
   async getLessonFromLessonId(lessonId: number) {
@@ -128,6 +128,7 @@ export class YemotRequest {
       lessonReferenceId: Number(lessonId),
       klassReferenceId: Number(klassId),
       year: getCurrentHebrewYear(),
+      reportDate: Between(new Date(Date.now() - 2 * 7 * 24 * 60 * 60 * 1000), new Date())
     })
   }
   async deleteExistingReports(existingReports: (AttReport | Grade)[], type: ReportType) {
