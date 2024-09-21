@@ -69,6 +69,7 @@ export class YemotRequest {
     return this.dataSource.getRepository(Lesson).findOneBy({
       userId: this.activeCall.userId,
       key: lessonId,
+      year: getCurrentHebrewYear(),
     });
   }
   async getKlassByKlassId(klassKey: number, klassId?: number) {
@@ -80,6 +81,7 @@ export class YemotRequest {
     return this.dataSource.getRepository(Klass).findOneBy({
       userId: this.activeCall.userId,
       key: klassKey,
+      year: getCurrentHebrewYear(),
     });
   }
   async getTeacherByPhone(phone: string) {
