@@ -3,6 +3,7 @@ import { DataSource, Not } from "typeorm";
 import { getDataSource } from '../entity/foreignKey.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { getCurrentUser } from './util';
+import { getCurrentHebrewYear } from '../entity/year.util';
 
 export function IsUniqueCombination(otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) {
     return function (object: Object, propertyName: string) {
@@ -25,11 +26,16 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
                         [propertyName]: value,
                     };
                     for (const uniqueProperty of otherProperties) {
-                        if (uniqueProperty === 'userId') {
-                            const user = getCurrentUser();
-                            uniqueObject[uniqueProperty] = fullObject[uniqueProperty] ?? getUserIdFromUser(user);
-                        } else {
-                            uniqueObject[uniqueProperty] = fullObject[uniqueProperty];
+                        switch (uniqueProperty) {
+                            case 'userId':
+                                const user = getCurrentUser();
+                                uniqueObject[uniqueProperty] = fullObject[uniqueProperty] ?? getUserIdFromUser(user);
+                                break;
+                            case 'year':
+                                uniqueObject[uniqueProperty] = fullObject[uniqueProperty] ?? getCurrentHebrewYear();
+                                break;
+                            default:
+                                uniqueObject[uniqueProperty] = fullObject[uniqueProperty];
                         }
                     }
                     if (fullObject.id) {
