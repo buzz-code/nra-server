@@ -75,6 +75,7 @@ const translationDict = {
     reportDate: 'תאריך דיווח',
     key: 'מפתח',
     year: 'שנה',
+    'year, key': 'שנה, מפתח',
     klassTypeId: 'מזהה סוג כיתה',
     klassTypeReferenceId: 'מזהה סוג כיתה',
     startDate: 'תאריך התחלה',
