@@ -3,6 +3,7 @@ import { DataSource, Not } from "typeorm";
 import { getDataSource } from '../entity/foreignKey.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { getCurrentUser } from './util';
+import { getCurrentHebrewYear } from "@shared/utils/entity/year.util";
 
 export type GetMaxLimitType = (userId: any, dataSource: DataSource) => Promise<number>;
 export function MaxCountByUserLimit(entity: Function, getMaxLimit: GetMaxLimitType, entities: Function[] = [], foreignKey = 'id', validationOptions?: ValidationOptions) {
@@ -22,6 +23,7 @@ export function MaxCountByUserLimit(entity: Function, getMaxLimit: GetMaxLimitTy
                     const user = getCurrentUser();
                     const entityFilter: any = {
                         userId: fullObject.userId ?? getUserIdFromUser(user),
+                        year: fullObject.year ?? getCurrentHebrewYear(),
                     };
                     if (fullObject[foreignKey]) {
                         entityFilter.id = Not(fullObject[foreignKey]);
