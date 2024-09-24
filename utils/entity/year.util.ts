@@ -5,12 +5,6 @@ function getCurrentGregorianYear() {
     const year = now.getFullYear();
     const isNextYear = now.getMonth() > startOfYear.getMonth() ||
         now.getMonth() === startOfYear.getMonth() && now.getDate() >= startOfYear.getDate();
-        console.log('troubleshooting getCurrentGregorianYear()')
-        console.log('isNextYear:', isNextYear)
-        console.log('now month:', now.getMonth())
-        console.log('now date:', now.getDate())
-        console.log('startOfYear month:', startOfYear.getMonth())
-        console.log('startOfYear date:', startOfYear.getDate())
     return year + (isNextYear ? 1 : 0);
 }
 
