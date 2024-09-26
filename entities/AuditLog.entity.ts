@@ -33,6 +33,9 @@ export class AuditLog {
     @Column('simple-json')
     entityData: any;
 
+    @Column({ default: false })
+    isReverted: boolean;
+
     @CreateDateColumn()
     createdAt: Date;
 }
