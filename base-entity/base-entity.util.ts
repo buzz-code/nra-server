@@ -37,12 +37,23 @@ export async function validateUserHasPaid(auth: any, dataSource: DataSource, mes
     }
 
     const userInfo = await dataSource.getRepository(User)
+        .findOne({ where: { id: getUserIdFromUser(auth) }, select: { isPaid: true } });
+    if (!userInfo.isPaid) {
+        throw new BadRequestException(message);
+    }
+}
+
+export async function validateUserHasPaidOrValidTrial(auth: any, dataSource: DataSource, message = 'פעולה זו דורשת תשלום') {
+    if (auth.permissions.admin) {
+        return;
+    }
+
+    const userInfo = await dataSource.getRepository(User)
         .findOne({ where: { id: getUserIdFromUser(auth) }, select: { isPaid: true, additionalData: true } });
     if (!userInfo.isPaid) {
-        if (userInfo.additionalData?.trialEndDate && new Date(userInfo.additionalData.trialEndDate) > new Date()) {
-            return;
+        if (userInfo.additionalData?.trialEndDate && new Date(userInfo.additionalData.trialEndDate) < new Date()) {
+            throw new BadRequestException(message);
         }
-        throw new BadRequestException(message);
     }
 }
 
