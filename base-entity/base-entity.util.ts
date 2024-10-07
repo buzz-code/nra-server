@@ -31,14 +31,17 @@ export async function validateBulk<T extends Entity>(bulk: any[], model: any) {
     }
 }
 
-export async function validateUserHasPaid(auth: any, dataSource: DataSource, message = 'לא ניתן לבצע פעולה זו בחשבון חינמי') {
+export async function validateUserHasPaid(auth: any, dataSource: DataSource, message = 'פעולה זו דורשת תשלום') {
     if (auth.permissions.admin) {
         return;
     }
 
-    const isUserPaid = await dataSource.getRepository(User)
-        .findOne({ where: { id: getUserIdFromUser(auth) }, select: { isPaid: true } });
-    if (!isUserPaid.isPaid) {
+    const userInfo = await dataSource.getRepository(User)
+        .findOne({ where: { id: getUserIdFromUser(auth) }, select: { isPaid: true, additionalData: true } });
+    if (!userInfo.isPaid) {
+        if (userInfo.additionalData?.trialEndDate && new Date(userInfo.additionalData.trialEndDate) > new Date()) {
+            return;
+        }
         throw new BadRequestException(message);
     }
 }

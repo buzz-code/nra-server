@@ -32,13 +32,13 @@ export class AuthService {
     if (user) {
       const passwordMatch = await bcrypt.compare(pass, user.password);
       if (passwordMatch) {
-        return this.getUserForCookie(user);
+        return this.getSafeUserDetails(user);
       }
     }
     return null;
   }
 
-  private getUserForCookie(user: User): UserForCookie {
+  private getSafeUserDetails(user: User): UserForCookie {
     const { password, ...result } = user;
     return result;
   }
@@ -57,7 +57,7 @@ export class AuthService {
     });
     const user = await this.userRepository.save(userToCreate);
     await this.generateDataForNewUser(user);
-    return this.getUserForCookie(user);
+    return this.getSafeUserDetails(user);
   }
 
   async getCookieWithJwtToken(user: UserForCookie) {
@@ -93,7 +93,7 @@ export class AuthService {
 
   async getCookieForImpersonate(userId: number) {
     const user = await this.userRepository.findOneBy({ id: userId })
-    const userForCookie = this.getUserForCookie(user);
+    const userForCookie = this.getSafeUserDetails(user);
     userForCookie.impersonated = true
     return this.getCookieWithJwtToken(userForCookie);
   }
@@ -116,5 +116,10 @@ export class AuthService {
     } catch (e) {
       console.log('error generating data for new user', e);
     }
+  }
+
+  async getProfile(userId: number) {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    return this.getSafeUserDetails(user);
   }
 }
