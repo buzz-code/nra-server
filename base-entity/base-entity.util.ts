@@ -32,24 +32,22 @@ export async function validateBulk<T extends Entity>(bulk: any[], model: any) {
 }
 
 export async function validateUserHasPaid(auth: any, dataSource: DataSource, message = 'פעולה זו דורשת תשלום') {
-    if (auth.permissions.admin) {
-        return;
-    }
+    const userId = getUserIdFromUser(auth);
+    if (!userId) return;
 
     const userInfo = await dataSource.getRepository(User)
-        .findOne({ where: { id: getUserIdFromUser(auth) }, select: { isPaid: true } });
+        .findOne({ where: { id: userId }, select: { isPaid: true } });
     if (!userInfo.isPaid) {
         throw new BadRequestException(message);
     }
 }
 
-export async function validateUserHasPaidOrValidTrial(auth: any, dataSource: DataSource, message = 'פעולה זו דורשת תשלום') {
-    if (auth.permissions.admin) {
-        return;
-    }
+export async function validateNotTrialEnded(auth: any, dataSource: DataSource, message = 'פעולה זו דורשת תשלום') {
+    const userId = getUserIdFromUser(auth);
+    if (!userId) return;
 
     const userInfo = await dataSource.getRepository(User)
-        .findOne({ where: { id: getUserIdFromUser(auth) }, select: { isPaid: true, additionalData: true } });
+        .findOne({ where: { id: userId }, select: { isPaid: true, additionalData: true } });
     if (!userInfo.isPaid) {
         if (userInfo.additionalData?.trialEndDate && new Date(userInfo.additionalData.trialEndDate) < new Date()) {
             throw new BadRequestException(message);

@@ -9,7 +9,7 @@ import { CommonReportData } from "@shared/utils/report/types";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { getUserIdFromUser } from "@shared/auth/auth.util";
-import { validateUserHasPaidOrValidTrial } from "./base-entity.util";
+import { validateNotTrialEnded } from "./base-entity.util";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
     @InjectEntityExporter private exportDefinition: ExportDefinition;
@@ -30,14 +30,14 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
 
     @Override()
     async createOne(req: CrudRequest<any>, dto: DeepPartial<T>): Promise<T> {
-        await validateUserHasPaidOrValidTrial(req.auth, this.dataSource);
+        await validateNotTrialEnded(req.auth, this.dataSource);
         this.insertUserDataBeforeCreate(dto, getUserIdFromUser(req.auth));
         return super.createOne(req, dto);
     }
 
     @Override()
     async createMany(req: CrudRequest<any>, dto: CreateManyDto<DeepPartial<T>>): Promise<T[]> {
-        await validateUserHasPaidOrValidTrial(req.auth, this.dataSource);
+        await validateNotTrialEnded(req.auth, this.dataSource);
         const userId = getUserIdFromUser(req.auth);
         dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, userId));
         return super.createMany(req, dto);
