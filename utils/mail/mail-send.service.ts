@@ -44,15 +44,24 @@ export class MailSendService {
   }
 
   async sendEmailImportResponse(mailData: MailData, importedFileData: ImportFile[], bccAddress?: string) {
-    let body = `הודעתך התקבלה`;
+    let body = `<h3>הודעתך התקבלה</h3>`;
     if (importedFileData.length) {
-      body += `
-      ${this.lineBreak}
-      רשימת הקבצים שהתקבלו:
-      ${this.lineBreak}
-      ${importedFileData
-          .map((item, index) => `${(index + 1)}: ${getImportFileResponse(item)}`)
-          .join(this.lineBreak)}`
+      body += `${this.lineBreak}
+        <h4>רשימת הקבצים שהתקבלו</h3>
+        <table style="border: 1px solid black; border-collapse: collapse">
+          <tr style="padding: 10px;">
+            <th style="border: 1px solid black">קובץ</th>
+            <th style="border: 1px solid black">תגובה</th>
+          </tr>
+          ${importedFileData
+          .map((importedFile) => `
+              <tr>
+                <td style="padding: 10px; border-inline: 1px solid black">${importedFile.fileName}</td>
+                <td style="padding: 10px">${getImportFileResponse(importedFile)}</td>
+              </tr>
+            `)
+          .join('')}
+        </table>`;
     }
     return this.sendResponseEmail(mailData, body, bccAddress);
   }
@@ -63,7 +72,7 @@ function getImportFileResponse(importedFile: ImportFile) {
   if (!importedFile.fullSuccess) {
     response = `<span style="color:red">${response}</span>`;
   }
-  return `קובץ ${importedFile.fileName} התקבל, תגובה: ${response}`;
+  return response;
 }
 
 function cleanHtml(html: string) {
