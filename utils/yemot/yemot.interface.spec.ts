@@ -5,8 +5,8 @@ import { TextByUser } from "@shared/view-entities/TextByUser.entity";
 import { User } from "@shared/entities/User.entity";
 import util from "./yemot.util";
 import { AttReport } from "src/db/entities/AttReport.entity";
-import { create } from "domain";
 import { Grade } from "src/db/entities/Grade.entity";
+import { getCurrentHebrewYear } from "../entity/year.util";
 
 describe('FormatString', () => {
   it('should replace placeholders with values', () => {
@@ -133,7 +133,7 @@ describe('YemotRequest', () => {
 
     const result = await yemotRequest.getKlassByKlassId(klassKey, null);
     expect(result).toEqual(klass);
-    expect(mock).toHaveBeenCalledWith({ key: klassKey, userId: 1 });
+    expect(mock).toHaveBeenCalledWith({ key: klassKey, userId: 1, year: getCurrentHebrewYear() });
   });
 
   it('should get teacher by phone', async () => {

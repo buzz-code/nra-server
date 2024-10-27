@@ -14,7 +14,7 @@ describe('yearUtil', () => {
 
         it('should return next year if after august', () => {
             jest.spyOn(global.Date, 'now').mockImplementation(() =>
-                new Date('2024-08-01T00:00:00Z').valueOf()
+                new Date('2024-09-01T00:00:00Z').valueOf()
             );
 
             const hebrewYear = getCurrentHebrewYear();
