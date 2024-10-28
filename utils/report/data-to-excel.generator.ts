@@ -32,6 +32,8 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
                 worksheet.addRow([' ']);
             }
             worksheet.getCell(field.cell.r + 1, field.cell.c + 1).value = field.value;
+            worksheet.getCell(field.cell.r + 1, field.cell.c + 1).dataValidation = field.dataValidation;
+            worksheet.getCell(field.cell.r + 1, field.cell.c + 1).style = field.style;
         });
     }
 

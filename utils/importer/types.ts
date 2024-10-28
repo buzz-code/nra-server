@@ -1,6 +1,7 @@
 import { CrudRequest } from "@dataui/crud";
 import { RequestQueryParser } from '@dataui/crud-request';
 import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 
 export interface ImportFileBody {
     userId: number;
@@ -14,7 +15,9 @@ export const defaultReqObject: CrudRequest = {
 
 export interface ISpecialField {
     cell: XLSX.CellAddress;
-    value: string | number;
+    value?: string | number;
+    dataValidation?: ExcelJS.DataValidation;
+    style?: ExcelJS.Style;
 }
 
 export interface IHardCodedField {
