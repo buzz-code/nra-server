@@ -1,4 +1,4 @@
-import { getCurrentHebrewYear, fillDefaultYearValue } from './year.util';
+import { getCurrentHebrewYear, fillDefaultYearValue, getCurrentYearMonths } from './year.util';
 
 
 describe('yearUtil', () => {
@@ -35,6 +35,31 @@ describe('yearUtil', () => {
             const item = { id: 1, year: 1234 };
             fillDefaultYearValue(item);
             expect(item.year).toBe(1234);
+        });
+    });
+
+    describe('getCurrentYearMonths', () => {
+        it('should return 12 items representing the months', () => {
+            const months = getCurrentYearMonths();
+            expect(months).toHaveLength(12);
+        });
+
+        it('should not repeat months', () => {
+            const months = getCurrentYearMonths();
+            const uniqueMonths = new Set(months.map(date => date.getMonth()));
+            expect(uniqueMonths.size).toBe(12);
+        });
+
+        it('should be ordered in the order of the months', () => {
+            const months = getCurrentYearMonths();
+            for (let i = 0; i < months.length - 1; i++) {
+                expect(months[i].getMonth()).toBeLessThan(months[i + 1].getMonth());
+            }
+        });
+
+        it('should have different years for the first and last month', () => {
+            const months = getCurrentYearMonths();
+            expect(months[0].getFullYear()).not.toBe(months[11].getFullYear());
         });
     });
 })

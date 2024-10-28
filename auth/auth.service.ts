@@ -7,6 +7,7 @@ import * as bcrypt from 'bcrypt';
 import { jwtConstants } from './constants';
 import * as cookie from 'cookie';
 import { ReportMonth } from 'src/db/entities/ReportMonth.entity';
+import { getCurrentHebrewYear, getCurrentYearMonths } from '../utils/entity/year.util';
 
 type UserForCookie = Partial<Omit<User, 'password'> & { impersonated?: boolean }>;
 
@@ -100,18 +101,15 @@ export class AuthService {
 
   async generateDataForNewUser(user: User) {
     try {
-      const currentYear = new Date().getFullYear();
       const formatter = new Intl.DateTimeFormat('he', { month: 'long' });
-      const reportMonths: Partial<ReportMonth>[] = [...new Array(12)]
-        .map((_, i) => {
-          const startDate = new Date(currentYear, i, 1);
-          return ({
-            userId: user.id,
-            name: formatter.format(startDate),
-            startDate: startDate,
-            endDate: new Date(currentYear, i + 1, 0),
-          });
-        });
+      const reportMonths: Partial<ReportMonth>[] = getCurrentYearMonths()
+        .map(monthStartDate => ({
+          userId: user.id,
+          name: formatter.format(monthStartDate),
+          startDate: monthStartDate,
+          endDate: new Date(monthStartDate.getFullYear(), monthStartDate.getMonth() + 1, 0),
+          year: getCurrentHebrewYear()
+        }))
       await this.userRepository.manager.getRepository(ReportMonth).save(reportMonths);
     } catch (e) {
       console.log('error generating data for new user', e);
