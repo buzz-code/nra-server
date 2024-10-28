@@ -7,7 +7,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as cookie from 'cookie';
 import { User } from '@shared/entities/User.entity';
-import e from 'express';
+import { getCurrentHebrewYear } from '@shared/utils/entity/year.util';
 
 describe('AuthService', () => {
     let service: AuthService;
@@ -284,11 +284,12 @@ describe('AuthService', () => {
             expect(saveMock).toHaveBeenCalled();
             const reportMonths = saveMock.mock.calls[0][0];
             expect(reportMonths).toHaveLength(12);
-            expect(reportMonths[0]).toMatchObject({
+            expect(reportMonths[4]).toMatchObject({
                 userId: user.id,
                 name: 'ינואר',
-                startDate: new Date(currentYear, 0, 1),
-                endDate: new Date(currentYear, 1, 0),
+                startDate: new Date(currentYear + 1, 0, 1),
+                endDate: new Date(currentYear + 1, 1, 0),
+                year: getCurrentHebrewYear(),
             });
         });
 

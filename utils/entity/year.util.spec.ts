@@ -53,8 +53,13 @@ describe('yearUtil', () => {
         it('should be ordered in the order of the months', () => {
             const months = getCurrentYearMonths();
             for (let i = 0; i < months.length - 1; i++) {
-                expect(months[i].getMonth()).toBeLessThan(months[i + 1].getMonth());
+                expect(months[i].getTime()).toBeLessThan(months[i + 1].getTime());
             }
+        });
+
+        it('should start with september', () => {
+            const months = getCurrentYearMonths();
+            expect(months[0].getMonth()).toBe(8);
         });
 
         it('should have different years for the first and last month', () => {

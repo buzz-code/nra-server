@@ -31,12 +31,9 @@ export function fillDefaultYearValue(item: { id: number, year: number }) {
     }
 }
 
-export function getCurrentYearMonths() {
-    const currentYear = getCurrentGregorianYear();
-    return Array.from({ length: 12 }, (_, i) => {
-        const monthDate = new Date(currentYear, i, 1);
-        monthDate.setFullYear(getGregorianYearByStartDate(startOfYear, monthDate));
-        return monthDate;
-    })
-        .sort((a, b) => a.getTime() - b.getTime());
+export function getCurrentYearMonths(): Date[] {
+    const currentGregorianYear = getCurrentGregorianYear();
+    const startMonth = startOfYear.getMonth();
+    const yearMonths = Array.from({ length: 12 }, (_, i) => new Date(currentGregorianYear - 1, startMonth + i, 1));
+    return yearMonths.sort((a, b) => a.getTime() - b.getTime());
 }
