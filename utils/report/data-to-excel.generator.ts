@@ -18,9 +18,7 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
         const worksheet = workbook.addWorksheet(sheetName.replace(/'$/, ''));
 
         this.insertSpecialFields(worksheet, data.specialFields);
-        if (data.headerRow.length > 0) {
-            this.addTable(worksheet, data);
-        }
+        this.addTable(worksheet, data);
 
         const buffer = await workbook.xlsx.writeBuffer();
         return Buffer.from(buffer);
@@ -38,6 +36,8 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
     }
 
     private addTable(worksheet: ExcelJS.Worksheet, data: IDataToExcelReportGenerator) {
+        if (!data.headerRow.length) return;
+
         const tableFirstRow = worksheet.rowCount + 1;
         worksheet.views = [
             { state: 'frozen', xSplit: tableFirstRow, rightToLeft: true }

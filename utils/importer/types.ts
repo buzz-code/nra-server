@@ -17,7 +17,7 @@ export interface ISpecialField {
     cell: XLSX.CellAddress;
     value?: string | number;
     dataValidation?: ExcelJS.DataValidation;
-    style?: ExcelJS.Style;
+    style?: Partial<ExcelJS.Style>;
 }
 
 export interface IHardCodedField {
