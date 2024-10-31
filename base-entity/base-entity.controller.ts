@@ -62,6 +62,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
             const importDefinition = this.service.getImportDefinition();
             const bulk = await parseExcelFileAdvanced(fileBase64, importDefinition.importFields, importDefinition.specialFields ?? []);
             bulk.forEach(item => {
+                console.log(`importing item for user ${userId}`, item);
                 item.userId ??= userId;
                 importDefinition.hardCodedFields?.forEach(hcf => item[hcf.field] ??= hcf.value);
                 importDefinition.beforeSave?.(item);
