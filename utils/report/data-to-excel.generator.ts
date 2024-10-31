@@ -62,3 +62,34 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
         return Math.max(minWidth, ...data.map(item => item[columnIndex]).map(String).map(item => item.length));
     }
 }
+
+export function getIntegerDataValidation(allowBlank = true, error = 'הערך חייב להיות מספר חיובי', errorTitle = 'הערך אינו מספר חיובי'): ExcelJS.DataValidation {
+    return {
+        type: 'whole',
+        operator: 'between',
+        formulae: [0, 999],
+        allowBlank,
+        error,
+        errorTitle,
+        errorStyle: 'warning',
+        prompt: error,
+        promptTitle: errorTitle,
+        showErrorMessage: true,
+        showInputMessage: true,
+    }
+}
+
+export function getDateDataValidation(allowBlank = true, error = 'הערך חייב להיות תאריך תקין', errorTitle = 'הערך אינו תאריך תקין'): ExcelJS.DataValidation {
+    return {
+        type: 'date',
+        formulae: [`=DATE(${new Date().getFullYear()}, ${new Date().getMonth() + 1}, ${new Date().getDate()})`],
+        allowBlank,
+        error,
+        errorTitle,
+        errorStyle: 'warning',
+        prompt: error,
+        promptTitle: errorTitle,
+        showErrorMessage: true,
+        showInputMessage: true,
+    }
+}
