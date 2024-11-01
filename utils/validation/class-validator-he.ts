@@ -4,6 +4,8 @@ import {
     MaxLength as _MaxLength,
     IsNumber as _IsNumber,
     IsInt as _IsInt,
+    IsDate as _IsDate,
+    IsDateString as _IsDateString,
     IsNumberOptions,
     ValidationArguments,
 } from "class-validator";
@@ -18,6 +20,10 @@ export const IsNumber = (options?: IsNumberOptions, validationOptions?: Validati
     _IsNumber(options, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר') });
 export const IsInt = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsInt({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר שלם') });
+export const IsDate = ( validationOptions?: ValidationOptions): PropertyDecorator =>
+    _IsDate( { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות תאריך') });
+export const IsDateString = (options?: IsNumberOptions, validationOptions?: ValidationOptions): PropertyDecorator =>
+    _IsDateString(options, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות תאריך') });
 export const IsUniqueCombination = (otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) =>
     _IsUniqueCombination(otherProperties, entities, { ...validationOptions, message: getErrorMessageFunction('קיימת כבר רשומה עם ערכים זהים למשתמש בשדות $constraint1') });
 export const MaxCountByUserLimit = (entity: Function, getMaxLimit: GetMaxLimitType, entities: Function[] = [], foreignKey = 'id', validationOptions?: ValidationOptions) =>
