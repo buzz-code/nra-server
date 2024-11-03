@@ -4,6 +4,7 @@ import {
     MaxLength as _MaxLength,
     IsNumber as _IsNumber,
     IsInt as _IsInt,
+    IsPositive as _IsPositive,
     IsDate as _IsDate,
     IsNumberOptions,
     ValidationArguments,
@@ -19,6 +20,8 @@ export const IsNumber = (options?: IsNumberOptions, validationOptions?: Validati
     _IsNumber(options, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר, הערך שהתקבל: "$value"') });
 export const IsInt = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsInt({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר שלם, הערך שהתקבל: "$value"') });
+export const IsPositive = (validationOptions?: ValidationOptions): PropertyDecorator =>
+    _IsPositive({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות גדול מאפס, הערך שהתקבל: "$value"') });
 export const IsDate = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsDate({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות תאריך, הערך שהתקבל: "$value"') });
 export const IsUniqueCombination = (otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) =>
