@@ -236,4 +236,188 @@ describe('YemotService', () => {
             yemotUtil.hangup(),
         ));
     });
+
+    // handle a call with valid body and no active call
+    it('should handle a call with valid body and no active call', async () => {
+        // Mock dependencies
+        mockRepo.findOne.mockResolvedValue(null);
+        mockRepo.create.mockReturnValue({});
+        mockRepo.save.mockResolvedValue({});
+
+        // Create instance of YemotService with mocked dependencies
+        const yemotService = new YemotService(
+            mockRepo,
+            mockUserRepo,
+            mockDataSource,
+            mockYemotChain
+        );
+
+        // Invoke the method under test
+        await yemotService.handleCall(body);
+
+        // Assertions
+        expect(mockRepo.findOne).toHaveBeenCalledWith({
+            where: {
+                apiCallId: body.ApiCallId,
+            },
+        });
+        expect(mockRepo.create).toHaveBeenCalledWith({
+            user: expect.any(Object),
+            apiCallId: body.ApiCallId,
+            phone: body.ApiPhone,
+            isOpen: true,
+            history: [],
+            data: body,
+            currentStep: 'placeholder',
+        });
+        expect(mockRepo.save).toHaveBeenCalledWith(expect.any(Object));
+        expect(mockYemotChain.handleRequest).toHaveBeenCalled();
+    });
+
+    // handle a call with existing active call
+    it('should handle a call with existing active call', async () => {
+        // Mock dependencies
+        mockRepo.findOne.mockResolvedValue({});
+        mockRepo.create.mockReturnValue({});
+        mockRepo.save.mockResolvedValue({});
+
+        // Create instance of YemotService with mocked dependencies
+        const yemotService = new YemotService(
+            mockRepo,
+            mockUserRepo,
+            mockDataSource,
+            mockYemotChain
+        );
+
+        // Invoke the method under test
+        await yemotService.handleCall(body);
+
+        // Assertions
+        expect(mockRepo.findOne).toHaveBeenCalledWith({
+            where: {
+                apiCallId: body.ApiCallId,
+            },
+        });
+        expect(mockRepo.create).not.toHaveBeenCalled();
+        expect(mockRepo.save).toHaveBeenCalledWith(expect.any(Object));
+        expect(mockYemotChain.handleRequest).toHaveBeenCalled();
+    });
+
+    // handle a call with a hangup signal
+    it('should handle a call with a hangup signal', async () => {
+        // Mock dependencies
+        mockRepo.findOne.mockResolvedValue({
+            isOpen: true,
+            history: [],
+            data: body,
+            currentStep: 'placeholder',
+        });
+
+        // Create instance of YemotService with mocked dependencies
+        const yemotService = new YemotService(
+            mockRepo,
+            mockUserRepo,
+            mockDataSource,
+            mockYemotChain
+        );
+
+        // Invoke the method under test
+        await yemotService.handleCall({ ...body, hangup: 'true' });
+
+        // Assertions
+        expect(mockRepo.findOne).toHaveBeenCalledWith({
+            where: {
+                apiCallId: body.ApiCallId,
+            },
+        });
+        expect(mockRepo.create).not.toHaveBeenCalled();
+        expect(mockRepo.save).toHaveBeenCalledWith(expect.any(Object));
+        expect(mockYemotChain.handleRequest).not.toHaveBeenCalled();
+    });
+
+    // handle call with duplicate values
+    it('should handle call with duplicate values', async () => {
+        // Mock dependencies
+        mockRepo.findOne.mockResolvedValue(null);
+        mockRepo.create.mockReturnValue({});
+        mockRepo.save.mockResolvedValue({});
+
+        // Create instance of YemotService with mocked dependencies
+        const yemotService = new YemotService(
+            mockRepo,
+            mockUserRepo,
+            mockDataSource,
+            mockYemotChain
+        );
+
+        // Define test data with duplicate values
+        const duplicateBody = {
+            ...body,
+            reportDateType: ["2", "1"] as any,
+        };
+
+        // Invoke the method under test
+        await yemotService.handleCall(duplicateBody);
+
+        // Assertions
+        expect(mockRepo.findOne).toHaveBeenCalledWith({
+            where: {
+                apiCallId: duplicateBody.ApiCallId,
+            },
+        });
+        expect(mockRepo.create).toHaveBeenCalledWith({
+            user: expect.any(Object),
+            apiCallId: duplicateBody.ApiCallId,
+            phone: duplicateBody.ApiPhone,
+            isOpen: true,
+            history: [],
+            data: duplicateBody,
+            currentStep: 'placeholder',
+        });
+        expect(mockRepo.save).toHaveBeenCalledWith(expect.any(Object));
+        expect(mockYemotChain.handleRequest).toHaveBeenCalled();
+    });
+
+    // handle call with empty body
+    it('should handle call with empty body', async () => {
+        // Mock dependencies
+        mockRepo.findOne.mockResolvedValue(null);
+        mockRepo.create.mockReturnValue({});
+        mockRepo.save.mockResolvedValue({});
+
+        // Create instance of YemotService with mocked dependencies
+        const yemotService = new YemotService(
+            mockRepo,
+            mockUserRepo,
+            mockDataSource,
+            mockYemotChain
+        );
+
+        // Invoke the method under test
+        await expect(yemotService.handleCall({} as YemotParams)).resolves.toEqual(yemotUtil.send(
+            yemotUtil.id_list_message_v2('שגיאה'),
+            yemotUtil.hangup(),
+        ));
+    });
+
+    // handle call when user is not found
+    it('should handle call when user is not found', async () => {
+        // Mock dependencies
+        mockRepo.findOne.mockResolvedValue(null);
+        mockUserRepo.findOneBy.mockResolvedValue(null);
+
+        // Create instance of YemotService with mocked dependencies
+        const yemotService = new YemotService(
+            mockRepo,
+            mockUserRepo,
+            mockDataSource,
+            mockYemotChain
+        );
+
+        // Invoke the method under test
+        await expect(yemotService.handleCall(body)).resolves.toEqual(yemotUtil.send(
+            yemotUtil.id_list_message_v2('מספר הטלפון עדיין לא חובר למשתמש באתר יומנט'),
+            yemotUtil.hangup(),
+        ));
+    });
 });

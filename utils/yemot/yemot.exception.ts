@@ -9,7 +9,7 @@ export class UnexpectedHangupException extends Error {
 
 export class UserNotFoundException extends Error {
     isUserNotFoundException = true;
-    errorResponse = 'מספר הטלפון עדיין לא חובר למשתמש באתר יומנט';
+    responseMessage = 'מספר הטלפון עדיין לא חובר למשתמש באתר יומנט';
     constructor(phoneNumber: string) {
         super(`User not found for phone number ${phoneNumber}`);
     }

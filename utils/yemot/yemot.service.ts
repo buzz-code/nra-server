@@ -47,11 +47,11 @@ export class YemotService {
     }
     catch (e) {
       let errorResponse = e.responseMessage ?? 'שגיאה';
+      this.logger.log('an error has occured in yemot_call', e);
       if (activeCall) {
         activeCall.isOpen = false;
         activeCall.hasError = true;
         activeCall.errorMessage = e.message;
-        this.logger.log('an error has occured in yemot_call', e);
         this.repo.save(activeCall);
       }
       return yemotUtil.send(
