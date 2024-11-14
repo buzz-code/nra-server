@@ -4,7 +4,8 @@ import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { DataSource, Repository } from "typeorm";
 import { User } from "../../entities/User.entity";
 import { Chain } from "./chain.interface";
-import { USER_NOT_FOUND, YemotProcessor, YemotProcessorProvider, YemotRequest, YemotResponse, YEMOT_CHAIN, YEMOT_HANGUP_STEP, YEMOT_PROCCESSOR_PROVIDER } from "./yemot.interface";
+import { YemotProcessor, YemotProcessorProvider, YemotRequest, YemotResponse, YEMOT_CHAIN, YEMOT_HANGUP_STEP, YEMOT_PROCCESSOR_PROVIDER } from "./yemot.interface";
+import { UnexpectedHangupException, UserNotFoundException } from "./yemot.exception";
 import yemotUtil from "./yemot.util";
 
 @Injectable()
@@ -30,7 +31,7 @@ export class YemotService {
       activeCall = await this.getActiveCall(body);
       if (body.hangup) {
         if (activeCall.isOpen) {
-          throw new Error('Unexpected hangup ' + activeCall.id);
+          throw new UnexpectedHangupException(activeCall);
         } else {
           this.closeCall(activeCall, body);
         }
@@ -45,17 +46,13 @@ export class YemotService {
       }
     }
     catch (e) {
-      let errorResponse = 'שגיאה';
+      let errorResponse = e.responseMessage ?? 'שגיאה';
       if (activeCall) {
         activeCall.isOpen = false;
         activeCall.hasError = true;
         activeCall.errorMessage = e.message;
         this.logger.log('an error has occured in yemot_call', e);
         this.repo.save(activeCall);
-      } else {
-        if (e.message === USER_NOT_FOUND) {
-          errorResponse = 'מספר הטלפון עדיין לא חובר למשתמש באתר יומנט';
-        }
       }
       return yemotUtil.send(
         yemotUtil.id_list_message_v2(errorResponse),
@@ -103,7 +100,7 @@ export class YemotService {
     };
     const user = await this.userRepo.findOneBy(userFilter);
     if (!user) {
-      throw new Error(USER_NOT_FOUND);
+      throw new UserNotFoundException(body.ApiDID);
     }
     return this.repo.create({
       user,

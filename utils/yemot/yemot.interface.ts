@@ -16,7 +16,6 @@ export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
 export const YEMOT_CHAIN = 'yemot_chain';
 export const YEMOT_HANGUP_STEP = 'hangup';
 export const YEMOT_NOT_IMPL_STEP = 'error-not-impl-step';
-export const USER_NOT_FOUND = 'UserNotFound';
 
 export function FormatString(str: string, val: string[]) {
   return str.replace(/{([\d]*)}/g, (_, index) => val[index]);
