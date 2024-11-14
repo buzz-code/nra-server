@@ -17,13 +17,13 @@ export const IsNotEmpty = (validationOptions?: ValidationOptions): PropertyDecor
 export const MaxLength = (max: number, validationOptions?: ValidationOptions): PropertyDecorator =>
     _MaxLength(max, { ...validationOptions, message: getErrorMessageFunction('$property לא יכול להיות ארוך יותר מ-$constraint1 תווים') });
 export const IsNumber = (options?: IsNumberOptions, validationOptions?: ValidationOptions): PropertyDecorator =>
-    _IsNumber(options, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר, הערך שהתקבל: "$value"') });
+    _IsNumber(options, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר $value') });
 export const IsInt = (validationOptions?: ValidationOptions): PropertyDecorator =>
-    _IsInt({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר שלם, הערך שהתקבל: "$value"') });
+    _IsInt({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר שלם $value') });
 export const IsPositive = (validationOptions?: ValidationOptions): PropertyDecorator =>
-    _IsPositive({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות גדול מאפס, הערך שהתקבל: "$value"') });
+    _IsPositive({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות גדול מאפס $value') });
 export const IsDate = (validationOptions?: ValidationOptions): PropertyDecorator =>
-    _IsDate({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות תאריך, הערך שהתקבל: "$value"') });
+    _IsDate({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות תאריך $value') });
 export const IsUniqueCombination = (otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) =>
     _IsUniqueCombination(otherProperties, entities, { ...validationOptions, message: getErrorMessageFunction('קיימת כבר רשומה עם ערכים זהים למשתמש בשדות $constraint1') });
 export const MaxCountByUserLimit = (entity: Function, getMaxLimit: GetMaxLimitType, entities: Function[] = [], foreignKey = 'id', validationOptions?: ValidationOptions) =>
@@ -34,9 +34,11 @@ function getErrorMessageFunction(message: string) {
         const constraints = validationArguments.constraints || [];
         const translatedConstraints = constraints.map((constraint) => getTranslatedConstraint(constraint));
         const translatedProperty = getTranslatedProperty(validationArguments.property);
+        const wrongValue = validationArguments.value === undefined ? '' : `, הערך שהתקבל: "${validationArguments.value}"`;
         return message
             .replace(/\$constraint(\d+)/g, (match, constraintIndex) => translatedConstraints[parseInt(constraintIndex) - 1])
-            .replace(/\$property/g, translatedProperty);
+            .replace(/\$property/g, translatedProperty)
+            .replace(/\$value/g, wrongValue);
     }
 }
 
