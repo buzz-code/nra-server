@@ -50,7 +50,7 @@ export class AuthService {
       throw new UnauthorizedException('כתובת המייל כבר רשומה במערכת');
     }
     const userToCreate = this.userRepository.create({
-      name: userInfo?.name ?? username,
+      name: userInfo?.organizationName ?? username,
       email: username,
       password: pass,
       permissions: {},
