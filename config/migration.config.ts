@@ -13,4 +13,4 @@ const dataSource = new DataSource({
 export default dataSource;
 
 // run migration like this:
-// yarn typeorm:generate src/migrations/addImportFileTable -p
+// yarn typeorm:generate src/migrations/addImportFileTable -p --dr
