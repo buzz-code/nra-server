@@ -118,6 +118,24 @@ export class AuthService {
 
   async getProfile(userId: number) {
     const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new Error('User not found');
+    }
     return this.getSafeUserDetails(user);
+  }
+
+  async updateSettings(userId: number, data: any) {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    user.additionalData = {
+      ...user.additionalData,
+      ...data
+    };
+
+    await this.userRepository.save(user);
+    return { success: true };
   }
 }

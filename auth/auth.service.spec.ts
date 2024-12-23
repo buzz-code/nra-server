@@ -127,7 +127,7 @@ describe('AuthService', () => {
                 password: pass,
                 permissions: {},
                 userInfo: {
-                    name: 'test',
+                    organizationName: 'test',
                 },
             } as any as User;
 
@@ -306,6 +306,63 @@ describe('AuthService', () => {
             });
 
             await expect(service.generateDataForNewUser(user)).resolves.not.toThrowError();
+        });
+    });
+
+    describe('getProfile', () => {
+        it('should return the user profile', async () => {
+            const userId = 1;
+            const userStub = {
+                id: userId,
+                email: 'test@example.com',
+                name: 'test',
+                permissions: {},
+            } as any as User;
+
+            const findOneByMock = jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(userStub);
+
+            const result = await service.getProfile(userId);
+
+            expect(findOneByMock).toHaveBeenCalledWith({ id: userId });
+            expect(result).toEqual(userStub);
+        });
+
+        it('should throw an error if the user is not found', async () => {
+            const userId = 1;
+
+            jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
+
+            await expect(service.getProfile(userId)).rejects.toThrowError('User not found');
+        });
+    });
+
+    describe('updateSettings', () => {
+        it('should update the user settings', async () => {
+            const userId = 1;
+            const userStub = {
+                id: userId,
+                email: 'test@example.com',
+                name: 'test',
+                permissions: {},
+                additionalData: { pageSize: 5, theme: 'light' },
+            } as any as User;
+
+            const findOneByMock = jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(userStub);
+            const saveMock = jest.spyOn(userRepository, 'save').mockResolvedValue(userStub);
+
+            const result = await service.updateSettings(userId, { pageSize: 10 });
+
+            expect(findOneByMock).toHaveBeenCalledWith({ id: userId });
+            expect(saveMock).toHaveBeenCalledWith({ ...userStub, additionalData: { pageSize: 10, theme: 'light' } });
+            expect(result).toEqual({ success: true });
+        });
+
+        it('should throw an error if the user is not found', async () => {
+            const userId = 1;
+
+            jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
+
+            await expect(service.updateSettings(userId, { name: 'new name' })).rejects.toThrowError('User not found');
         });
     });
 });
