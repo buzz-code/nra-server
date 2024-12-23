@@ -10,6 +10,10 @@ describe('class-transformer', () => {
         const test = { key: 1 };
         const result = plainToClass(Test, test);
         expect(result.key).toBe('1');
+
+        const test2 = { key: 'a' };
+        const result2 = plainToClass(Test, test2);
+        expect(result2.key).toBe('a');
     });
 
     it('number type', () => {
@@ -19,6 +23,10 @@ describe('class-transformer', () => {
         const test = { key: '1' };
         const result = plainToClass(Test, test);
         expect(result.key).toBe(1);
+
+        const test2 = { key: 'a' };
+        const result2 = plainToClass(Test, test2);
+        expect(result2.key).toBe('a');
     });
 
     it('date type', () => {
@@ -28,5 +36,9 @@ describe('class-transformer', () => {
         const test = { key: new Date().toISOString() };
         const result = plainToClass(Test, test);
         expect(result.key).toBeInstanceOf(Date);
+
+        const test2 = { key: 'a' };
+        const result2 = plainToClass(Test, test2);
+        expect(result2.key).toBe('a');
     });
 });
