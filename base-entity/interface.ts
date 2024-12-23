@@ -27,7 +27,7 @@ export interface ImportDefinition {
     importFields?: string[];
     specialFields?: ISpecialField[];
     hardCodedFields?: IHardCodedField[];
-    beforeSave?: (row: any) => void;
+    beforeSave?: (row: any, user: User) => void;
 }
 
 export interface ExportDefinition {

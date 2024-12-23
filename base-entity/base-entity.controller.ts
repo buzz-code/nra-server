@@ -21,6 +21,10 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         private model: any
     ) { }
 
+    private getUserById(userId: number) {
+        return this.service.dataSource.getRepository(User).findOneOrFail({ where: { id: userId } });
+    }
+
     getCount(req: CrudRequest) {
         return this.service.getCount(req);
     }
@@ -46,7 +50,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
 
     protected async getBccAddressFromUserId(userId: number) {
         try {
-            const user = await this.service.dataSource.getRepository(User).findOneOrFail({ where: { id: userId } });
+            const user = await this.getUserById(userId);
             return user.bccAddress;
         } catch (e) {
             console.log('getBccAddressFromUserId error - user not found', userId);
@@ -55,6 +59,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
     }
 
     protected async importExcelFile(userId: number, fileBase64: string, fileName: string, fileSource: ImportFileSource): Promise<ImportFile> {
+        const user = await this.getUserById(userId);
         let created: any[] = [];
         let response: string = null;
         let isFullSuccess = false;
@@ -64,11 +69,11 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
             bulk.forEach(item => {
                 item.userId ??= userId;
                 importDefinition.hardCodedFields?.forEach(hcf => {
-                    if(item[hcf.field] === null || item[hcf.field] === undefined || item[hcf.field] === '') {                                 
+                    if (item[hcf.field] === null || item[hcf.field] === undefined || item[hcf.field] === '') {
                         item[hcf.field] = hcf.value
                     }
                 });
-                importDefinition.beforeSave?.(item);
+                importDefinition.beforeSave?.(item, user);
             });
             await validateBulk<T>(bulk, this.model);
             created = await this.service.createMany(defaultReqObject, { bulk });
