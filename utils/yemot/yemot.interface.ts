@@ -59,9 +59,11 @@ export class YemotRequest {
   getUserId() {
     return this.activeCall.userId;
   }
+  async getUser() {
+    return this.activeCall.user ?? this.dataSource.getRepository(User).findOneOrFail({ where: { id: this.activeCall.userId } });
+  }
   async getUserPermissions() {
-    const id = this.getUserId();
-    const user = await this.dataSource.getRepository(User).findOneByOrFail({ id });
+    const user = await this.getUser();
     return user.permissions;
   }
   async getLessonFromLessonId(lessonId: number) {
