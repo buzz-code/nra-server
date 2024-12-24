@@ -98,7 +98,7 @@ describe('YemotRequest', () => {
     const user = { id: 1, permissions: ["READ", "WRITE"] };
 
     // Mock the database call
-    jest.spyOn(dataSource.getRepository(User), 'findOneByOrFail').mockResolvedValue(user as User);
+    jest.spyOn(yemotRequest, 'getUser').mockResolvedValue(user as User);
 
     const result = await yemotRequest.getUserPermissions();
     expect(result).toEqual(["READ", "WRITE"]);
