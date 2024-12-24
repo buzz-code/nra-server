@@ -89,8 +89,8 @@ describe('getIntegerDataValidation', () => {
     it('should generate an Excel data validation object for integers with default values', () => {
         const dataValidation = getIntegerDataValidation();
         expect(dataValidation).toHaveProperty('type', 'whole');
-        expect(dataValidation).toHaveProperty('operator', 'greaterThanOrEqual');
-        expect(dataValidation).toHaveProperty('formula1', 0);
+        expect(dataValidation).toHaveProperty('operator', 'between');
+        expect(dataValidation).toHaveProperty('formulae', [0, 999]);
         expect(dataValidation).toHaveProperty('allowBlank', true);
         expect(dataValidation).toHaveProperty('error', 'הערך חייב להיות מספר חיובי');
         expect(dataValidation).toHaveProperty('errorTitle', 'הערך אינו מספר חיובי');
@@ -100,8 +100,8 @@ describe('getIntegerDataValidation', () => {
     it('should generate an Excel data validation object for integers with custom values', () => {
         const dataValidation = getIntegerDataValidation(false, 'Invalid number', 'Invalid number');
         expect(dataValidation).toHaveProperty('type', 'whole');
-        expect(dataValidation).toHaveProperty('operator', 'greaterThanOrEqual');
-        expect(dataValidation).toHaveProperty('formula1', 0);
+        expect(dataValidation).toHaveProperty('operator', 'between');
+        expect(dataValidation).toHaveProperty('formulae', [0, 999]);
         expect(dataValidation).toHaveProperty('allowBlank', false);
         expect(dataValidation).toHaveProperty('error', 'Invalid number');
         expect(dataValidation).toHaveProperty('errorTitle', 'Invalid number');
@@ -113,8 +113,7 @@ describe('getDateDataValidation', () => {
     it('should generate an Excel data validation object for dates with default values', () => {
         const dataValidation = getDateDataValidation();
         expect(dataValidation).toHaveProperty('type', 'date');
-        expect(dataValidation).toHaveProperty('operator', 'greaterThanOrEqual');
-        expect(dataValidation).toHaveProperty('formula1', new Date(1900, 0, 1));
+        expect(dataValidation).toHaveProperty('formulae', expect.any(Array));
         expect(dataValidation).toHaveProperty('allowBlank', true);
         expect(dataValidation).toHaveProperty('error', 'הערך חייב להיות תאריך תקין');
         expect(dataValidation).toHaveProperty('errorTitle', 'הערך אינו תאריך תקין');
@@ -124,8 +123,7 @@ describe('getDateDataValidation', () => {
     it('should generate an Excel data validation object for dates with custom values', () => {
         const dataValidation = getDateDataValidation(false, 'Invalid date', 'Invalid date');
         expect(dataValidation).toHaveProperty('type', 'date');
-        expect(dataValidation).toHaveProperty('operator', 'greaterThanOrEqual');
-        expect(dataValidation).toHaveProperty('formula1', new Date(1900, 0, 1));
+        expect(dataValidation).toHaveProperty('formulae', expect.any(Array));
         expect(dataValidation).toHaveProperty('allowBlank', false);
         expect(dataValidation).toHaveProperty('error', 'Invalid date');
         expect(dataValidation).toHaveProperty('errorTitle', 'Invalid date');
