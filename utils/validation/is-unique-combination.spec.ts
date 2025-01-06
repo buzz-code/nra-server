@@ -1,7 +1,7 @@
 import * as classValidator from 'class-validator';
 import { IsUniqueCombination } from "./is-unique-combination";
 import * as foreignKeyUtil from '../entity/foreignKey.util';
-import { DataSource } from 'typeorm';
+import { DataSource, Not } from 'typeorm';
 
 const dataSource = new DataSource({ type: 'mysql' });
 dataSource.getRepository = jest.fn().mockReturnValue({
@@ -89,6 +89,7 @@ describe('IsUniqueCombination', () => {
         expect(getDataSourceSpy).toHaveBeenCalledWith([Entity]);
         expect(countBySpy).toHaveBeenCalledWith({
             propertyName: 'value',
+            id: Not(-1),
         });
         expect(result).toBe(true);
     });
@@ -111,6 +112,7 @@ describe('IsUniqueCombination', () => {
         expect(countBySpy).toHaveBeenCalledWith({
             propertyName: 'value',
             otherProperty: 'value',
+            id: Not(-1),
         });
         expect(result).toBe(true);
     });
@@ -132,6 +134,7 @@ describe('IsUniqueCombination', () => {
         expect(getDataSourceSpy).toHaveBeenCalledWith([Entity]);
         expect(countBySpy).toHaveBeenCalledWith({
             propertyName: 'value',
+            id: Not(-1),
         });
         expect(result).toBe(true);
     });
@@ -154,6 +157,28 @@ describe('IsUniqueCombination', () => {
         expect(countBySpy).toHaveBeenCalledWith({
             propertyName: 'value',
             otherProperty: 'value',
+            id: Not(-1),
+        });
+        expect(result).toBe(true);
+    });
+
+    it('should handle the case when data.id is defined', async () => {
+        // Arrange
+        const registerDecoratorSpy = classValidator.registerDecorator as jest.Mock;
+        const getDataSourceSpy = foreignKeyUtil.getDataSource as jest.Mock;
+        const countBySpy = jest.spyOn(dataSource.getRepository(Entity), 'countBy').mockResolvedValue(0);
+        IsUniqueCombination([], [Entity])({ propertyName: 'value', id: 1 }, 'propertyName');
+        const validator = registerDecoratorSpy.mock.calls[0][0].validator;
+        const data = { propertyName: 'value', id: 1 };
+
+        // Act
+        const result = await validator.validate(data.propertyName, { object: data });
+
+        // Assert
+        expect(getDataSourceSpy).toHaveBeenCalledWith([Entity]);
+        expect(countBySpy).toHaveBeenCalledWith({
+            propertyName: 'value',
+            id: Not(1),
         });
         expect(result).toBe(true);
     });

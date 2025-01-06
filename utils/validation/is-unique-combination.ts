@@ -4,6 +4,7 @@ import { getDataSource } from '../entity/foreignKey.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { getCurrentUser } from './current-user.util';
 import { getCurrentHebrewYear } from '../entity/year.util';
+import { getCurrentId } from '../entity/current-id.util';
 
 export function IsUniqueCombination(otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) {
     return function (object: Object, propertyName: string) {
@@ -18,12 +19,14 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
             },
             validator: {
                 async validate(value: any, args: ValidationArguments) {
-                    // return true;
                     if (!value) return true;
 
                     const fullObject = args.object as any;
+                    const currentId = fullObject.id ?? getCurrentId() ?? -1;
+
                     const uniqueObject = {
                         [propertyName]: value,
+                        id: Not(currentId),
                     };
                     for (const uniqueProperty of otherProperties) {
                         switch (uniqueProperty) {
@@ -37,9 +40,6 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
                             default:
                                 uniqueObject[uniqueProperty] = fullObject[uniqueProperty];
                         }
-                    }
-                    if (fullObject.id) {
-                        uniqueObject.id = Not(fullObject.id);
                     }
 
                     let dataSource: DataSource;
