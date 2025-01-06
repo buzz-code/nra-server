@@ -12,6 +12,7 @@ import {
 } from "class-validator";
 import { IsUniqueCombination as _IsUniqueCombination } from "./is-unique-combination";
 import { GetMaxLimitType, MaxCountByUserLimit as _MaxCountByUserLimit } from "./max-count-by-user-limit";
+import { IsUniqueDateRange as _IsUniqueDateRange } from "./is-unique-date-range";
 
 export const IsNotEmpty = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsNotEmpty({ ...validationOptions, message: getErrorMessageFunction('הערך של $property לא יכול להיות ריק') });
@@ -31,6 +32,8 @@ export const IsUniqueCombination = (otherProperties: string[] = [], entities: Fu
     _IsUniqueCombination(otherProperties, entities, { ...validationOptions, message: getErrorMessageFunction('קיימת כבר רשומה עם ערכים זהים למשתמש בשדות $constraint1') });
 export const MaxCountByUserLimit = (entity: Function, getMaxLimit: GetMaxLimitType, entities: Function[] = [], foreignKey = 'id', validationOptions?: ValidationOptions) =>
     _MaxCountByUserLimit(entity, getMaxLimit, entities, foreignKey, { ...validationOptions, message: getErrorMessageFunction('לא ניתן ליצור עוד רשומות - הגבלת כמות לטבלת $constraint1') });
+export const IsUniqueDateRange = (startDateField: string = 'start_date', endDateField: string = 'end_date', entities: Function[] = [], validationOptions?: ValidationOptions) =>
+    _IsUniqueDateRange(startDateField, endDateField, entities, { ...validationOptions, message: getErrorMessageFunction('קיימת כבר רשומה עם תאריכים חופפים למשתמש בין $constraint1 ל$constraint2') });
 
 function getErrorMessageFunction(message: string) {
     return function (validationArguments: ValidationArguments) {
