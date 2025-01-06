@@ -2,7 +2,7 @@ import { registerDecorator, ValidationOptions, ValidationArguments } from 'class
 import { DataSource, Not } from "typeorm";
 import { getDataSource } from '../entity/foreignKey.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
-import { getCurrentUser } from './util';
+import { getCurrentUser } from './current-user.util';
 import { getCurrentHebrewYear } from '../entity/year.util';
 
 export function IsUniqueCombination(otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) {

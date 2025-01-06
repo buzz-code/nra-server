@@ -10,7 +10,7 @@ jest.mock('nestjs-request-context', () => ({
     },
 }));
 
-import { getCurrentUser } from './util';
+import { getCurrentUser } from './current-user.util';
 
 describe('getCurrentUser', () => {
     it('should return the current user', () => {

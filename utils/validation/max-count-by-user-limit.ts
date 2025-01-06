@@ -2,7 +2,7 @@ import { registerDecorator, ValidationOptions, ValidationArguments } from 'class
 import { DataSource, Not } from "typeorm";
 import { getDataSource } from '../entity/foreignKey.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
-import { getCurrentUser } from './util';
+import { getCurrentUser } from './current-user.util';
 import { getCurrentHebrewYear } from "@shared/utils/entity/year.util";
 
 export type GetMaxLimitType = (userId: any, dataSource: DataSource) => Promise<number>;

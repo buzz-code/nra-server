@@ -8,12 +8,12 @@ import { jwtConstants } from './constants';
 import * as cookie from 'cookie';
 import { ReportMonth } from 'src/db/entities/ReportMonth.entity';
 import { getCurrentHebrewYear, getCurrentYearMonths } from '../utils/entity/year.util';
+import { IAuthenticatedUser } from './auth.types';
 
-type UserForCookie = Partial<Omit<User, 'password'> & { impersonated?: boolean }>;
-
-const adminUser = {
+const adminUser: IAuthenticatedUser = {
   id: -1,
   name: 'admin',
+  email: 'admin',
   permissions: { admin: true }
 };
 
@@ -39,7 +39,7 @@ export class AuthService {
     return null;
   }
 
-  private getSafeUserDetails(user: User): UserForCookie {
+  private getSafeUserDetails(user: User): IAuthenticatedUser {
     const { password, ...result } = user;
     return result;
   }
@@ -61,7 +61,7 @@ export class AuthService {
     return this.getSafeUserDetails(user);
   }
 
-  async getCookieWithJwtToken(user: UserForCookie) {
+  async getCookieWithJwtToken(user: IAuthenticatedUser) {
     const payload = {
       username: user.email,
       id: user.id,
@@ -79,7 +79,7 @@ export class AuthService {
     });
   }
 
-  async getCookieForLogOut(user?: UserForCookie) {
+  async getCookieForLogOut(user?: IAuthenticatedUser) {
     if (!user?.impersonated) {
       return cookie.serialize('Authentication', '', {
         httpOnly: true,
