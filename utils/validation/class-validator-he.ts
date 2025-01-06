@@ -8,6 +8,7 @@ import {
     IsDate as _IsDate,
     IsNumberOptions,
     ValidationArguments,
+    Min as _Min,
 } from "class-validator";
 import { IsUniqueCombination as _IsUniqueCombination } from "./is-unique-combination";
 import { GetMaxLimitType, MaxCountByUserLimit as _MaxCountByUserLimit } from "./max-count-by-user-limit";
@@ -22,6 +23,8 @@ export const IsInt = (validationOptions?: ValidationOptions): PropertyDecorator 
     _IsInt({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר שלם $value') });
 export const IsPositive = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsPositive({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות גדול מאפס $value') });
+export const Min = (min: number, validationOptions?: ValidationOptions): PropertyDecorator =>
+    _Min(min, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות לפחות $constraint1') });
 export const IsDate = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsDate({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות תאריך $value') });
 export const IsUniqueCombination = (otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) =>
