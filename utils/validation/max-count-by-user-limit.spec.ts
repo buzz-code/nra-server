@@ -3,7 +3,7 @@ const registerDecoratorMock = jest.fn();
 jest.doMock('class-validator', () => ({
     registerDecorator: registerDecoratorMock,
 }));
-jest.doMock('./util', () => ({
+jest.doMock('./current-user.util', () => ({
     getCurrentUser: jest.fn().mockReturnValue({
         permissions: {},
         id: 1,

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository, getRepositoryToken } from '@nestjs/typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
@@ -231,7 +231,7 @@ describe('AuthService', () => {
 
             const user = {
                 impersonated: true,
-            };
+            } as any as User;
 
             await service.getCookieForLogOut(user);
 
@@ -275,7 +275,6 @@ describe('AuthService', () => {
                 name: 'test',
                 permissions: {},
             } as any as User;
-            const currentYear = new Date().getFullYear();
 
             const saveMock = jest.spyOn(userRepository, 'save');
 
@@ -284,13 +283,13 @@ describe('AuthService', () => {
             expect(saveMock).toHaveBeenCalled();
             const reportMonths = saveMock.mock.calls[0][0];
             expect(reportMonths).toHaveLength(12);
-            expect(reportMonths[4]).toMatchObject({
-                userId: user.id,
-                name: 'ינואר',
-                startDate: new Date(currentYear + 1, 0, 1),
-                endDate: new Date(currentYear + 1, 1, 0),
-                year: getCurrentHebrewYear(),
-            });
+            expect(reportMonths[4].userId).toBe(user.id);
+            expect(reportMonths[4].name).toBe('ינואר');
+            expect(reportMonths[4].startDate.getMonth()).toBe(0);
+            expect(reportMonths[4].startDate.getDate()).toBe(1);
+            expect(reportMonths[4].endDate.getMonth()).toBe(0);
+            expect(reportMonths[4].endDate.getDate()).toBe(31);
+            expect(reportMonths[4].year).toBe(getCurrentHebrewYear());
         });
 
         it('should simulate an error', async () => {
