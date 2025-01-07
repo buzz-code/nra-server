@@ -1,4 +1,4 @@
-import { ISendMailOptions, MailerService, } from '@nestjs-modules/mailer';
+import { ISendMailOptions, MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
 import { ImportFile } from '@shared/entities/ImportFile.entity';
 import { SentMessageInfo } from 'nodemailer';
@@ -11,7 +11,11 @@ export class MailSendService {
   readonly lineBreak = '<br/>';
 
   sendMail(sendMailOptions: ISendMailOptions): Promise<SentMessageInfo> {
-    return this.mailerService.sendMail(sendMailOptions);
+    return this.mailerService.sendMail({
+      ...sendMailOptions,
+      text: sendMailOptions.text ?? cleanHtml(sendMailOptions.html),
+      html: addHtmlDirection(sendMailOptions.html),
+    });
   }
 
   async sendUserConfirmation(user: any, token: string) {
@@ -36,8 +40,7 @@ export class MailSendService {
       from: mailData.rcpt_to,
       bcc: bccAddress,
       subject: 'Re:' + (mailData.subject ?? ''),
-      text: cleanHtml(htmlText),
-      html: addHtmlDirection(htmlText),
+      html: htmlText,
       inReplyTo: mailData.message_id,
       references: mailData.message_id,
     });
@@ -75,11 +78,17 @@ function getImportFileResponse(importedFile: ImportFile) {
   return response;
 }
 
-function cleanHtml(html: string) {
+function cleanHtml(html: ISendMailOptions['html']) {
+  if (typeof html !== 'string') {
+    return html;
+  }
   return html.replace(/<[^>]*>/g, '');
 }
 
-function addHtmlDirection(html: string) {
+function addHtmlDirection(html: ISendMailOptions['html']) {
+  if (typeof html !== 'string') {
+    return html;
+  }
   // if text is hebrew, add dir="rtl" to the html tag
   if (html.match(/[\u0590-\u05FF]/)) {
     return `<div dir="rtl">${html}</div>`;
