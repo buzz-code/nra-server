@@ -2,7 +2,7 @@ import { AuthOptions, CrudRequest, QueryOptions, RoutesOptions } from "@dataui/c
 import { Inject } from "@nestjs/common";
 import { EntityClassOrSchema } from "@nestjs/typeorm/dist/interfaces/entity-class-or-schema.type";
 import { User } from "@shared/entities/User.entity";
-import { IHeader } from "@shared/utils/exporter/types";
+import { IContent, IHeader } from "@shared/utils/exporter/types";
 import { Entity } from "typeorm";
 import { BaseEntityService } from "./base-entity.service";
 import { IHardCodedField, ISpecialField } from "@shared/utils/importer/types";
@@ -30,9 +30,9 @@ export interface ImportDefinition {
     beforeSave?: (row: any, user: User) => void;
 }
 
-export interface ExportDefinition {
+export interface ExportDefinition<T = IContent> {
     processReqForExport?(req: CrudRequest, innerFunc: (req: CrudRequest) => Promise<any>): Promise<any[]>;
-    getExportHeaders?(entityColumns: string[]): IHeader[];
+    getExportHeaders?(entityColumns: string[]): IHeader<T>[];
     getImportDefinition?(importFields: string[]): ImportDefinition;
 }
 
