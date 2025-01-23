@@ -32,15 +32,23 @@ export function getElementStyle(elementType: string, styles: ReportStyles): Repo
 }
 
 export function convertToReactStyle(elementStyle: ReportElementStyle): CSSProperties {
-    return {
-        fontFamily: `"${elementStyle.fontFamily}", sans-serif`,
-        fontSize: elementStyle.fontSize,
-        fontWeight: elementStyle.isBold ? 'bold' : 'normal',
-        fontStyle: elementStyle.isItalic ? 'italic' : 'normal'
-    };
+    const reactStyle: CSSProperties = {};
+    if (elementStyle.fontFamily) {
+        reactStyle.fontFamily = `"${elementStyle.fontFamily}", sans-serif`;
+    }
+    if (elementStyle.fontSize) {
+        reactStyle.fontSize = elementStyle.fontSize;
+    }
+    if (elementStyle.isBold) {
+        reactStyle.fontWeight = 'bold';
+    }
+    if (elementStyle.isItalic) {
+        reactStyle.fontStyle = 'italic';
+    }
+    return reactStyle;
 }
 
 export function getFontLinks(styles: ReportElementStyle[]): string[] {
-    const uniqueFonts = [...new Set(styles.map(style => style.fontFamily))];
+    const uniqueFonts = [...new Set(styles.map(style => style.fontFamily).filter(font => font))];
     return uniqueFonts.map(font => `https://fonts.googleapis.com/css2?family=${font.replace(' ', '+')}&display=swap`);
 }
