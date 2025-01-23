@@ -2,10 +2,10 @@ import { CSSProperties } from 'react';
 
 export interface ReportElementStyle {
     type: string;
-    fontFamily: string;
-    fontSize: number;
-    isBold: boolean;
-    isItalic: boolean;
+    fontFamily?: string;
+    fontSize?: number;
+    isBold?: boolean;
+    isItalic?: boolean;
 }
 
 export type ReportStyles = ReportElementStyle[];
