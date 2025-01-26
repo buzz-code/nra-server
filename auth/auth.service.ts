@@ -135,7 +135,7 @@ export class AuthService {
       ...data
     };
 
-    await this.userRepository.save(user);
+    await this.userRepository.update(user.id, { additionalData: user.additionalData });
     return { success: true };
   }
 }
