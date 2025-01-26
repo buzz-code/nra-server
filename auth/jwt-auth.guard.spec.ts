@@ -1,70 +1,202 @@
-class TestGuard {
-    canActivate(context: ExecutionContext) {
-        return false;
+import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC } from './public.decorator';
+
+class MockAuthGuardClass {
+  canActivate(context: ExecutionContext) {
+    const req = context.switchToHttp()?.getRequest();
+    if (!req?.headers?.authorization) {
+      throw new UnauthorizedException();
     }
+    const [type, token] = (req.headers.authorization || '').split(' ');
+    if (type !== 'Bearer' || !token || token === 'invalid.token') {
+      throw new UnauthorizedException();
+    }
+    return true;
+  }
 }
 
+// Mock AuthGuard before importing JwtAuthGuard
 jest.mock('@nestjs/passport', () => ({
-  AuthGuard: () => TestGuard,
+  AuthGuard: jest.fn(() => MockAuthGuardClass),
 }));
 
-import { Reflector } from "@nestjs/core";
-import { JwtAuthGuard } from "./jwt-auth.guard";
-import { ExecutionContext } from "@nestjs/common";
+// Import after mocking
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 describe('JwtAuthGuard', () => {
-    const reflector = new Reflector();
-    const context = {
-        getHandler: jest.fn(),
-    } as unknown as ExecutionContext;
+  let reflector: Reflector;
+  let guard: JwtAuthGuard;
+  let mockContext: ExecutionContext;
+  let mockRequest: any;
 
-    // JwtAuthGuard can be instantiated
-    it('should instantiate JwtAuthGuard', () => {
-        const jwtAuthGuard = new JwtAuthGuard(reflector);
-        expect(jwtAuthGuard).toBeDefined();
+  beforeEach(() => {
+    reflector = new Reflector();
+    guard = new JwtAuthGuard(reflector);
+
+    mockRequest = {
+      headers: {
+        authorization: 'Bearer valid.jwt.token'
+      }
+    };
+
+    mockContext = {
+      getHandler: jest.fn(),
+      getClass: jest.fn(),
+      switchToHttp: jest.fn().mockReturnValue({
+        getRequest: jest.fn().mockReturnValue(mockRequest),
+        getResponse: jest.fn(),
+        getNext: jest.fn(),
+      }),
+      getType: jest.fn().mockReturnValue('http'),
+      getArgs: jest.fn().mockReturnValue([]),
+      getArgByIndex: jest.fn(),
+      switchToRpc: jest.fn(),
+      switchToWs: jest.fn(),
+    } as ExecutionContext;
+  });
+
+  describe('constructor', () => {
+    it('should create JwtAuthGuard instance', () => {
+      expect(guard).toBeDefined();
+      expect(guard).toBeInstanceOf(JwtAuthGuard);
+    });
+  });
+
+  describe('canActivate', () => {
+    it('should return true if endpoint is marked as public', () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(true);
+      expect(guard.canActivate(mockContext)).toBe(true);
+      expect(reflector.get).toHaveBeenCalledWith(IS_PUBLIC, mockContext.getHandler());
     });
 
-    // canActivate method returns true if IS_PUBLIC is true
-    it('should return true if IS_PUBLIC is true', () => {
-        jest.spyOn(reflector, 'get').mockReturnValue(true);
-        const jwtAuthGuard = new JwtAuthGuard(reflector);
-        const result = jwtAuthGuard.canActivate(context);
-        expect(result).toBe(true);
+    it('should call super.canActivate if endpoint is not public', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(false);
+      const result = await guard.canActivate(mockContext);
+      expect(result).toBe(true);
     });
 
-    // canActivate method calls super.canActivate if IS_PUBLIC is false
-    it('should call super.canActivate if IS_PUBLIC is false', () => {
+    it('should handle undefined IS_PUBLIC decorator', () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      expect(guard.canActivate(mockContext)).toBeTruthy();
+    });
+
+    it('should throw UnauthorizedException when no authorization header', () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(false);
+      mockRequest.headers.authorization = undefined;
+      
+      expect(() => guard.canActivate(mockContext)).toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('metadata resolution', () => {
+    it('should check handler metadata first', () => {
+      const handlerSpy = jest.spyOn(reflector, 'get').mockReturnValue(true);
+      const classSpy = jest.spyOn(mockContext, 'getClass');
+      
+      guard.canActivate(mockContext);
+      
+      expect(handlerSpy).toHaveBeenCalled();
+      expect(classSpy).not.toHaveBeenCalled();
+    });
+
+    it('should handle null context handler', () => {
+      mockContext.getHandler = jest.fn().mockReturnValue(null);
+      jest.spyOn(reflector, 'get').mockReturnValue(false);
+      mockRequest.headers.authorization = undefined;
+      
+      expect(() => guard.canActivate(mockContext)).toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle invalid context type', () => {
+      const invalidContext = {
+        ...mockContext,
+        switchToHttp: jest.fn().mockReturnValue(null)
+      } as ExecutionContext;
+
+      jest.spyOn(reflector, 'get').mockReturnValue(false);
+      
+      expect(() => guard.canActivate(invalidContext)).toThrow();
+    });
+
+    it('should handle reflector.get throwing error', () => {
+      jest.spyOn(reflector, 'get').mockImplementation(() => {
+        throw new Error('Reflector error');
+      });
+      
+      expect(() => guard.canActivate(mockContext)).toThrow('Reflector error');
+    });
+
+    it('should handle malformed JWT token', () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(false);
+      mockRequest.headers.authorization = 'Bearer invalid.token';
+      
+      expect(() => guard.canActivate(mockContext)).toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('HTTP request handling', () => {
+    it('should handle different HTTP methods', () => {
+      const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+      
+      methods.forEach(method => {
+        mockRequest.method = method;
         jest.spyOn(reflector, 'get').mockReturnValue(false);
-        jest.spyOn(TestGuard.prototype, 'canActivate').mockReturnValue(false);
-        const jwtAuthGuard = new JwtAuthGuard(reflector);
-        const result = jwtAuthGuard.canActivate(context);
-        expect(result).toBe(false); // Assuming super.canActivate returns false
+        expect(guard.canActivate(mockContext)).toBeTruthy();
+      });
     });
 
-    // IS_PUBLIC is undefined
-    it('should return false if IS_PUBLIC is undefined', () => {
-        jest.spyOn(reflector, 'get').mockReturnValue(undefined);
-        jest.spyOn(TestGuard.prototype, 'canActivate').mockReturnValue(false);
-        const jwtAuthGuard = new JwtAuthGuard(reflector);
-        const result = jwtAuthGuard.canActivate(context);
-        expect(result).toBe(false);
+    it('should handle request without headers', () => {
+      mockRequest.headers = undefined;
+      jest.spyOn(reflector, 'get').mockReturnValue(false);
+      
+      expect(() => guard.canActivate(mockContext)).toThrow(UnauthorizedException);
     });
 
-    // IS_PUBLIC is null
-    it('should return false if IS_PUBLIC is null', () => {
-        jest.spyOn(reflector, 'get').mockReturnValue(null);
-        jest.spyOn(TestGuard.prototype, 'canActivate').mockReturnValue(false);
-        const jwtAuthGuard = new JwtAuthGuard(reflector);
-        const result = jwtAuthGuard.canActivate(context);
-        expect(result).toBe(false);
+    it('should handle malformed authorization header', () => {
+      const invalidHeaders = [
+        'Bearer',
+        'bearer token',
+        'Basic auth',
+        '',
+        undefined
+      ];
+
+      invalidHeaders.forEach(header => {
+        mockRequest.headers.authorization = header;
+        jest.spyOn(reflector, 'get').mockReturnValue(false);
+        
+        expect(() => guard.canActivate(mockContext)).toThrow(UnauthorizedException);
+      });
+    });
+  });
+
+  describe('integration scenarios', () => {
+    it('should handle complete request flow', async () => {
+      const mockHandler = jest.fn();
+      jest.spyOn(mockContext, 'getHandler').mockReturnValue(mockHandler);
+      
+      jest.spyOn(reflector, 'get').mockReturnValue(false);
+      mockRequest.headers.authorization = 'Bearer valid.jwt.token';
+      
+      const result = await guard.canActivate(mockContext);
+      expect(result).toBe(true);
     });
 
-    // IS_PUBLIC is not a boolean
-    it('should return false if IS_PUBLIC is not a boolean', () => {
-        jest.spyOn(reflector, 'get').mockReturnValue('not a boolean');
-        jest.spyOn(JwtAuthGuard.prototype, 'canActivate').mockReturnValue(false);
-        const jwtAuthGuard = new JwtAuthGuard(reflector);
-        const result = jwtAuthGuard.canActivate(context);
-        expect(result).toBe(false);
+    it('should properly chain auth checks', async () => {
+      const mockHandler = jest.fn();
+      jest.spyOn(mockContext, 'getHandler').mockReturnValue(mockHandler);
+      
+      // First check public decorator
+      jest.spyOn(reflector, 'get').mockReturnValue(false);
+      
+      // Then verify JWT
+      mockRequest.headers.authorization = 'Bearer valid.jwt.token';
+      
+      const result = await guard.canActivate(mockContext);
+      expect(result).toBe(true);
     });
+  });
 });
