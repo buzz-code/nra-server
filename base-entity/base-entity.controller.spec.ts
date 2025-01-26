@@ -12,12 +12,16 @@ import { CommonFileFormat } from '@shared/utils/report/types';
 import { ObjectLiteral } from '@dataui/crud-util';
 import { ImportFile } from '@shared/entities/ImportFile.entity';
 import * as addressparser from 'addressparser';
+import { IsNotEmpty, IsOptional } from 'class-validator';
 
 jest.mock('addressparser');
 
 class TestEntity {
   id: number;
+  @IsOptional()
   userId: number;
+  @IsNotEmpty()
+  field1: string;
 }
 
 interface ExtraParams {

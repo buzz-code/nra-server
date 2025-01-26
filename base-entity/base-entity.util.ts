@@ -11,23 +11,41 @@ import { Entity } from "./interface";
 export async function validateBulk<T extends Entity>(bulk: any[], model: any) {
     class BulkDtoImpl {
         @IsArray({ always: true })
-        @ArrayNotEmpty({ always: true })
-        @ValidateNested({ each: true, groups: [CrudValidationGroups.CREATE] })
+        @ArrayNotEmpty({ 
+            always: true, 
+            message: 'bulk should not be empty' 
+        })
+        @ValidateNested({ 
+            each: true, 
+            always: true,
+        })
         @Type(() => model)
         bulk: T[];
     }
+
     const myDtoObject = plainToInstance(BulkDtoImpl, { bulk });
-    const errors = await validate(myDtoObject, { groups: [CrudValidationGroups.CREATE] });
-    const errorMessages = errors
-        .flatMap(item => item.children)
-        .flatMap(item => item.children)
-        .flatMap(item => item.constraints as any)
-        .filter(item => item)
-        .flatMap(item => Object.values(item))
-        .at(0);
-    // .join(', ');
-    if (errorMessages) {
-        throw new Error(errorMessages as string);
+    const errors = await validate(myDtoObject, { 
+        forbidUnknownValues: true,
+        validationError: { target: false },
+        whitelist: true
+    });
+
+    if (errors.length > 0) {
+        const firstError = errors[0];
+        if (firstError.constraints) {
+            throw new Error(Object.values(firstError.constraints)[0]);
+        }
+        
+        const nestedErrors = firstError.children
+            ?.flatMap(child => child.children)
+            ?.flatMap(child => child?.constraints ? Object.values(child.constraints) : [])
+            ?.filter(Boolean);
+
+        if (nestedErrors?.length > 0) {
+            throw new Error(nestedErrors[0]);
+        }
+
+        throw new Error('Validation failed');
     }
 }
 
