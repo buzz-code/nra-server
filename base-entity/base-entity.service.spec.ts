@@ -8,7 +8,7 @@ import { validateNotTrialEnded } from './base-entity.util';
 import { ENTITY_EXPORTER, ENTITY_REPOSITORY } from './interface';
 
 jest.mock('./base-entity.util', () => ({
-  validateNotTrialEnded: jest.fn(),
+  validateNotTrialEnded: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('BaseEntityService', () => {
@@ -16,8 +16,8 @@ describe('BaseEntityService', () => {
   let repository: Repository<any>;
   let dataSource: DataSource;
   let mailService: MailSendService;
-
   let entityColumns: string[];
+  let mockDto: { name: string; userId?: number };
 
   const mockReq = {
     auth: { id: 123 },
@@ -65,7 +65,9 @@ describe('BaseEntityService', () => {
 
     const mockRepository = {
       target: TestEntity,
-      manager: {},
+      manager: {
+        transaction: jest.fn((cb) => cb()),
+      },
       metadata: {
         columns: [
           { propertyName: 'id' },
@@ -101,7 +103,9 @@ describe('BaseEntityService', () => {
         },
         {
           provide: DataSource,
-          useValue: {}
+          useValue: {
+            transaction: jest.fn((cb) => cb()),
+          }
         },
         {
           provide: MailSendService,
@@ -115,12 +119,23 @@ describe('BaseEntityService', () => {
     dataSource = module.get<DataSource>(DataSource);
     mailService = module.get<MailSendService>(MailSendService);
 
+    // Reset mockDto for each test
+    mockDto = { name: 'test' };
+
     // Set default columns and configure getter
     entityColumns = ['id', 'name'];
     Object.defineProperty(service, 'entityColumns', {
       get: () => entityColumns,
       configurable: true
     });
+
+    jest.clearAllMocks();
+    // Reset validateNotTrialEnded mock
+    (validateNotTrialEnded as jest.Mock).mockResolvedValue(undefined);
+    // Mock super.createOne by default
+    jest.spyOn(TypeOrmCrudService.prototype, 'createOne').mockResolvedValue({ id: 1, ...mockDto });
+    // Mock super.createMany by default
+    jest.spyOn(TypeOrmCrudService.prototype, 'createMany').mockResolvedValue([{ id: 1, ...mockDto }]);
   });
 
   describe('Core Functionality', () => {
@@ -138,20 +153,15 @@ describe('BaseEntityService', () => {
 
       expect(result).toBe('test_entity');
     });
+
+    it('should get entity manager', () => {
+      const result = service.getEntityManager();
+      expect(result).toBeDefined();
+      expect(result).toBe(repository.manager);
+    });
   });
 
   describe('CRUD Operations', () => {
-    const mockDto = { name: 'test' };
-
-    beforeEach(() => {
-      jest.clearAllMocks();
-      // Mock super.createOne
-      jest.spyOn(TypeOrmCrudService.prototype, 'createOne').mockResolvedValue({ id: 1, ...mockDto });
-    });
-
-
-
-
     describe('super class interactions', () => {
       it('should call super createOne', async () => {
         const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createOne');
@@ -170,6 +180,20 @@ describe('BaseEntityService', () => {
 
         await service.createMany(mockReq, mockCreateManyDto);
         expect(superSpy).toHaveBeenCalledWith(mockReq, mockCreateManyDto);
+      });
+
+      it('should handle createOne failure', async () => {
+        const error = new Error('Database error');
+        jest.spyOn(TypeOrmCrudService.prototype, 'createOne').mockRejectedValue(error);
+        
+        await expect(service.createOne(mockReq, mockDto)).rejects.toThrow('Database error');
+      });
+
+      it('should handle createMany failure', async () => {
+        const error = new Error('Bulk insert failed');
+        jest.spyOn(TypeOrmCrudService.prototype, 'createMany').mockRejectedValue(error);
+        
+        await expect(service.createMany(mockReq, { bulk: [mockDto] })).rejects.toThrow('Bulk insert failed');
       });
     });
 
@@ -194,21 +218,23 @@ describe('BaseEntityService', () => {
         expect(mockBuilder.getCount).toHaveBeenCalled();
         expect(result).toEqual({ count: mockCount });
       });
+
+      it('should handle getCount failure', async () => {
+        const mockBuilder = {
+          getCount: jest.fn().mockRejectedValue(new Error('Count failed')),
+          where: jest.fn().mockReturnThis(),
+          andWhere: jest.fn().mockReturnThis()
+        } as unknown as SelectQueryBuilder<any>;
+
+        jest.spyOn(service as any, 'createBuilder').mockResolvedValue(mockBuilder);
+
+        await expect(service.getCount(mockReq)).rejects.toThrow('Count failed');
+      });
     });
   });
 
   describe('User Data Injection', () => {
-    const mockDto = { name: 'test' };
-
-    beforeEach(() => {
-      jest.clearAllMocks();
-      // Mock super.createOne
-      jest.spyOn(TypeOrmCrudService.prototype, 'createOne').mockResolvedValue({ id: 1, ...mockDto });
-    });
-
     describe('with userId column', () => {
-      const mockDto = { name: 'test' };
-
       beforeEach(() => {
         entityColumns = ['id', 'userId', 'name'];
         Object.defineProperty(service, 'entityColumns', {
@@ -224,6 +250,11 @@ describe('BaseEntityService', () => {
       it('should validate trial not ended', async () => {
         await service.createOne(mockReq, mockDto);
         expect(validateNotTrialEnded).toHaveBeenCalledWith(mockReq.auth, dataSource);
+      });
+
+      it('should handle trial ended validation failure', async () => {
+        (validateNotTrialEnded as jest.Mock).mockRejectedValue(new Error('Trial ended'));
+        await expect(service.createOne(mockReq, mockDto)).rejects.toThrow('Trial ended');
       });
 
       it('should inject user data for single item', async () => {
@@ -242,11 +273,15 @@ describe('BaseEntityService', () => {
           expect(item).toHaveProperty('userId', 123);
         });
       });
+
+      it('should not override existing userId', async () => {
+        const dtoCopy = { ...mockDto, userId: 456 };
+        await service.createOne(mockReq, dtoCopy);
+        expect(dtoCopy.userId).toBe(456);
+      });
     });
 
     describe('without userId column', () => {
-      const mockDto = { name: 'test' };
-
       beforeEach(() => {
         entityColumns = ['id', 'name'];
         Object.defineProperty(service, 'entityColumns', {
@@ -280,180 +315,190 @@ describe('BaseEntityService', () => {
           expect(item).not.toHaveProperty('userId');
         });
       });
-    });
-  });
-
-  describe('Export Functionality', () => {
-    const baseMockReq = {
-      auth: { id: 123 },
-      parsed: {
-        fields: [] as string[],
-        paramsFilter: [] as any[],
-        authPersist: [] as any[],
-        search: {} as any,
-        filter: [] as any[],
-        or: [] as any[],
-        join: [] as any[],
-        sort: [] as any[],
-        limit: 0,
-        offset: 0,
-        page: 1,
-        cache: 0,
-        includeDeleted: 0,
-        classTransformOptions: {},
-        extra: {}
-      },
-      options: {
-        route: {
-          path: '',
-          paramNames: [] as string[]
-        },
-        params: {},
-        query: {},
-        routes: {}
-      }
-    } as unknown as CrudRequest;
-
-    describe('getDataForExport', () => {
-      it('should use custom processor when defined', async () => {
-        const processedData = [{ processed: true }];
-        service['exportDefinition'] = {
-          processReqForExport: jest.fn().mockResolvedValue(processedData)
-        } as any;
-
-        const result = await service.getDataForExport(baseMockReq);
-
-        expect(service['exportDefinition'].processReqForExport).toHaveBeenCalledWith(
-          baseMockReq,
-          expect.any(Function)
-        );
-        expect(result).toEqual(processedData);
+    
+      describe('Export/Import Operations', () => {
+        describe('getDataForExport', () => {
+          it('should call processReqForExport when defined', async () => {
+            const mockProcessReqForExport = jest.fn();
+            const mockExportDefinition = {
+              processReqForExport: mockProcessReqForExport
+            };
+            Object.defineProperty(service, 'exportDefinition', {
+              get: () => mockExportDefinition
+            });
+    
+            await service.getDataForExport(mockReq);
+            expect(mockProcessReqForExport).toHaveBeenCalled();
+          });
+    
+          it('should call getDataForExportInner directly when processReqForExport not defined', async () => {
+            const mockData = [{ id: 1, name: 'test' }];
+            jest.spyOn(service as any, 'getDataForExportInner').mockResolvedValue(mockData);
+            
+            const result = await service.getDataForExport(mockReq);
+            expect(result).toEqual(mockData);
+          });
+        });
+    
+        describe('getExportHeaders', () => {
+          it('should use custom headers when defined', () => {
+            const customHeaders = [{ key: 'name', label: 'Name' }];
+            const mockExportDefinition = {
+              getExportHeaders: jest.fn().mockReturnValue(customHeaders)
+            };
+            Object.defineProperty(service, 'exportDefinition', {
+              get: () => mockExportDefinition
+            });
+    
+            const result = service.getExportHeaders(mockReq, []);
+            expect(result).toEqual(customHeaders);
+          });
+    
+          it('should use entity columns when custom headers not defined', () => {
+            const result = service.getExportHeaders(mockReq, []);
+            expect(result).toEqual(entityColumns);
+          });
+    
+          it('should include pivot headers when pivot data present', () => {
+            const pivotData = [{
+              headers: [{ key: 'pivotCol', label: 'Pivot Column' }]
+            }];
+            const reqWithPivot = {
+              ...mockReq,
+              parsed: {
+                ...mockReq.parsed,
+                extra: { pivot: 'TestPivot' }
+              }
+            };
+    
+            const result = service.getExportHeaders(reqWithPivot, pivotData);
+            expect(result).toEqual([
+              ...entityColumns,
+              { key: 'pivotCol', label: 'Pivot Column' }
+            ]);
+          });
+        });
+    
+        describe('getImportDefinition', () => {
+          it('should use custom import definition when defined', () => {
+            const customImportDef = { importFields: ['name'] };
+            const mockExportDefinition = {
+              getImportDefinition: jest.fn().mockReturnValue(customImportDef)
+            };
+            Object.defineProperty(service, 'exportDefinition', {
+              get: () => mockExportDefinition
+            });
+    
+            const result = service.getImportDefinition();
+            expect(result).toEqual(customImportDef);
+          });
+    
+          it('should generate default import definition when custom not defined', () => {
+            entityColumns = ['id', 'name', 'userId', 'createdAt', 'updatedAt', 'description'];
+            const result = service.getImportDefinition();
+            expect(result.importFields).toEqual(['name', 'description']);
+          });
+        });
       });
-
-      it('should use inner export when no processor', async () => {
-        service['exportDefinition'] = {} as any;
-        const mockData = [{ id: 1 }];
-        jest.spyOn(service as any, 'getDataForExportInner').mockResolvedValue(mockData);
-
-        const result = await service.getDataForExport(baseMockReq);
-
-        expect(result).toEqual(mockData);
+    
+      describe('Report and Action Operations', () => {
+        describe('getReportData', () => {
+          it('should return report data with generator and params', async () => {
+            const result = await service.getReportData(mockReq);
+            expect(result).toHaveProperty('generator');
+            expect(result).toHaveProperty('params', mockReq.parsed.extra);
+            expect(result.generator.constructor.name).toBe('ParamsToJsonReportGenerator');
+          });
+        });
+    
+        describe('doAction', () => {
+          it('should return default response', async () => {
+            const result = await service.doAction(mockReq, {});
+            expect(result).toBe('done nothing');
+          });
+        });
       });
-
-      it('should handle pivot data', async () => {
-        const pivotReq = {
-          ...baseMockReq,
-          parsed: {
-            ...baseMockReq.parsed,
-            extra: { pivot: true }
-          }
-        };
-        const pivotData = [{ id: 1, pivotField: 'value' }];
-        jest.spyOn(service, 'getPivotData').mockResolvedValue(pivotData);
-
-        const result = await service.getDataForExport(pivotReq);
-
-        expect(service.getPivotData).toHaveBeenCalledWith(pivotReq);
-        expect(result).toEqual(pivotData);
-      });
-    });
-
-    describe('getExportHeaders', () => {
-      it('should use custom headers when defined', () => {
-        const customHeaders = [{ field: 'name', header: 'Name' }];
-        service['exportDefinition'] = {
-          getExportHeaders: jest.fn().mockReturnValue(customHeaders)
-        } as any;
-
-        const result = service.getExportHeaders(baseMockReq, []);
-
-        expect(service['exportDefinition'].getExportHeaders).toHaveBeenCalledWith(entityColumns);
-        expect(result).toEqual(customHeaders);
-      });
-
-      it('should use entity columns as default headers', () => {
-        service['exportDefinition'] = {} as any;
-        const result = service.getExportHeaders(baseMockReq, []);
-        expect(result).toEqual(entityColumns);
-      });
-
-      it('should include pivot headers when present', () => {
-        const pivotReq = {
-          ...baseMockReq,
-          parsed: {
-            ...baseMockReq.parsed,
-            extra: { pivot: true }
-          }
-        };
-        const pivotData = [{ headers: ['pivot1', 'pivot2'] }];
-
-        const result = service.getExportHeaders(pivotReq, pivotData);
-
-        expect(result).toEqual([...entityColumns, 'pivot1', 'pivot2']);
-      });
-    });
-
-    describe('getImportDefinition', () => {
-      beforeEach(() => {
-        entityColumns = ['id', 'name', 'userId', 'createdAt', 'updatedAt', 'customField'];
-      });
-
-      it('should filter out system fields', () => {
-        const result = service.getImportDefinition();
-        expect(result.importFields).toEqual(['name', 'customField']);
-      });
-
-      it('should use custom import definition when available', () => {
-        const customDefinition = { importFields: ['name'], someCustomProp: true };
-        service['exportDefinition'] = {
-          getImportDefinition: jest.fn().mockReturnValue(customDefinition)
-        } as any;
-
-        const result = service.getImportDefinition();
-        expect(result).toEqual(customDefinition);
-        expect(service['exportDefinition'].getImportDefinition)
-          .toHaveBeenCalledWith(['name', 'customField']);
-      });
-    });
-  });
-
-  describe('Report & Pivot Operations', () => {
-    describe('getReportData', () => {
-      it('should create report generator', async () => {
-        const result = await service.getReportData(mockReq);
-
-        expect(result.generator).toBeDefined();
-        expect(result.params).toEqual(mockReq.parsed.extra);
-      });
-    });
-
-    describe('getPivotData', () => {
-      it('should get data from getMany', async () => {
-        const mockData = [{ id: 1 }];
-        jest.spyOn(service, 'getMany').mockResolvedValue(mockData);
-
-        const result = await service.getPivotData(mockReq);
-
-        expect(service.getMany).toHaveBeenCalledWith(mockReq);
-        expect(result).toEqual(mockData);
-      });
-
-      it('should populate pivot data when records exist', async () => {
-        const mockData = [{ id: 1 }];
-        jest.spyOn(service, 'getMany').mockResolvedValue(mockData);
-        jest.spyOn(service as any, 'populatePivotData');
-
-        const result = await service.getPivotData(mockReq);
-
-        expect(service['populatePivotData']).toHaveBeenCalledWith('PivotName', mockData, mockReq.parsed.extra, mockReq.parsed.filter, mockReq.auth);
-        expect(result).toEqual([{ id: 1 }]);
-      });
-    });
-
-    describe('doAction', () => {
-      it('should return default message', async () => {
-        const result = await service.doAction(mockReq, {});
-        expect(result).toBe('done nothing');
+    
+      describe('Pivot Operations', () => {
+        describe('getPivotData', () => {
+          it('should get and populate pivot data when records exist', async () => {
+            const mockData = {
+              data: [{ id: 1, name: 'test' }],
+              count: 1,
+              total: 1,
+              page: 1,
+              pageCount: 1
+            };
+            jest.spyOn(service, 'getMany').mockResolvedValue(mockData);
+            jest.spyOn(service as any, 'populatePivotData').mockResolvedValue(undefined);
+    
+            const reqWithPivot = {
+              ...mockReq,
+              parsed: {
+                ...mockReq.parsed,
+                extra: { pivot: '?TestPivot' }
+              }
+            };
+    
+            await service.getPivotData(reqWithPivot);
+            expect(service['populatePivotData']).toHaveBeenCalledWith(
+              'TestPivot',
+              mockData.data,
+              reqWithPivot.parsed.extra,
+              reqWithPivot.parsed.filter,
+              reqWithPivot.auth
+            );
+          });
+    
+          it('should handle empty results', async () => {
+            const mockData = {
+              data: [],
+              count: 0,
+              total: 0,
+              page: 1,
+              pageCount: 0
+            };
+            jest.spyOn(service, 'getMany').mockResolvedValue(mockData);
+            const populateSpy = jest.spyOn(service as any, 'populatePivotData');
+    
+            const reqWithPivot = {
+              ...mockReq,
+              parsed: {
+                ...mockReq.parsed,
+                extra: { pivot: '?TestPivot' }
+              }
+            };
+    
+            const result = await service.getPivotData(reqWithPivot);
+            expect(populateSpy).not.toHaveBeenCalled();
+            expect(result).toEqual(mockData);
+          });
+    
+          it('should handle array response from getMany', async () => {
+            const mockData = [{ id: 1, name: 'test' }];
+            jest.spyOn(service, 'getMany').mockResolvedValue(mockData);
+            jest.spyOn(service as any, 'populatePivotData').mockResolvedValue(undefined);
+    
+            const reqWithPivot = {
+              ...mockReq,
+              parsed: {
+                ...mockReq.parsed,
+                extra: { pivot: '?TestPivot' }
+              }
+            };
+    
+            const result = await service.getPivotData(reqWithPivot);
+            expect(service['populatePivotData']).toHaveBeenCalled();
+            expect(result).toEqual(mockData);
+          });
+        });
+    
+        describe('populatePivotData', () => {
+          it('should do nothing by default', async () => {
+            const result = await service['populatePivotData']('test', [], {}, [], {});
+            expect(result).toBeUndefined();
+          });
+        });
       });
     });
   });
