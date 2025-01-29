@@ -6,5 +6,6 @@ export async function getMailAddressForEntity(userId: number, entity: string, da
     const mailAddress = await dataSource
         .getRepository(MailAddress)
         .findOneBy({ userId, entity });
+    if (!mailAddress) return;
     return mailAddress?.alias + '@' + domain;
 }
