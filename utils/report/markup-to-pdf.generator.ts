@@ -10,24 +10,30 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
             return Buffer.from(markup);
         }
 
-        const browser = await puppeteer.launch({
-            args: [
-                "--disable-dev-shm-usage",
-                '--no-sandbox',
-                '--disable-setuid-sandbox'
-            ]
-        });
-        const page = await browser.newPage();
+        let browser;
+        try {
+            browser = await puppeteer.launch({
+                args: [
+                    "--disable-dev-shm-usage",
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox'
+                ]
+            });
+            const page = await browser.newPage();
 
-        await page.setContent(markup);
+            await page.setContent(markup);
 
-        const pdf = await page.pdf({
-            format: 'A4',
-            printBackground: true
-        });
-        await browser.close();
+            const pdf = await page.pdf({
+                format: 'A4',
+                printBackground: true
+            });
+            await browser.close();
 
-        return pdf;
+            return pdf;
+        } catch (e) {
+            browser && await browser.close();
+            throw e;
+        }
     }
 }
 
