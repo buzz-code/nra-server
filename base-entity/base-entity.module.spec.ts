@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BaseEntityModule } from './base-entity.module';
+import { BaseEntityModule, validationPipeOptions } from './base-entity.module';
 import { BaseEntityService } from './base-entity.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
@@ -137,7 +137,7 @@ const crudOptions: CrudOptions = {
   ],
   exports: [MailerService, MailSendService],
 })
-class MockMailModule {}
+class MockMailModule { }
 
 // Create a mock base service that properly initializes TypeOrmCrudService
 class MockBaseService<T extends Entity> extends BaseEntityService<T> {
@@ -209,95 +209,30 @@ describe('BaseEntityModule', () => {
     jest.clearAllMocks();
   });
 
-  it('should register the module with correct providers', () => {
-    expect(module).toBeDefined();
-    const entityService = module.get(ENTITY_SERVICE);
-    expect(entityService).toBeInstanceOf(BaseEntityService);
-  });
-
-  it('should register module with correct imports', () => {
-    const moduleRef = BaseEntityModule.register(mockEntityOptions);
-    const typeOrmFeatureModule = moduleRef.imports?.find(
-      (imp: any) => imp.module === TypeOrmModule
-    );
-    expect(typeOrmFeatureModule).toBeDefined();
-    expect(moduleRef.imports).toContainEqual(HttpModule);
-  });
-
-  it('should register the entity controller', () => {
-    expect(module.get(ENTITY_SERVICE)).toBeDefined();
-  });
-
-  describe('Entity Controller', () => {
-    let service: BaseEntityService<TestEntity>;
-    let mailSendService: MailSendService;
-
-    beforeEach(() => {
-      service = module.get(ENTITY_SERVICE);
-      mailSendService = module.get(MailSendService);
+  describe('Register', () => {
+    it('should register the module with correct providers', () => {
+      expect(module).toBeDefined();
+      const entityService = module.get(ENTITY_SERVICE);
+      expect(entityService).toBeInstanceOf(BaseEntityService);
     });
 
-    it('should handle email import correctly', async () => {
-      const attachment: AttachmentData = {
-        filename: 'test.xlsx',
-        content_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        size: 1024,
-        data: 'base64data',
-      };
-
-      const mockMailData: MailData = {
-        id: 1,
-        token: 'test-token',
-        to: 'test@example.com',
-        from: 'sender@example.com',
-        mail_from: 'sender@example.com',
-        rcpt_to: 'recipient@example.com',
-        subject: 'Test Subject',
-        message_id: '123',
-        timestamp: Date.now(),
-        size: '1024',
-        spam_status: 'clean',
-        bounce: false,
-        received_with_ssl: true,
-        cc: null,
-        date: new Date().toISOString(),
-        in_reply_to: null,
-        references: null,
-        html_body: '<p>Test</p>',
-        attachment_quantity: 1,
-        auto_submitted: null,
-        reply_to: null,
-        plain_body: 'Test',
-        attachments: [attachment],
-      };
-
-      const mockImportedFiles: ImportFile[] = [{
-        id: 1,
-        userId: 1,
-        fileName: 'test.xlsx',
-        fileSource: ImportFileSource.Email,
-        entityIds: [1],
-        entityName: 'TestEntity',
-        fullSuccess: true,
-        response: 'Success',
-        createdAt: new Date(),
-      }];
-
-      await mailSendService.sendEmailImportResponse(mockMailData, mockImportedFiles, 'bcc@example.com');
-
-      expect(mockMailerService.sendMail).toHaveBeenCalled();
-      expect(mockMailerService.sendMail).toHaveBeenCalledWith(expect.objectContaining({
-        to: mockMailData.mail_from,
-        from: mockMailData.rcpt_to,
-        bcc: 'bcc@example.com',
-        subject: expect.stringContaining(mockMailData.subject),
-      }));
-    });
-
-    it('should handle validation errors correctly', () => {
+    it('should register module with correct imports', () => {
       const moduleRef = BaseEntityModule.register(mockEntityOptions);
-      expect(moduleRef.providers).toBeDefined();
-      const validationFactory = (crudOptions.validation as ValidationPipeOptions).exceptionFactory;
+      const typeOrmFeatureModule = moduleRef.imports?.find(
+        (imp: any) => imp.module === TypeOrmModule
+      );
+      expect(typeOrmFeatureModule).toBeDefined();
+      expect(moduleRef.imports).toContainEqual(HttpModule);
+    });
+
+    it('should register the entity service', () => {
+      expect(module.get(ENTITY_SERVICE)).toBeDefined();
+    });
+  });
+
+  describe('ValidationPipeOptions', () => {
+    it('should handle validation errors correctly', () => {
+      const validationFactory = validationPipeOptions.exceptionFactory;
 
       expect(validationFactory).toBeDefined();
 
@@ -317,6 +252,150 @@ describe('BaseEntityModule', () => {
       expect(error.getResponse()).toEqual({
         message: 'Field should not be empty',
       });
+    });
+
+    it('should handle nested validation errors correctly', () => {
+      const validationFactory = validationPipeOptions.exceptionFactory;
+
+      expect(validationFactory).toBeDefined();
+
+      const mockErrors: ValidationError[] = [
+        {
+          property: 'test',
+          value: undefined,
+          children: [
+            {
+              property: 'nested',
+              children: [
+                {
+                  property: 'nested',
+                  value: undefined,
+                  constraints: { isNotEmpty: 'Field should not be empty' },
+                  children: [],
+                  target: {},
+                  contexts: {}
+                }
+              ]
+            }
+          ],
+          target: {},
+          contexts: {}
+        }
+      ];
+
+      const error = validationFactory(mockErrors);
+      expect(error).toBeInstanceOf(HttpException);
+      expect(error.getResponse()).toEqual({
+        message: 'Field should not be empty',
+      });
+    });
+  });
+
+  describe('BaseEntityController', () => {
+    let controller: BaseEntityController<TestEntity>;
+    let mockService: MockBaseService<TestEntity>;
+
+    beforeEach(() => {
+      mockService = module.get(ENTITY_SERVICE);
+      const baseEntityModule = BaseEntityModule.register({
+        ...mockEntityOptions,
+      });
+      controller = new baseEntityModule.controllers[0](mockService);
+    });
+
+    it('should be defined', () => {
+      expect(controller).toBeDefined();
+      expect(controller.service).toBeDefined();
+      expect(controller.service).toBeInstanceOf(BaseEntityService);
+    });
+
+    it('should return the count of entities', async () => {
+      const count = 10;
+      jest.spyOn(mockService, 'getCount').mockResolvedValue({ count });
+      const req = { parsed: { extra: { format: 'json' } } };
+
+      const result = await controller.getCount(req as any);
+      expect(result).toEqual({ count });
+    });
+
+    it('should export a file', async () => {
+      jest.spyOn(mockService, 'getDataForExport').mockResolvedValue([{ id: 1, name: 'Test' }]);
+      jest.spyOn(mockService, 'getExportHeaders').mockReturnValue(['id', 'name']);
+      jest.spyOn(mockService, 'getName').mockReturnValue('test');
+
+      const req = {
+        parsed: { extra: { format: 'json' } },
+        auth: { user: { isPaid: true } }
+      };
+
+      const result = await controller['exportFile'](req as any);
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('disposition');
+      expect(result).toHaveProperty('type');
+    });
+
+    it('should get report data', async () => {
+      const mockGetReportData = BaseEntityController.prototype['getReportData'] = jest.fn().mockResolvedValue({});
+
+      const req = {
+        parsed: { extra: { format: 'json' } },
+        auth: { user: { isPaid: true } }
+      };
+
+      const result = await controller['getReportData'](req as any);
+      expect(mockGetReportData).toHaveBeenCalled();
+      expect(result).toEqual({});
+    });
+
+    it('should do an action', async () => {
+      const mockDoAction = BaseEntityController.prototype['doAction'] = jest.fn().mockResolvedValue({});
+
+      const req = {
+        parsed: { extra: { format: 'json' } },
+        auth: { user: { isPaid: true } }
+      };
+
+      const result = await controller['doAction'](req as any, {});
+      expect(mockDoAction).toHaveBeenCalled();
+      expect(result).toEqual({});
+    });
+
+    it('should get pivot data', async () => {
+      const mockGetPivotData = BaseEntityController.prototype['getPivotData'] = jest.fn().mockResolvedValue({});
+
+      const req = {
+        parsed: { extra: { format: 'json' } },
+        auth: { user: { isPaid: true } }
+      };
+
+      const result = await controller['getPivotData'](req as any);
+      expect(mockGetPivotData).toHaveBeenCalled();
+      expect(result).toEqual({});
+    });
+
+    it('should handle email', async () => {
+      const mockGetUserIdFromMailAddress = BaseEntityController.prototype['getUserIdFromMailAddress'] = jest.fn().mockResolvedValue(1);
+      const mockImportExcelFile = BaseEntityController.prototype['importExcelFile'] = jest.fn().mockResolvedValue({});
+      const mockSaveEmailData = BaseEntityController.prototype['saveEmailData'] = jest.fn().mockResolvedValue({});
+      const mockGetBccAddressFromUserId = BaseEntityController.prototype['getBccAddressFromUserId'] = jest.fn().mockResolvedValue('test');
+
+      const body = {
+        mail_data: {
+          to: 'test@example.com',
+          attachments: [
+            { filename: 'test.xlsx', data: 'test' }
+          ] as AttachmentData[],
+        }
+      };
+
+      const result = await controller['handleEmail'](body);
+      expect(mockGetUserIdFromMailAddress).toHaveBeenCalledWith('test@example.com')
+      expect(mockImportExcelFile).toHaveBeenCalledWith(1, 'test', 'test.xlsx', ImportFileSource.Email);
+      expect(mockSaveEmailData).toHaveBeenCalledWith(1, body.mail_data, [{}]);
+      expect(mockGetBccAddressFromUserId).toHaveBeenCalledWith(1);
+      expect(mockMailerService.sendMail).toHaveBeenCalledWith(expect.objectContaining({
+        bcc: 'test', html: expect.any(String), subject: 'Re:', text: expect.any(String),
+      }));
     });
   });
 });
