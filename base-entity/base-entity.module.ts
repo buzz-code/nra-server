@@ -1,4 +1,4 @@
-import { Body, Controller, DynamicModule, Get, HttpException, HttpStatus, Module, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, DynamicModule, Get, HttpException, HttpStatus, Module, Post, UseGuards, UseInterceptors, ValidationPipeOptions } from '@nestjs/common';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Crud, CrudAuth, CrudRequest, CrudRequestInterceptor, ParsedRequest } from '@dataui/crud';
 import { CrudAuthFilter } from '@shared/auth/crud-auth.filter';
@@ -13,6 +13,17 @@ import { HandleEmailBody } from '@shared/utils/mail/interface';
 import { ImportFileSource } from '@shared/entities/ImportFile.entity';
 import { isExcelFileExtension } from '@shared/utils/importer/importer.util';
 
+export const validationPipeOptions: ValidationPipeOptions = {
+    exceptionFactory(errors) {
+        if (errors[0]?.children?.flatMap(i => i.children)?.length) {
+            errors = errors[0].children.flatMap(i => i.children);
+        }
+        const errorMessages = errors.flatMap(item => item.constraints ? Object.values(item.constraints) : []);
+        const uniqueErrors = [...new Set(errorMessages)];
+        return new HttpException({ message: uniqueErrors.join(', ') }, HttpStatus.BAD_REQUEST);
+    }
+};
+
 @Module({})
 export class BaseEntityModule {
     static register(options: BaseEntityModuleOptions): DynamicModule {
@@ -24,16 +35,7 @@ export class BaseEntityModule {
             },
             query: options.query,
             routes: options.routes,
-            validation: {
-                exceptionFactory(errors) {
-                    if (errors[0]?.children?.flatMap(i => i.children)?.length) {
-                        errors = errors[0].children.flatMap(i => i.children);
-                    }
-                    const errorMessages = errors.flatMap(item => item.constraints ? Object.values(item.constraints) : []);
-                    const uniqueErrors = [...new Set(errorMessages)];
-                    return new HttpException({ message: uniqueErrors.join(', ') }, HttpStatus.BAD_REQUEST);
-                }
-            }
+            validation: validationPipeOptions,
         })
         @UseGuards(JwtAuthGuard)
         @CrudAuth(options.crudAuth ?? CrudAuthFilter)

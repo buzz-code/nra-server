@@ -12,6 +12,10 @@ export class MailAddressUpdateInterceptor implements NestInterceptor {
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         const { body } = context?.switchToHttp()?.getRequest<Request>();
 
+        if (!body) {
+            return next.handle();
+        }
+
         return this.httpService.post(mailWorkflowUrls.validateMailQnique, body)
             .pipe(
                 switchMap(validationResponse => {

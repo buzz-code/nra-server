@@ -21,8 +21,13 @@ export class AuditLogInterceptor implements NestInterceptor {
     constructor(@InjectDataSource() private dataSource: DataSource) { }
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-        const req = context?.switchToHttp()?.getRequest<Request>();
-        const { statusCode } = context?.switchToHttp()?.getResponse<Response>();
+        const http = context?.switchToHttp();
+        if (!http) {
+            return next.handle();
+        }
+
+        const req = http.getRequest<Request>();
+        const { statusCode } = http.getResponse<Response>();
         const { originalUrl, method, params, user } = req;
 
         const request: RequestInterface = { originalUrl, method, params };
@@ -36,20 +41,26 @@ export class AuditLogInterceptor implements NestInterceptor {
     }
 
     private async insertMongo(request: RequestInterface, response: ResponseInterface, user: any) {
-        const data = { ...response.data };
-        Object.entries(data).forEach(([key, value]) => {
-            const jsonValue = JSON.stringify(value);
-            if (jsonValue.length > MAX_VALUE_LENGTH) {
-                data[key] = jsonValue.substr(0, MAX_VALUE_LENGTH);
-            }
-        });
-        const logInfo: Partial<AuditLog> = {
-            userId: user.id,
-            entityId: Number(request.params.id),
-            entityName: request.originalUrl.split('/')[1],
-            entityData: data,
-            operation: request.method,
-        };
-        this.dataSource.getRepository(AuditLog).save(logInfo);
+        try {
+            const data = { ...response.data };
+            Object.entries(data).forEach(([key, value]) => {
+                const jsonValue = JSON.stringify(value);
+                if (jsonValue.length > MAX_VALUE_LENGTH) {
+                    data[key] = jsonValue.substr(0, MAX_VALUE_LENGTH);
+                }
+            });
+
+            const logInfo: Partial<AuditLog> = {
+                userId: user?.id,
+                entityId: Number(request.params.id),
+                entityName: request.originalUrl.split('/')[1],
+                entityData: data,
+                operation: request.method,
+            };
+
+            await this.dataSource.getRepository(AuditLog).save(logInfo);
+        } catch (error) {
+            console.error('Failed to save audit log:', error);
+        }
     }
 }

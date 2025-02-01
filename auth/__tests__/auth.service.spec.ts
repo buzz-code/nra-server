@@ -31,6 +31,7 @@ describe('AuthService', () => {
                         findOneBy: jest.fn(),
                         create: jest.fn(),
                         save: jest.fn(),
+                        update: jest.fn(),
                         manager: {
                             getRepository: jest.fn(() => userRepository),
                         }
@@ -347,12 +348,12 @@ describe('AuthService', () => {
             } as any as User;
 
             const findOneByMock = jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(userStub);
-            const saveMock = jest.spyOn(userRepository, 'save').mockResolvedValue(userStub);
+            const updateMock = jest.spyOn(userRepository, 'update').mockResolvedValue(null);
 
             const result = await service.updateSettings(userId, { pageSize: 10 });
 
             expect(findOneByMock).toHaveBeenCalledWith({ id: userId });
-            expect(saveMock).toHaveBeenCalledWith({ ...userStub, additionalData: { pageSize: 10, theme: 'light' } });
+            expect(updateMock).toHaveBeenCalledWith(userId, {additionalData: { pageSize: 10, theme: 'light' } });
             expect(result).toEqual({ success: true });
         });
 
