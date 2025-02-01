@@ -1,4 +1,4 @@
-import { DataToExcelReportGenerator, getDateDataValidation, getIntegerDataValidation } from "./data-to-excel.generator";
+import { DataToExcelReportGenerator, getDateDataValidation, getIntegerDataValidation } from "../data-to-excel.generator";
 
 const generator = new DataToExcelReportGenerator(() => 'test');
 

@@ -1,6 +1,6 @@
 import * as classValidator from 'class-validator';
-import { IsUniqueCombination } from "./is-unique-combination";
-import * as foreignKeyUtil from '../entity/foreignKey.util';
+import { IsUniqueCombination } from "../is-unique-combination";
+import * as foreignKeyUtil from '../../entity/foreignKey.util';
 import { DataSource, Not } from 'typeorm';
 
 const dataSource = new DataSource({ type: 'mysql' });
@@ -16,7 +16,7 @@ const Entity2 = jest.fn();
 jest.mock('class-validator', () => ({
     registerDecorator: jest.fn(),
 }));
-jest.mock('../entity/foreignKey.util', () => ({
+jest.mock('../../entity/foreignKey.util', () => ({
     getDataSource: jest.fn(),
 }));
 

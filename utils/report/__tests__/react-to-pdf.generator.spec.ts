@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ReactToPdfReportGenerator } from './react-to-pdf.generator';
+import { ReactToPdfReportGenerator } from '../react-to-pdf.generator';
 
 jest.mock('react-dom/server');
 

@@ -1,4 +1,4 @@
-import { mergeStyles, getElementStyle, convertToReactStyle, getFontLinks, ReportElementStyle } from './reportStyles';
+import { mergeStyles, getElementStyle, convertToReactStyle, getFontLinks, ReportElementStyle } from '../reportStyles';
 
 describe('reportStyles', () => {
   describe('mergeStyles', () => {

@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Request } from 'express';
 import { UnauthorizedException } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LocalRegisterStrategy, validate, verify } from './local-register.strategy';
+import { AuthService } from '../auth.service';
+import { LocalRegisterStrategy, validate, verify } from '../local-register.strategy';
 
 jest.mock('passport-local', () => {
     return {

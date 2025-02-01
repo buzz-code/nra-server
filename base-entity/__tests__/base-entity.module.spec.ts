@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BaseEntityModule, validationPipeOptions } from './base-entity.module';
-import { BaseEntityService } from './base-entity.service';
+import { BaseEntityModule, validationPipeOptions } from '../base-entity.module';
+import { BaseEntityService } from '../base-entity.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
-import { BaseEntityController } from './base-entity.controller';
+import { BaseEntityController } from '../base-entity.controller';
 import { Entity as TypeOrmEntity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, Repository, EntityManager, SelectQueryBuilder, QueryRunner } from 'typeorm';
-import { ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE, IHasUserId, Entity } from './interface';
+import { ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE, IHasUserId, Entity } from '../interface';
 import { HttpException, Module, ValidationPipeOptions } from '@nestjs/common';
 import { BaseRouteName, CrudOptions } from '@dataui/crud';
 import { MailSendService } from '@shared/utils/mail/mail-send.service';

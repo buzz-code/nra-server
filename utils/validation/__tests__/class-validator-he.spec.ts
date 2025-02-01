@@ -1,6 +1,6 @@
 import { IsBoolean, validate } from 'class-validator';
 
-jest.mock('./max-count-by-user-limit', () => ({
+jest.mock('../max-count-by-user-limit', () => ({
     MaxCountByUserLimit: IsBoolean,
 }));
 
@@ -11,7 +11,7 @@ import {
     IsInt,
     MaxCountByUserLimit,
     getTranslatedConstraint,
-} from './class-validator-he';
+} from '../class-validator-he';
 
 describe('class-validator-he', () => {
     describe('IsNotEmpty', () => {

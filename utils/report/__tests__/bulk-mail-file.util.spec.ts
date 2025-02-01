@@ -1,9 +1,9 @@
 import { ISendMailOptions } from "@nestjs-modules/mailer";
 import { DataSource } from "typeorm";
-import { BulkToZipReportGenerator } from "./bulk-to-zip.generator";
+import { BulkToZipReportGenerator } from "../bulk-to-zip.generator";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { Teacher } from "src/db/entities/Teacher.entity";
-import { sendBulkTeacherMailWithFile } from "./bulk-mail-file.util";
+import { sendBulkTeacherMailWithFile } from "../bulk-mail-file.util";
 import * as JSZip from 'jszip';
 import * as BaseEntityUtil from "@shared/base-entity/base-entity.util";
 

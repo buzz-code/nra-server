@@ -1,4 +1,4 @@
-import JsonTransformer from "./jsonTransformer.util";
+import JsonTransformer from "../jsonTransformer.util";
 
 describe('JsonTransformerUtil', () => {
     it('should be defined', () => {

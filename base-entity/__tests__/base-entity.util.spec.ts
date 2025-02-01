@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
-import { validateBulk, validateUserHasPaid, validateNotTrialEnded, getUserMailAddressFrom } from './base-entity.util';
+import { validateBulk, validateUserHasPaid, validateNotTrialEnded, getUserMailAddressFrom } from '../base-entity.util';
 import { User } from '@shared/entities/User.entity';
 import { IsString, IsNumber, IsNotEmpty } from 'class-validator';
 import { CrudValidationGroups } from '@dataui/crud';

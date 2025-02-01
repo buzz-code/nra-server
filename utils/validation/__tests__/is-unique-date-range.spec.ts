@@ -1,6 +1,6 @@
 import * as classValidator from 'class-validator';
-import { IsUniqueDateRange } from "./is-unique-date-range";
-import * as foreignKeyUtil from '../entity/foreignKey.util';
+import { IsUniqueDateRange } from "../is-unique-date-range";
+import * as foreignKeyUtil from '../../entity/foreignKey.util';
 import { DataSource, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
 
 const dataSource = new DataSource({ type: 'mysql' });
@@ -14,7 +14,7 @@ const Entity = jest.fn();
 jest.mock('class-validator', () => ({
     registerDecorator: jest.fn(),
 }));
-jest.mock('../entity/foreignKey.util', () => ({
+jest.mock('../../entity/foreignKey.util', () => ({
     getDataSource: jest.fn(),
 }));
 

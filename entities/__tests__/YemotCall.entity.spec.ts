@@ -1,5 +1,5 @@
-import { YemotCall } from "./YemotCall.entity";
-import { User } from "./User.entity";
+import { YemotCall } from "../YemotCall.entity";
+import { User } from "../User.entity";
 
 class MockUser extends User {}
 

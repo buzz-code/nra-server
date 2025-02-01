@@ -1,7 +1,7 @@
-import { generateCommonFileResponse, getFileExtension, getFileBuffer, getFileType } from './report.util';
-import { BaseReportGenerator } from './report.generators';
+import { generateCommonFileResponse, getFileExtension, getFileBuffer, getFileType } from '../report.util';
+import { BaseReportGenerator } from '../report.generators';
 import { DataSource } from 'typeorm';
-import { CommonFileFormat } from './types';
+import { CommonFileFormat } from '../types';
 
 describe('report.util', () => {
     describe('generateCommonFileResponse', () => {

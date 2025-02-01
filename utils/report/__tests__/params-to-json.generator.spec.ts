@@ -1,4 +1,4 @@
-import { ParamsToJsonReportGenerator } from "./params-to-json.generator";
+import { ParamsToJsonReportGenerator } from "../params-to-json.generator";
 
 const generator = new ParamsToJsonReportGenerator(() => 'test');
 

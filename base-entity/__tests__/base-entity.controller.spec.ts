@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
-import { BaseEntityController } from './base-entity.controller';
-import { BaseEntityService } from './base-entity.service';
+import { BaseEntityController } from '../base-entity.controller';
+import { BaseEntityService } from '../base-entity.service';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { ImportFileSource } from '@shared/entities/ImportFile.entity';
 import { User } from '@shared/entities/User.entity';
