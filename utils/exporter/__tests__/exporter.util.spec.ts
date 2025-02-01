@@ -1,16 +1,16 @@
-import { getExportedFile } from './exporter.util';
-import { CommonFileFormat } from '../report/types';
-import { DataToExcelReportGenerator } from '../report/data-to-excel.generator';
-import { ReactToPdfReportGenerator } from '../report/react-to-pdf.generator';
-import { ParamsToJsonReportGenerator } from '../report/params-to-json.generator';
-import { IHeader } from './types';
+import { getExportedFile } from '../exporter.util';
+import { CommonFileFormat } from '../../report/types';
+import { DataToExcelReportGenerator } from '../../report/data-to-excel.generator';
+import { ReactToPdfReportGenerator } from '../../report/react-to-pdf.generator';
+import { ParamsToJsonReportGenerator } from '../../report/params-to-json.generator';
+import { IHeader } from '../types';
 import { BadRequestException } from '@nestjs/common';
-import * as reportUtil from '../report/report.util';
+import * as reportUtil from '../../report/report.util';
 
-jest.mock('../report/data-to-excel.generator');
-jest.mock('../report/react-to-pdf.generator');
-jest.mock('../report/params-to-json.generator');
-jest.mock('../report/report.util');
+jest.mock('../../report/data-to-excel.generator');
+jest.mock('../../report/react-to-pdf.generator');
+jest.mock('../../report/params-to-json.generator');
+jest.mock('../../report/report.util');
 
 describe('exporter.util', () => {
   const mockData = [

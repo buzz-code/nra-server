@@ -1,12 +1,12 @@
 import { DataSource, In, getRepository } from "typeorm";
-import { FormatString, YEMOT_HANGUP_STEP, YemotProcessor, YemotRequest, YemotResponse } from "./yemot.interface";
+import { FormatString, YEMOT_HANGUP_STEP, YemotProcessor, YemotRequest, YemotResponse } from "../yemot.interface";
 import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { TextByUser } from "@shared/view-entities/TextByUser.entity";
 import { User } from "@shared/entities/User.entity";
-import util from "./yemot.util";
+import util from "../yemot.util";
 import { AttReport } from "src/db/entities/AttReport.entity";
 import { Grade } from "src/db/entities/Grade.entity";
-import { getCurrentHebrewYear } from "../entity/year.util";
+import { getCurrentHebrewYear } from "../../entity/year.util";
 
 describe('FormatString', () => {
   it('should replace placeholders with values', () => {

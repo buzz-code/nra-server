@@ -6,7 +6,7 @@ jest.mock('@shared/config/database.config', () => ({
 }));
 
 import { DataSource } from 'typeorm';
-import * as foreignKeyUtil from './foreignKey.util';
+import * as foreignKeyUtil from '../foreignKey.util';
 import { databaseConfig } from '@shared/config/database.config';
 
 describe('foreignKeyUtil', () => {

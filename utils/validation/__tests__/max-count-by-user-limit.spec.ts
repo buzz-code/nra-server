@@ -3,7 +3,7 @@ const registerDecoratorMock = jest.fn();
 jest.doMock('class-validator', () => ({
     registerDecorator: registerDecoratorMock,
 }));
-jest.doMock('./current-user.util', () => ({
+jest.doMock('../current-user.util', () => ({
     getCurrentUser: jest.fn().mockReturnValue({
         permissions: {},
         id: 1,
@@ -15,12 +15,12 @@ const getDataSourceMock = jest.fn().mockResolvedValue({
     }),
     destroy: jest.fn(),
 });
-jest.doMock('../entity/foreignKey.util', () => ({
+jest.doMock('../../entity/foreignKey.util', () => ({
     getDataSource: getDataSourceMock,
 }));
 
 // Import the function
-const { MaxCountByUserLimit } = require('./max-count-by-user-limit')
+const { MaxCountByUserLimit } = require('../max-count-by-user-limit')
 
 // Define the constraints and options
 const entity = jest.fn();

@@ -1,5 +1,5 @@
-import { MarkupToPdfReportGenerator, SimpleMarkupToPdfReportGenerator } from './markup-to-pdf.generator';
-import { CommonFileFormat } from './types';
+import { MarkupToPdfReportGenerator, SimpleMarkupToPdfReportGenerator } from '../markup-to-pdf.generator';
+import { CommonFileFormat } from '../types';
 import * as puppeteer from 'puppeteer';
 
 jest.mock('puppeteer');

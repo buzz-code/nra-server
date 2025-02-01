@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { fixReferences } from './fixReference.util';
+import { fixReferences } from '../fixReference.util';
 
 describe('fixReference.util', () => {
   let mockRepository: jest.Mocked<Repository<any>>;

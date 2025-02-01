@@ -1,4 +1,4 @@
-import { LocalRegisterAuthGuard } from './local-register-auth.guard';
+import { LocalRegisterAuthGuard } from '../local-register-auth.guard';
 
 // Export mock function to verify calls
 const mockAuthGuard = jest.fn(() => {
@@ -18,7 +18,7 @@ describe('LocalRegisterAuthGuard', () => {
     // Force class re-evaluation to trigger AuthGuard call
     jest.isolateModules(() => {
       jest.resetModules();
-      require('./local-register-auth.guard');
+      require('../local-register-auth.guard');
     });
     expect(mockAuthGuard).toHaveBeenCalledWith('local-register');
   });

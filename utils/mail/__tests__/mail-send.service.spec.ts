@@ -1,8 +1,8 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ImportFile } from '@shared/entities/ImportFile.entity';
-import { MailSendService } from './mail-send.service';
-import { MailData } from './interface';
+import { MailSendService } from '../mail-send.service';
+import { MailData } from '../interface';
 
 describe('MailSendService', () => {
   let service: MailSendService;

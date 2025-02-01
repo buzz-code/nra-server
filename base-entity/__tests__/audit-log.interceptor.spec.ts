@@ -2,7 +2,7 @@ import { ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, Repository } from 'typeorm';
 import { AuditLog } from '@shared/entities/AuditLog.entity';
-import { AuditLogInterceptor } from './audit-log.interceptor';
+import { AuditLogInterceptor } from '../audit-log.interceptor';
 import { tap } from 'rxjs/operators';
 import { of, firstValueFrom } from 'rxjs';
 import { getDataSourceToken } from '@nestjs/typeorm';

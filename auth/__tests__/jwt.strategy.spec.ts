@@ -1,10 +1,10 @@
-jest.mock('./constants', () => ({
+jest.mock('../constants', () => ({
     jwtConstants: {
         secret: 'secret'
     }
 }));
 
-import { JwtStrategy, jwtFromRequest } from "./jwt.strategy";
+import { JwtStrategy, jwtFromRequest } from "../jwt.strategy";
 
 describe('JwtStrategy', () => {
     it('should be defined', () => {

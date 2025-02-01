@@ -1,6 +1,6 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC } from './public.decorator';
+import { IS_PUBLIC } from '../public.decorator';
 
 class MockAuthGuardClass {
   canActivate(context: ExecutionContext) {
@@ -22,7 +22,7 @@ jest.mock('@nestjs/passport', () => ({
 }));
 
 // Import after mocking
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { JwtAuthGuard } from '../jwt-auth.guard';
 
 describe('JwtAuthGuard', () => {
   let reflector: Reflector;

@@ -1,5 +1,5 @@
-import { Chain, Handler, HandlerBase, IHandler } from "./chain.interface";
-import { YemotRequest, YemotResponse } from "./yemot.interface";
+import { Chain, Handler, HandlerBase, IHandler } from "../chain.interface";
+import { YemotRequest, YemotResponse } from "../yemot.interface";
 
 const req = new YemotRequest({} as any, {} as any);
 const res = new YemotResponse();

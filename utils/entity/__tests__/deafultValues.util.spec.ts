@@ -1,4 +1,4 @@
-import * as DefaultValuesUtil from './deafultValues.util';
+import * as DefaultValuesUtil from '../deafultValues.util';
 
 describe('DefaultValuesUtil', () => {
     it('should be defined', () => {

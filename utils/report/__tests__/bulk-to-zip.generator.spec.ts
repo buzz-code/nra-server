@@ -1,6 +1,6 @@
-import { BulkToZipReportGenerator } from "./bulk-to-zip.generator";
-import { ParamsToJsonReportGenerator } from "./params-to-json.generator";
-import { CommonFileFormat } from "./types";
+import { BulkToZipReportGenerator } from "../bulk-to-zip.generator";
+import { ParamsToJsonReportGenerator } from "../params-to-json.generator";
+import { CommonFileFormat } from "../types";
 
 describe('BulkToPdfReportGenerator', () => {
   it('should be defined', () => {

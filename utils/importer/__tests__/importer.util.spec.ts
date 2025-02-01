@@ -1,4 +1,4 @@
-import { isExcelFileExtension, parseExcelFile, parseExcelFileAdvanced } from './importer.util';
+import { isExcelFileExtension, parseExcelFile, parseExcelFileAdvanced } from '../importer.util';
 import * as XLSX from 'xlsx';
 
 jest.mock('xlsx');

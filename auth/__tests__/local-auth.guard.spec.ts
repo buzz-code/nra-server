@@ -1,4 +1,4 @@
-import { LocalAuthGuard } from './local-auth.guard';
+import { LocalAuthGuard } from '../local-auth.guard';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 

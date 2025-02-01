@@ -1,4 +1,4 @@
-import { User } from "./User.entity";
+import { User } from "../User.entity";
 
 class MockUser extends User {}
 

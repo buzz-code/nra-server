@@ -1,8 +1,8 @@
-import { EjsToPdfReportGenerator } from './ejs-to-pdf.generator';
-import { MarkupToPdfReportGenerator } from './markup-to-pdf.generator';
+import { EjsToPdfReportGenerator } from '../ejs-to-pdf.generator';
+import { MarkupToPdfReportGenerator } from '../markup-to-pdf.generator';
 import * as ejs from 'ejs';
 
-jest.mock('./markup-to-pdf.generator');
+jest.mock('../markup-to-pdf.generator');
 jest.mock('ejs');
 
 describe('EjsToPdfReportGenerator', () => {

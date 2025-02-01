@@ -1,5 +1,5 @@
 import { DataSource, Repository } from 'typeorm';
-import { getMailAddressForEntity } from './mail-address.util';
+import { getMailAddressForEntity } from '../mail-address.util';
 import { MailAddress } from '@shared/entities/MailAddress.entity';
 
 describe('Mail Address Utils', () => {

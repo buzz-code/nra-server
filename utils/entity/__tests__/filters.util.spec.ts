@@ -1,5 +1,5 @@
 import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
-import { getReportDateFilter, dateFromString } from './filters.util';
+import { getReportDateFilter, dateFromString } from '../filters.util';
 
 describe('filters.util', () => {
   describe('getReportDateFilter', () => {

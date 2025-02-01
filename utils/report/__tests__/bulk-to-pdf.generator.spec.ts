@@ -1,6 +1,6 @@
-import { BulkToPdfReportGenerator } from './bulk-to-pdf.generator';
-import { BaseReportGenerator } from './report.generators';
-import { CommonFileFormat } from './types';
+import { BulkToPdfReportGenerator } from '../bulk-to-pdf.generator';
+import { BaseReportGenerator } from '../report.generators';
+import { CommonFileFormat } from '../types';
 import { PDFDocument } from 'pdf-lib';
 
 describe('BulkToPdfReportGenerator', () => {

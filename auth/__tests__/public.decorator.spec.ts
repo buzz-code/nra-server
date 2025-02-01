@@ -1,4 +1,4 @@
-import { IS_PUBLIC, Public } from './public.decorator';
+import { IS_PUBLIC, Public } from '../public.decorator';
 
 describe('Public Decorator', () => {
     it('should set IS_PUBLIC metadata to true on a method', () => {

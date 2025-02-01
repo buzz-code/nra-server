@@ -1,4 +1,4 @@
-import { getCurrentHebrewYear, fillDefaultYearValue, getCurrentYearMonths } from './year.util';
+import { getCurrentHebrewYear, fillDefaultYearValue, getCurrentYearMonths } from '../year.util';
 
 
 describe('yearUtil', () => {

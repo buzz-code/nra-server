@@ -1,8 +1,8 @@
-import { CrudAuthFilter, CrudAuthAdminFilter, CrudAuthWithPermissionsFilter, CrudAuthReadOnlyWithPermissionFunc } from './crud-auth.filter';
-import { getUserIdFromUser } from './auth.util';
+import { CrudAuthFilter, CrudAuthAdminFilter, CrudAuthWithPermissionsFilter, CrudAuthReadOnlyWithPermissionFunc } from '../crud-auth.filter';
+import { getUserIdFromUser } from '../auth.util';
 
 // Mock getUserIdFromUser since we don't want to test its implementation here
-jest.mock('./auth.util', () => ({
+jest.mock('../auth.util', () => ({
   getUserIdFromUser: jest.fn().mockReturnValue(123)
 }));
 

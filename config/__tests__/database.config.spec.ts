@@ -1,5 +1,5 @@
 import { KeyvCacheProvider } from "typeorm-cache";
-import { databaseConfig } from "./database.config";
+import { databaseConfig } from "../database.config";
 
 describe("databaseConfig", () => {
     it("should be defined", () => {

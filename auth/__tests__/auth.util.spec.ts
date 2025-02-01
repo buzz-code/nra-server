@@ -1,4 +1,4 @@
-import { getUserIdFromUser } from "./auth.util";
+import { getUserIdFromUser } from "../auth.util";
 
 describe('getUserIdFromUser', () => {
     it('get undefined if user is null', () => {

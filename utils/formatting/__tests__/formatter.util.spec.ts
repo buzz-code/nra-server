@@ -1,5 +1,5 @@
 import { formatJewishDateInHebrew, toJewishDate } from 'jewish-date';
-import { formatPercent, getPercentsFormatter, getHebrewDateFormatter, formatHebrewDate, formatJson, getJsonFormatter } from './formatter.util';
+import { formatPercent, getPercentsFormatter, getHebrewDateFormatter, formatHebrewDate, formatJson, getJsonFormatter } from '../formatter.util';
 
 jest.mock('jewish-date', () => ({
   formatJewishDateInHebrew: jest.fn(),

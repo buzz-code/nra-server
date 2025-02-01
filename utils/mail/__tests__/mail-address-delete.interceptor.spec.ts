@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MailAddress } from '@shared/entities/MailAddress.entity';
 import { of, throwError } from 'rxjs';
-import { MailAddressDeleteInterceptor } from './mail-address-delete.interceptor';
+import { MailAddressDeleteInterceptor } from '../mail-address-delete.interceptor';
 import { AxiosResponse } from 'axios';
 
 describe('MailAddressDeleteInterceptor', () => {
