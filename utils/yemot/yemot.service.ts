@@ -47,7 +47,8 @@ export class YemotService {
     }
     catch (e) {
       let errorResponse = e.responseMessage ?? 'שגיאה';
-      this.logger.log('an error has occured in yemot_call', e);
+      this.logger.log(`an error has occured in yemot_call: ${e.message}`);
+      this.logger.log(`stack: ${e.stack}`);
       if (activeCall) {
         activeCall.isOpen = false;
         activeCall.hasError = true;
