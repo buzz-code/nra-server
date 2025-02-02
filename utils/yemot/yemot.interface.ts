@@ -105,7 +105,7 @@ export class YemotRequest {
       }
     });
 
-    return res.map(item => item.student);
+    return res.map(item => item.student).filter(Boolean);
   }
   async saveReport(reportData: AttReport | Grade, type: ReportType) {
     const reportEntity = type === 'att' ? AttReport : Grade;
