@@ -102,6 +102,11 @@ export class YemotRequest {
       },
       relations: {
         student: true,
+      },
+      order: {
+        student: {
+          name: 'ASC',
+        }
       }
     });
 
