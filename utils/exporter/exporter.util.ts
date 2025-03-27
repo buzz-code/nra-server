@@ -7,6 +7,7 @@ import { ParamsToJsonReportGenerator } from "../report/params-to-json.generator"
 import { DataToExcelReportGenerator } from "../report/data-to-excel.generator";
 import { ReactToPdfReportGenerator } from "../report/react-to-pdf.generator";
 import { BadRequestException } from "@nestjs/common";
+import { getValueByPath } from "../formatting/formatter.util";
 
 export async function getExportedFile<T>(format: CommonFileFormat, name: string, data: T[], headers: IHeader[]): Promise<CommonFileResponse> {
     const headerRow = getHeaderNames(headers);
@@ -45,15 +46,8 @@ function getHeaderNames(headers: IHeader[]): string[] {
 }
 
 function getSimpleFormatter(key: string) {
-    const parts = key?.split('.');
     return (row) => {
-        if (!key) {
-            return null;
-        }
-        let val = row;
-        for (const part of parts) {
-            val = val?.[part];
-        }
+        const val = getValueByPath(row, key);
         if (val instanceof Date) {
             return Intl.DateTimeFormat('he', { dateStyle: 'short' }).format(val);
         }
