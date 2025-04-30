@@ -1,7 +1,8 @@
 import { Chain, Handler, HandlerBase, IHandler } from "../chain.interface";
 import { YemotRequest, YemotResponse } from "../yemot.interface";
+import { MockYemotRequest } from "./yemot.interface.spec";
 
-const req = new YemotRequest({} as any, {} as any);
+const req = new MockYemotRequest({} as any, {} as any);
 const res = new YemotResponse();
 
 describe('Chain', () => {

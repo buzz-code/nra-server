@@ -3,6 +3,8 @@
 import { YemotParams } from "@shared/entities/YemotCall.entity";
 import { YemotService } from "../yemot.service";
 import yemotUtil from "../yemot.util";
+import { YemotRequest } from "../yemot.interface";
+import { MockYemotRequest } from "./yemot.interface.spec";
 
 describe('YemotService', () => {
     let mockRepo: any;
@@ -64,7 +66,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Define test data
@@ -105,7 +108,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Define test data
@@ -133,7 +137,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Define test data
@@ -166,7 +171,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Define test data
@@ -225,7 +231,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Define test data
@@ -249,7 +256,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Invoke the method under test
@@ -286,7 +294,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Invoke the method under test
@@ -318,7 +327,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Invoke the method under test
@@ -347,7 +357,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Define test data with duplicate values
@@ -390,7 +401,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Invoke the method under test
@@ -411,7 +423,8 @@ describe('YemotService', () => {
             mockRepo,
             mockUserRepo,
             mockDataSource,
-            mockYemotChain
+            mockYemotChain,
+            MockYemotRequest,
         );
 
         // Invoke the method under test
