@@ -4,7 +4,7 @@ import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { DataSource, Repository } from "typeorm";
 import { User } from "../../entities/User.entity";
 import { Chain } from "./chain.interface";
-import { YemotProcessor, YemotProcessorProvider, YemotRequest, YemotResponse, YEMOT_CHAIN, YEMOT_HANGUP_STEP, YEMOT_PROCCESSOR_PROVIDER } from "./yemot.interface";
+import { YemotProcessor, YemotProcessorProvider, YemotRequest, YemotResponse, YEMOT_CHAIN, YEMOT_HANGUP_STEP, YEMOT_PROCCESSOR_PROVIDER, YEMOT_REQUEST, YemotRequestConstructor } from "./yemot.interface";
 import { UnexpectedHangupException, UserNotFoundException } from "./yemot.exception";
 import yemotUtil from "./yemot.util";
 
@@ -19,6 +19,7 @@ export class YemotService {
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectDataSource() private dataSource: DataSource,
     @Inject(YEMOT_CHAIN) private yemotChain: Chain,
+    @Inject(YEMOT_REQUEST) private yemotRequest: YemotRequestConstructor,
   ) {
   }
 
@@ -66,7 +67,7 @@ export class YemotService {
   }
 
   getHandlerObjects(activeCall: YemotCall, body: YemotParams) {
-    const req: YemotRequest = new YemotRequest(activeCall, this.dataSource);
+    const req: YemotRequest = new this.yemotRequest(activeCall, this.dataSource);
     const res: YemotResponse = new YemotResponse(this.dataSource, activeCall.userId);
     return { req, res };
   }

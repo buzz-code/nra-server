@@ -2,7 +2,7 @@ import { YemotCall } from "../../entities/YemotCall.entity";
 import { Controller, UseGuards, Post, Body, Module, DynamicModule } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { YemotService } from "./yemot.service";
-import { YemotProcessorProvider, YEMOT_CHAIN, YEMOT_PROCCESSOR_PROVIDER } from "./yemot.interface";
+import { YemotProcessorProvider, YEMOT_CHAIN, YEMOT_PROCCESSOR_PROVIDER, YemotRequestConstructor, YEMOT_REQUEST } from "./yemot.interface";
 import { User } from "@shared/entities/User.entity";
 import { Chain } from "@shared/utils/yemot/chain.interface";
 
@@ -19,7 +19,7 @@ export class YemotController {
 
 @Module({})
 export class YemotModule {
-  static register(chain:Chain): DynamicModule {
+  static register(chain: Chain, yemotRequest: YemotRequestConstructor): DynamicModule {
     return {
       module: YemotModule,
       imports: [TypeOrmModule.forFeature([YemotCall, User])],
@@ -28,7 +28,11 @@ export class YemotModule {
           provide: YEMOT_CHAIN,
           useValue: chain,
         },
-        YemotService
+        {
+          provide: YEMOT_REQUEST,
+          useValue: yemotRequest,
+        },
+        YemotService,
       ],
       exports: [YemotService],
       controllers: [YemotController],

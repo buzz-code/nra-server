@@ -3,19 +3,16 @@ import { Text } from "@shared/entities/Text.entity";
 import { Between, DataSource, In } from "typeorm";
 import util from "./yemot.util";
 import { TextByUser } from "@shared/view-entities/TextByUser.entity";
-import { Lesson } from "src/db/entities/Lesson.entity";
-import { Klass } from "src/db/entities/Klass.entity";
-import { Teacher } from "src/db/entities/Teacher.entity";
-import { StudentKlass } from "src/db/entities/StudentKlass.entity";
-import { AttReport } from "src/db/entities/AttReport.entity";
-import { Grade } from "src/db/entities/Grade.entity";
 import { getCurrentHebrewYear } from "../entity/year.util";
 import { User } from "@shared/entities/User.entity";
 
 export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
 export const YEMOT_CHAIN = 'yemot_chain';
+export const YEMOT_REQUEST = 'yemot_request';
 export const YEMOT_HANGUP_STEP = 'hangup';
 export const YEMOT_NOT_IMPL_STEP = 'error-not-impl-step';
+
+export type YemotRequestConstructor = new (activeCall: YemotCall, dataSource: DataSource) => YemotRequest;
 
 export function FormatString(str: string, val: string[]) {
   return str.replace(/{([\d]*)}/g, (_, index) => val[index]);
@@ -46,9 +43,9 @@ export abstract class YemotProcessor {
 
 export type YemotProcessorProvider = (dataSource: DataSource) => YemotProcessor;
 
-export class YemotRequest {
+export abstract class YemotRequest {
   constructor(
-    private activeCall: YemotCall,
+    protected activeCall: YemotCall,
     public dataSource: DataSource,
   ) {
     this.params = this.activeCall.data || {};
@@ -59,95 +56,24 @@ export class YemotRequest {
   getUserId() {
     return this.activeCall.userId;
   }
+  
   async getUser() {
     return this.activeCall.user ?? this.dataSource.getRepository(User).findOneOrFail({ where: { id: this.activeCall.userId } });
   }
+  
   async getUserPermissions() {
     const user = await this.getUser();
     return user.permissions;
   }
-  async getLessonFromLessonId(lessonId: number) {
-    return this.dataSource.getRepository(Lesson).findOneBy({
-      userId: this.activeCall.userId,
-      key: lessonId,
-      year: getCurrentHebrewYear(),
-    });
-  }
-  async getKlassByKlassId(klassKey: number, klassId?: number) {
-    if (!!klassId) {
-      return this.dataSource.getRepository(Klass).findOneBy({
-        id: klassId,
-      });
-    }
-    return this.dataSource.getRepository(Klass).findOneBy({
-      userId: this.activeCall.userId,
-      key: klassKey,
-      year: getCurrentHebrewYear(),
-    });
-  }
-  async getTeacherByPhone(phone: string) {
-    return this.dataSource.getRepository(Teacher).findOne({
-      where: [
-        { userId: this.activeCall.userId, phone },
-        { userId: this.activeCall.userId, phone2: phone },
-      ]
-    });
-  }
-  async getStudentsByKlassId(klassId: number) {
-    const res = await this.dataSource.getRepository(StudentKlass).find({
-      where: {
-        userId: this.activeCall.userId,
-        klassReferenceId: klassId,
-        year: getCurrentHebrewYear(),
-      },
-      relations: {
-        student: true,
-      },
-      order: {
-        student: {
-          name: 'ASC',
-        }
-      }
-    });
-
-    return res.map(item => item.student).filter(Boolean);
-  }
-  async saveReport(reportData: AttReport | Grade, type: ReportType) {
-    const reportEntity = type === 'att' ? AttReport : Grade;
-    const reportRepo = this.dataSource.getRepository(reportEntity);
-
-    const report = reportRepo.create(reportData)
-    await reportRepo.save(report);
-
-    return report;
-  }
-  getExistingAttReports(klassId: string, lessonId: string, sheetName: string): Promise<AttReport[]> {
-    return this.dataSource.getRepository(AttReport).findBy({
-      userId: this.activeCall.userId,
-      sheetName,
-      lessonReferenceId: Number(lessonId),
-      klassReferenceId: Number(klassId),
-      year: getCurrentHebrewYear(),
-    })
-  }
-  getExistingGradeReports(klassId: string, lessonId: string, sheetName: string): Promise<Grade[]> {
-    return this.dataSource.getRepository(Grade).findBy({
-      userId: this.activeCall.userId,
-      lessonReferenceId: Number(lessonId),
-      klassReferenceId: Number(klassId),
-      year: getCurrentHebrewYear(),
-      reportDate: Between(new Date(Date.now() - 2 * 7 * 24 * 60 * 60 * 1000), new Date())
-    })
-  }
-  async deleteExistingReports(existingReports: (AttReport | Grade)[], type: ReportType) {
-    if (existingReports.length) {
-      const entity = type === 'att' ? AttReport : Grade;
-      await this.dataSource.getRepository(entity)
-        .delete({
-          id: In(existingReports.map(item => item.id))
-        });
-    }
-  }
+  
+  abstract getLessonFromLessonId(lessonId: number): Promise<any>;
+  abstract getKlassByKlassId(klassKey: number, klassId?: number): Promise<any>;
+  abstract getTeacherByPhone(phone: string): Promise<any>;
+  abstract getStudentsByKlassId(klassId: number): Promise<any[]>;
+  abstract saveReport(reportData: any, type: ReportType): Promise<any>;
+  abstract getExistingAttReports(klassId: string, lessonId: string, sheetName: string): Promise<any[]>;
+  abstract getExistingGradeReports(klassId: string, lessonId: string, sheetName: string): Promise<any[]>;
+  abstract deleteExistingReports(existingReports: any[], type: ReportType): Promise<void>;
 }
 
 export type ReportType = 'att' | 'grade';
