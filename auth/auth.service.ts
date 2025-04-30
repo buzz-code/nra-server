@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject, Optional } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from '@shared/entities/User.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,9 +6,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { jwtConstants } from './constants';
 import * as cookie from 'cookie';
-import { ReportMonth } from 'src/db/entities/ReportMonth.entity';
-import { getCurrentHebrewYear, getCurrentYearMonths } from '../utils/entity/year.util';
 import { IAuthenticatedUser } from './auth.types';
+import { IUserInitializationService, USER_INITIALIZATION_SERVICE } from './user-initialization.interface';
 
 const adminUser: IAuthenticatedUser = {
   id: -1,
@@ -21,7 +20,8 @@ const adminUser: IAuthenticatedUser = {
 export class AuthService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
-    private jwtService: JwtService
+    private jwtService: JwtService,
+    @Optional() @Inject(USER_INITIALIZATION_SERVICE) private userInitService?: IUserInitializationService
   ) { }
 
   async validateUser(username: string, pass: string): Promise<any> {
@@ -57,7 +57,13 @@ export class AuthService {
       userInfo,
     });
     const user = await this.userRepository.save(userToCreate);
-    await this.generateDataForNewUser(user);
+    
+    if (this.userInitService) {
+      await this.userInitService.initializeUserData(user);
+    } else {
+      console.warn('No user initialization service provided, skipping data generation for new user');
+    }
+    
     return this.getSafeUserDetails(user);
   }
 
@@ -97,23 +103,6 @@ export class AuthService {
     const userForCookie = this.getSafeUserDetails(user);
     userForCookie.impersonated = true
     return this.getCookieWithJwtToken(userForCookie);
-  }
-
-  async generateDataForNewUser(user: User) {
-    try {
-      const formatter = new Intl.DateTimeFormat('he', { month: 'long' });
-      const reportMonths: Partial<ReportMonth>[] = getCurrentYearMonths()
-        .map(monthStartDate => ({
-          userId: user.id,
-          name: formatter.format(monthStartDate),
-          startDate: monthStartDate,
-          endDate: new Date(monthStartDate.getFullYear(), monthStartDate.getMonth() + 1, 0),
-          year: getCurrentHebrewYear()
-        }))
-      await this.userRepository.manager.getRepository(ReportMonth).save(reportMonths);
-    } catch (e) {
-      console.log('error generating data for new user', e);
-    }
   }
 
   async getProfile(userId: number) {
