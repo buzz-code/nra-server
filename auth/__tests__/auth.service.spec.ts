@@ -8,13 +8,19 @@ import * as bcrypt from 'bcrypt';
 import * as cookie from 'cookie';
 import { User } from '@shared/entities/User.entity';
 import { getCurrentHebrewYear } from '@shared/utils/entity/year.util';
+import { USER_INITIALIZATION_SERVICE } from '../user-initialization.interface';
 
 describe('AuthService', () => {
     let service: AuthService;
     let userRepository: Repository<User>;
     let jwtService: JwtService;
+    let userInitService: any;
 
     beforeEach(async () => {
+        userInitService = {
+            initializeUserData: jest.fn().mockResolvedValue(undefined)
+        };
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 AuthService,
@@ -37,6 +43,10 @@ describe('AuthService', () => {
                         }
                     },
                 },
+                {
+                    provide: USER_INITIALIZATION_SERVICE,
+                    useValue: userInitService
+                }
             ],
         }).compile();
 
@@ -118,7 +128,7 @@ describe('AuthService', () => {
     });
 
     describe('registerUser', () => {
-        it('should create a new user if the email is unique', async () => {
+        it('should create a new user if the email is unique and initialize user data', async () => {
             const username = 'test@example.com';
             const pass = 'password';
 
@@ -132,6 +142,7 @@ describe('AuthService', () => {
                 },
             } as any as User;
 
+            const findOneMock = jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
             const createMock = jest.spyOn(userRepository, 'create').mockReturnValue(userToCreate);
             const saveMock = jest.spyOn(userRepository, 'save').mockImplementation(() => Promise.resolve(userToCreate));
 
@@ -139,6 +150,7 @@ describe('AuthService', () => {
 
             expect(createMock).toHaveBeenCalledWith(userToCreate);
             expect(saveMock).toHaveBeenCalledWith(userToCreate);
+            expect(userInitService.initializeUserData).toHaveBeenCalledWith(userToCreate);
             expect(result).toEqual({ ...userToCreate, password: undefined });
         });
 
@@ -268,44 +280,84 @@ describe('AuthService', () => {
         });
     });
 
-    describe('generateDataForNewUser', () => {
-        it('should generate report months for the new user in the database', async () => {
-            const user = {
-                id: 1,
-                email: 'test@example.com',
+    describe('User data initialization', () => {
+        it('should call the userInitService when registering a new user', async () => {
+            const username = 'test@example.com';
+            const pass = 'password';
+
+            const userToCreate = {
                 name: 'test',
+                email: username,
+                password: pass,
                 permissions: {},
+                userInfo: {
+                    organizationName: 'test',
+                },
+                id: 1
             } as any as User;
 
-            const saveMock = jest.spyOn(userRepository, 'save');
+            jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+            jest.spyOn(userRepository, 'create').mockReturnValue(userToCreate);
+            jest.spyOn(userRepository, 'save').mockImplementation(() => Promise.resolve(userToCreate));
 
-            await service.generateDataForNewUser(user);
+            await service.registerUser(username, pass, userToCreate.userInfo);
 
-            expect(saveMock).toHaveBeenCalled();
-            const reportMonths = saveMock.mock.calls[0][0];
-            expect(reportMonths).toHaveLength(12);
-            expect(reportMonths[4].userId).toBe(user.id);
-            expect(reportMonths[4].name).toBe('ינואר');
-            expect(reportMonths[4].startDate.getMonth()).toBe(0);
-            expect(reportMonths[4].startDate.getDate()).toBe(1);
-            expect(reportMonths[4].endDate.getMonth()).toBe(0);
-            expect(reportMonths[4].endDate.getDate()).toBe(31);
-            expect(reportMonths[4].year).toBe(getCurrentHebrewYear());
+            expect(userInitService.initializeUserData).toHaveBeenCalledWith(userToCreate);
         });
 
-        it('should simulate an error', async () => {
-            const user = {
-                id: 1,
-                email: 'test@example.com',
+        it('should handle case when userInitService is not provided', async () => {
+            // Create separate repository mocks for this test
+            const localUserRepository = {
+                findOne: jest.fn(),
+                findOneBy: jest.fn(),
+                create: jest.fn(),
+                save: jest.fn(),
+                update: jest.fn(),
+                manager: {
+                    getRepository: jest.fn(),
+                }
+            };
+
+            // Create a new instance of AuthService without the userInitService
+            const moduleWithoutInit: TestingModule = await Test.createTestingModule({
+                providers: [
+                    AuthService,
+                    {
+                        provide: JwtService,
+                        useValue: {
+                            sign: jest.fn(),
+                        },
+                    },
+                    {
+                        provide: getRepositoryToken(User),
+                        useValue: localUserRepository,
+                    }
+                ],
+            }).compile();
+
+            const serviceWithoutInit = moduleWithoutInit.get<AuthService>(AuthService);
+
+            const username = 'test@example.com';
+            const pass = 'password';
+
+            const userToCreate = {
                 name: 'test',
+                email: username,
+                password: pass,
                 permissions: {},
+                userInfo: {
+                    organizationName: 'test',
+                },
             } as any as User;
 
-            const saveMock = jest.spyOn(userRepository, 'save').mockImplementation(async () => {
-                throw new Error('test error');
-            });
+            // Set up proper mock behavior for this test
+            localUserRepository.findOne.mockResolvedValue(null);
+            localUserRepository.save.mockResolvedValue(userToCreate);
 
-            await expect(service.generateDataForNewUser(user)).resolves.not.toThrowError();
+            await serviceWithoutInit.registerUser(username, pass, userToCreate.userInfo);
+            expect(localUserRepository.create).toHaveBeenCalledWith(userToCreate);
+            expect(userInitService.initializeUserData).not.toHaveBeenCalled();
+            expect(localUserRepository.findOne).toHaveBeenCalledWith({ where: { email: username } });
         });
     });
 
@@ -353,7 +405,7 @@ describe('AuthService', () => {
             const result = await service.updateSettings(userId, { pageSize: 10 });
 
             expect(findOneByMock).toHaveBeenCalledWith({ id: userId });
-            expect(updateMock).toHaveBeenCalledWith(userId, {additionalData: { pageSize: 10, theme: 'light' } });
+            expect(updateMock).toHaveBeenCalledWith(userId, { additionalData: { pageSize: 10, theme: 'light' } });
             expect(result).toEqual({ success: true });
         });
 
