@@ -2,7 +2,6 @@ import { ISendMailOptions } from "@nestjs-modules/mailer";
 import { DataSource } from "typeorm";
 import { BulkToZipReportGenerator } from "../bulk-to-zip.generator";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
-import { Teacher } from "src/db/entities/Teacher.entity";
 import { sendBulkTeacherMailWithFile } from "../bulk-mail-file.util";
 import * as JSZip from 'jszip';
 import * as BaseEntityUtil from "@shared/base-entity/base-entity.util";
@@ -13,19 +12,17 @@ describe('bulk-mail-file.util', () => {
   let mockGenerator: jest.Mocked<BulkToZipReportGenerator>;
   let mockDataSource: jest.Mocked<DataSource>;
   let mockMailSendService: jest.Mocked<MailSendService>;
-  let mockTeacher: Teacher;
-  let mockAuth: any;
+  let mockTeacher = {
+    name: 'Test Teacher',
+    email: 'test@example.com'
+  };
+let mockAuth: any;
   let mockParams: any[];
   let mockGetEmailParamsFromData: jest.Mock;
   let mockGetUserMailAddressFrom: jest.SpyInstance;
   let mockValidateUserHasPaid: jest.SpyInstance;
 
   beforeEach(() => {
-    mockTeacher = {
-      name: 'Test Teacher',
-      email: 'test@example.com'
-    } as Teacher;
-
     mockGenerator = {
       getReportData: jest.fn(),
       getFileBuffer: jest.fn()

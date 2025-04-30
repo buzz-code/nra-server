@@ -4,10 +4,12 @@ import { getUserMailAddressFrom, validateUserHasPaid } from "@shared/base-entity
 import { DataSource } from "typeorm";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { BulkToZipReportGenerator } from "@shared/utils/report/bulk-to-zip.generator";
-import { Teacher } from "src/db/entities/Teacher.entity";
 
 interface ITeacherFileData {
-    teacher: Teacher;
+    teacher: {
+        name: string;
+        email: string | null;
+    };
 }
 type GetEmailParamsFromData = (params: any, data: ITeacherFileData[]) => Promise<{
     replyToAddress: string;
