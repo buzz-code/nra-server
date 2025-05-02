@@ -1,12 +1,13 @@
-import { Call, CallHandler, YemotRouter } from 'yemot-router2';
+import { Call, CallHandler, ExitError, YemotRouter } from 'yemot-router2';
 import { Logger } from '@nestjs/common';
 import * as express from 'express';
 
 const logger = new Logger('YemotHandler');
 
 export type YemotCallHandler = (logger: Logger) => CallHandler;
+export type YemotCallProcessor = (call: Call, logger: Logger) => Promise<void>;
 
-export const setupYemotRouter = (callHandler: YemotCallHandler) => {
+export const setupYemotRouter = (callHandler: YemotCallHandler, processCall: YemotCallProcessor = null) => {
   const router = express.Router();
   router.use(express.urlencoded({ extended: true }));
 
@@ -24,7 +25,18 @@ export const setupYemotRouter = (callHandler: YemotCallHandler) => {
 
   router.use('/', yemotRouter.asExpressRouter);
 
-  yemotRouter.all('/', callHandler(logger));
+  const callHandlerWithLogger = callHandler(logger);
+  yemotRouter.all('/', async (call) => {
+    try {
+      await callHandlerWithLogger(call);
+    } catch (error) {
+      if (error instanceof ExitError) return;
+      logger.error(`Error in call handler: ${error.message}`, error.stack);
+      return id_list_message_with_hangup(call, 'אירעה שגיאה, אנא נסה שוב מאוחר יותר');
+    }
+    yemotRouter.deleteCall(call.callId);
+    await processCall?.(call, logger);
+  });
 
   yemotRouter.events.on('call_hangup', (call) => {
     logger.log(`Call ${call.callId} was hungup - Phone: ${call.phone}`);
