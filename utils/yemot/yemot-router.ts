@@ -21,6 +21,14 @@ export const setupYemotRouter = (callHandler: YemotCallHandler = exampleYemotHan
     },
     defaults: {
       removeInvalidChars: true,
+      id_list_message: {
+        removeInvalidChars: true,
+      },
+      read: {
+        tap: {
+          removeInvalidChars: true,
+        },
+      },
     },
   });
 
