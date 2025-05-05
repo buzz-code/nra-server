@@ -8,7 +8,7 @@ const dataSource = new DataSource({
         join(__dirname, '/../../src/db/**/*.ts'),
         join(__dirname, '/../../shared/entities/**/*.entity.ts'),
         join(__dirname, '/../../shared/view-entities/**/*.ts'),
-],
+    ],
 });
 export default dataSource;
 
