@@ -31,4 +31,5 @@ export const databaseConfig: DataSourceOptions = {
         // true ||
         false,
     migrations: [join(__dirname, '/../../src/migrations/*.{js,ts}')],
+    migrationsTransactionMode: "all",
 };

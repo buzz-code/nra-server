@@ -5,11 +5,10 @@ import { databaseConfig } from "./database.config";
 const dataSource = new DataSource({
     ...databaseConfig,
     entities: [
-        join(__dirname, '/../../src/db/**/*.ts'),
-        join(__dirname, '/../../shared/entities/**/*.entity.ts'),
-        join(__dirname, '/../../shared/view-entities/**/*.ts'),
+        join(__dirname, '/../../src/db/**/*.{js,ts}'),
+        join(__dirname, '/../../shared/entities/**/*.entity.{js,ts}'),
+        join(__dirname, '/../../shared/view-entities/**/*.{js,ts}'),
     ],
-    migrationsTransactionMode: "all",
 });
 export default dataSource;
 
