@@ -9,6 +9,7 @@ const dataSource = new DataSource({
         join(__dirname, '/../../shared/entities/**/*.entity.ts'),
         join(__dirname, '/../../shared/view-entities/**/*.ts'),
     ],
+    migrationsTransactionMode: "all",
 });
 export default dataSource;
 
