@@ -27,9 +27,7 @@ export const databaseConfig: DataSourceOptions = {
             });
         }
     },
-    migrationsRun: process.env.NODE_ENV == 'production' ||
-        // true ||
-        false,
+    migrationsRun: false,
     migrations: [join(__dirname, '/../../src/migrations/*.{js,ts}')],
     migrationsTransactionMode: "all",
 };
