@@ -2,6 +2,7 @@ import { Call, ExitError, YemotRouter } from 'yemot-router2';
 import { Logger } from '@nestjs/common';
 import * as express from 'express';
 
+Logger.overrideLogger(['error', 'warn', 'log', 'debug', 'verbose']);
 const logger = new Logger('YemotHandler');
 
 type CallHandler = (call: Call) => Promise<unknown>;
