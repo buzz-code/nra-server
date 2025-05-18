@@ -9,8 +9,8 @@ Logger.overrideLogger(['error', 'warn', 'log', 'debug', 'verbose']);
 const logger = new Logger('YemotHandler');
 
 type CallHandler = (call: Call) => Promise<unknown>;
-export type YemotCallHandler = (logger: Logger) => CallHandler;
-export type YemotCallProcessor = (call: Call, logger: Logger) => Promise<void>;
+export type YemotCallHandler =  CallHandler;
+export type YemotCallProcessor = (call: Call) => Promise<void>;
 
 export const setupYemotRouter = (
   callHandler: YemotCallHandler = exampleYemotHandler,
@@ -43,7 +43,6 @@ export const setupYemotRouter = (
 
   router.use('/', yemotRouter.asExpressRouter);
 
-  const callHandlerWithLogger = callHandler(logger);
   yemotRouter.all('/', async (call) => {
     try {
       let enhancedCall = call;
@@ -58,14 +57,14 @@ export const setupYemotRouter = (
       enhancedCall = createBaseExtendedCall(call, logger, dataSource, messageConstants);
       logger.log(`Enhanced call created with data source for ${call.callId}`);
 
-      await callHandlerWithLogger(enhancedCall);
+      await callHandler(enhancedCall);
     } catch (error) {
       if (error instanceof ExitError) return;
       logger.error(`Error in call handler: ${error.message}`, error.stack);
       return id_list_message_with_hangup(call, 'אירעה שגיאה, אנא נסה שוב מאוחר יותר');
     }
     yemotRouter.deleteCall(call.callId);
-    await processCall?.(call, logger);
+    await processCall?.(call);
   });
 
   yemotRouter.events.on('call_hangup', (call) => {
@@ -89,8 +88,8 @@ export const id_list_message_with_hangup = (call: Call, message: string) => {
   call.hangup();
 }
 
-const exampleYemotHandler: YemotCallHandler = (logger) => async (call) => {
-  logger.log(`Handling call from ${call.phone}`);
+const exampleYemotHandler: YemotCallHandler = async (call) => {
+  call.logInfo(`Handling call from ${call.phone}`);
 
   // Example flow from the yemot-router2 example
   await call.read([{ type: 'text', data: 'היי, תקיש 10' }], 'tap', {
@@ -102,18 +101,18 @@ const exampleYemotHandler: YemotCallHandler = (logger) => async (call) => {
   const name = await call.read([{ type: 'text', data: 'שלום, אנא הקש את שמך המלא' }], 'tap', {
     typing_playback_mode: 'HebrewKeyboard'
   });
-  logger.log(`User entered name: ${name}`);
+  call.logInfo(`User entered name: ${name}`);
 
   id_list_message(call, 'שלום ' + name);
   const addressFilePath = await call.read([{ type: 'text', data: 'אנא הקלט את הרחוב בו אתה גר' }], 'record');
-  logger.log(`Address file path: ${addressFilePath}`);
+  call.logInfo(`Address file path: ${addressFilePath}`);
 
   return id_list_message_with_hangup(call, 'תגובתך התקבלה בהצלחה');
 };
 
 
-const exampleYemotProcessor: YemotCallProcessor = async (call, logger) => {
-  logger.log(`Processing call ${call.callId} from ${call.phone}`);
+const exampleYemotProcessor: YemotCallProcessor = async (call) => {
+  call.logInfo(`Processing call ${call.callId} from ${call.phone}`);
   // Here you can add any additional processing logic you need
   // For example, saving the call data to a database or sending a notification
   // await saveCallDataToDatabase(call);

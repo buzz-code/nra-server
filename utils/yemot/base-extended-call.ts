@@ -45,6 +45,7 @@ declare module 'yemot-router2' {
     
     // Common telephony operations
     findUserByPhone(): Promise<User | null>;
+    getDataSource(): DataSource;
   }
 }
 
@@ -218,6 +219,10 @@ export function createBaseExtendedCall(call: Call, logger: Logger, dataSource: D
       extendedCall.logError(`User not found for phone number: ${extendedCall.did}`);
     }
     return user;
+  };
+
+  extendedCall.getDataSource = function (): DataSource {
+    return dataSource;
   };
 
   return extendedCall;
