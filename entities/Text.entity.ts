@@ -32,9 +32,9 @@ export class Text implements IHasUserId {
 
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
   @StringType
-  @MaxLength(100, { always: true })
+  @MaxLength(500, { always: true })
   @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-  @Column("varchar", { name: "description", length: 100 })
+  @Column("varchar", { name: "description", length: 500 })
   description: string;
 
   @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
