@@ -56,8 +56,7 @@ declare module 'yemot-router2' {
  * This can be used across different telephony projects
  */
 export function createBaseExtendedCall(call: Call, logger: Logger, dataSource: DataSource, messageConstants: any): Call {
-  // Create a new object that copies all properties and methods from the original call
-  const extendedCall = Object.create(Object.getPrototypeOf(call), Object.getOwnPropertyDescriptors(call)) as Call;
+  const extendedCall = call;
 
   // Context storage
   const context: Record<string, any> = {};
