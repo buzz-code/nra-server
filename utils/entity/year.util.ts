@@ -20,9 +20,13 @@ const getCurrentGregorianYear = () => {
     return getCurrentGregorianYearByStartDate(startOfYear);
 }
 
+export const getHebrewYearByGregorianDate = (gregorianDate: Date) => {
+    const gregorianYear = getGregorianYearByStartDate(startOfYear, gregorianDate);
+    return getHebrewYearByGregorianYear(gregorianYear);
+}
+
 export const getCurrentHebrewYear = () => {
-    const currentGregorianYear = getCurrentGregorianYear();
-    return getHebrewYearByGregorianYear(currentGregorianYear);
+    return getHebrewYearByGregorianDate(new Date(Date.now()));
 }
 
 export function fillDefaultYearValue(item: { id: number, year: number }) {
