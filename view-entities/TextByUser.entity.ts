@@ -14,7 +14,7 @@ import { DataSource, PrimaryColumn, ViewColumn, ViewEntity } from "typeorm";
         .addSelect('t_user.id', 'overrideTextId')
         .where('t_base.userId = 0')
         .from(Text, 't_base')
-        .leftJoin(User, 'users', '1 = 1')
+        .leftJoin(User, 'users', 'users.effective_id is null')
         .leftJoin(Text, 't_user', 't_user.name = t_base.name AND t_user.user_id = users.id')
         .orderBy('users.id')
         .addOrderBy('t_base.id')
