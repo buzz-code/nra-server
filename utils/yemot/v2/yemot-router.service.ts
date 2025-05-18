@@ -10,6 +10,7 @@ const logger = new Logger('YemotRouterService');
 
 export const YEMOT_HANDLER_FACTORY = 'YemotHandlerFactory';
 export type YemotHandlerFactory = new (dataSource: DataSource, call: Call) => BaseYemotHandlerService;
+type TextParams = Record<string, string | number>;
 
 @Injectable()
 export class YemotRouterService {
@@ -108,7 +109,7 @@ export class BaseYemotHandlerService {
     this.user = user;
   }
 
-  protected async getTextByUserId(textKey: string, values?: Record<string, string>): Promise<string> {
+  protected async getTextByUserId(textKey: string, values?: TextParams): Promise<string> {
     this.logger.log(`Getting text for user ID: ${this.user.id}, text key: ${textKey}`);
     const text = await this.dataSource
       .getRepository(TextByUser)
@@ -116,7 +117,7 @@ export class BaseYemotHandlerService {
     let textValue = text?.value || textKey;
     if (values) {
       Object.keys(values).forEach((key) => {
-        textValue = textValue.replace(`{${key}}`, values[key]);
+        textValue = textValue.replace(`{${key}}`, values[key].toString());
       });
     }
     return textValue;
@@ -154,7 +155,7 @@ export class BaseYemotHandlerService {
     return options.find((et) => et.key.toString() === menuKey);
   }
 
-  protected async askConfirmation(textKey: string, values: Record<string, string> = {}, yesTextKey?: string, noTextKey?: string, yesValue = '1', noValue = '2') {
+  protected async askConfirmation(textKey: string, values: TextParams = {}, yesTextKey?: string, noTextKey?: string, yesValue = '1', noValue = '2') {
     this.logger.log(`Asking for confirmation with message: ${textKey}`);
 
     const yes = await this.getTextByUserId(yesTextKey || 'GENERAL.YES', values);
