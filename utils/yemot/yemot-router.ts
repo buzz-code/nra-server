@@ -19,6 +19,14 @@ export const setupYemotRouter = (
 ) => {
   const router = express.Router();
   router.use(express.urlencoded({ extended: true }));
+  router.use((err, req, res, next) => {
+    if (err) {
+      logger.error(`Error in Yemot router: ${err.message}`, err.stack);
+      res.status(500).send('Internal Server Error');
+    } else {
+      next();
+    }
+  });
 
   const yemotRouter = YemotRouter({
     printLog: true,
