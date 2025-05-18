@@ -153,4 +153,21 @@ export class BaseYemotHandlerService {
 
     return options.find((et) => et.key.toString() === menuKey);
   }
+
+  protected async askConfirmation(textKey: string, values: Record<string, string> = {}, yesTextKey?: string, noTextKey?: string, yesValue = '1', noValue = '2') {
+    this.logger.log(`Asking for confirmation with message: ${textKey}`);
+
+    const yes = await this.getTextByUserId(yesTextKey || 'GENERAL.YES', values);
+    const no = await this.getTextByUserId(noTextKey || 'GENERAL.NO', values);
+    const confirmationMessage = await this.getTextByUserId(textKey, { ...values, yes, no });
+    this.logger.log(`Confirmation message: ${confirmationMessage}`);
+
+    const confirmationKey = await this.askForInput(confirmationMessage, {
+      min_digits: 1,
+      max_digits: 1,
+      digits_allowed: [yesValue, noValue],
+    });
+
+    return confirmationKey === yesValue;
+  }
 }

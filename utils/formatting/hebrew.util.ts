@@ -1,8 +1,8 @@
 import * as gematriya from "gematriya";
-import { getIndexByJewishMonth, getJewishMonthInHebrew, getJewishMonthsInOrder, JewishMonth, JewishMonthType } from 'jewish-date';
+import { getIndexByJewishMonth, getJewishMonthInHebrew, getJewishMonthsInOrder, JewishMonth, JewishMonthType, toJewishDate } from 'jewish-date';
 import { getCurrentHebrewYear } from "../entity/year.util";
 
-export const pointedMonths = {
+const pointedMonths = {
   [JewishMonth.Nisan]: 'נִיסָן',
   [JewishMonth.Iyyar]: 'אִיָּר',
   [JewishMonth.Sivan]: 'סִיוָן',
@@ -64,4 +64,12 @@ export function getHebrewMonthsList(hebrewYear: number = getCurrentHebrewYear())
       key: key + 1,
       name: getJewishMonthInHebrew(month),
     }));
+}
+
+export function formatHebrewDateForIVR(date: Date): string {
+  const hebrewDateObj = toJewishDate(date);
+  const datePart = gematriyaLetters(hebrewDateObj.day);
+  const monthPart = pointedMonths[hebrewDateObj.monthName];
+  const yearPart = gematriyaLetters(hebrewDateObj.year % 1000);
+  return `${datePart} ${monthPart} ${yearPart}`;
 }
