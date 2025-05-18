@@ -1,6 +1,9 @@
 import { Call, ExitError, YemotRouter } from 'yemot-router2';
 import { Logger } from '@nestjs/common';
 import * as express from 'express';
+import { getDataSource } from '@shared/utils/entity/foreignKey.util';
+import { createBaseExtendedCall } from './base-extended-call';
+import { User } from '@shared/entities/User.entity';
 
 Logger.overrideLogger(['error', 'warn', 'log', 'debug', 'verbose']);
 const logger = new Logger('YemotHandler');
@@ -9,7 +12,12 @@ type CallHandler = (call: Call) => Promise<unknown>;
 export type YemotCallHandler = (logger: Logger) => CallHandler;
 export type YemotCallProcessor = (call: Call, logger: Logger) => Promise<void>;
 
-export const setupYemotRouter = (callHandler: YemotCallHandler = exampleYemotHandler, processCall: YemotCallProcessor = exampleYemotProcessor) => {
+export const setupYemotRouter = (
+  callHandler: YemotCallHandler = exampleYemotHandler,
+  processCall: YemotCallProcessor = exampleYemotProcessor,
+  entities: Function[] = [],
+  messageConstants: any = {}
+) => {
   const router = express.Router();
   router.use(express.urlencoded({ extended: true }));
 
@@ -38,7 +46,19 @@ export const setupYemotRouter = (callHandler: YemotCallHandler = exampleYemotHan
   const callHandlerWithLogger = callHandler(logger);
   yemotRouter.all('/', async (call) => {
     try {
-      await callHandlerWithLogger(call);
+      let enhancedCall = call;
+
+      const allEntities = [
+        User,
+        ...entities,
+      ];
+
+      const dataSource = await getDataSource(allEntities);
+
+      enhancedCall = createBaseExtendedCall(call, logger, dataSource, messageConstants);
+      logger.log(`Enhanced call created with data source for ${call.callId}`);
+
+      await callHandlerWithLogger(enhancedCall);
     } catch (error) {
       if (error instanceof ExitError) return;
       logger.error(`Error in call handler: ${error.message}`, error.stack);
