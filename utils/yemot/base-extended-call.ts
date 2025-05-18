@@ -3,6 +3,7 @@ import { Call, TapOptions } from 'yemot-router2';
 import { Logger } from '@nestjs/common';
 import { id_list_message, id_list_message_with_hangup } from './yemot-router';
 import { User } from '@shared/entities/User.entity';
+import { TextByUser } from '@shared/view-entities/TextByUser.entity';
 
 /**
  * Type extension for the Yemot Call interface with base shared functionality
@@ -10,26 +11,26 @@ import { User } from '@shared/entities/User.entity';
 declare module 'yemot-router2' {
   interface Call {
     userId?: number;
-    
+
     // Context management methods
     setContext<T>(key: string, value: T): void;
     getContext<T>(key: string): T | undefined;
-    
+
     // Logging methods
     logInfo(message: string): void;
     logDebug(message: string): void;
     logWarn(message: string): void;
     logError(message: string, stack?: string): void;
-    
+
     // Call interaction methods
     getConfirmation(message: string, yesOption?: string, noOption?: string): Promise<boolean>;
     readDigits(promptText: string, options: TapOptions): Promise<string>;
     playMessage(message: string): Promise<void>;
     hangupWithMessage(message: string): Promise<void>;
-    
+
     // Message handling
     getText(key: string, values?: Record<string, string>): string;
-    
+
     // Error handling & retry
     withRetry<T>(
       operation: () => Promise<T>,
@@ -39,12 +40,13 @@ declare module 'yemot-router2' {
         maxAttempts?: number
       }
     ): Promise<T>;
-    
+
     // Database operations
     withTransaction<T>(fn: (queryRunner: QueryRunner) => Promise<T>): Promise<T>;
-    
+
     // Common telephony operations
     findUserByPhone(): Promise<User | null>;
+    loadUserTexts(userId: number): Promise<void>;
     getDataSource(): DataSource;
   }
 }
@@ -74,15 +76,15 @@ export function createBaseExtendedCall(call: Call, logger: Logger, dataSource: D
   extendedCall.logInfo = function (message: string): void {
     logger.log(`[Call ${extendedCall.callId}] ${message}`);
   };
-  
+
   extendedCall.logDebug = function (message: string): void {
     logger.debug(`[Call ${extendedCall.callId}] ${message}`);
   };
-  
+
   extendedCall.logWarn = function (message: string): void {
     logger.warn(`[Call ${extendedCall.callId}] ${message}`);
   };
-  
+
   extendedCall.logError = function (message: string, stack?: string): void {
     logger.error(`[Call ${extendedCall.callId}] ${message}`, stack);
   };
@@ -126,28 +128,36 @@ export function createBaseExtendedCall(call: Call, logger: Logger, dataSource: D
 
   // Message retrieval method
   extendedCall.getText = function (key: string, values?: Record<string, string>): string {
-    const keyParts = key.split('.');
-    let message: any = messageConstants;
-    
-    for (const part of keyParts) {
-      if (message[part] === undefined) {
-        extendedCall.logError(`Message key not found: ${key}`);
-        return key;
-      }
-      message = message[part];
+    const textsByUser = extendedCall.getContext<Record<string, string>>('userTexts');
+    let message: any
+    if (textsByUser && textsByUser[key]) {
+      extendedCall.logDebug(`Message found in user texts: ${key}, ${textsByUser[key]}`);
+      message = textsByUser[key];
     }
-    
+    if (!message) {
+      const keyParts = key.split('.');
+      message = messageConstants;
+
+      for (const part of keyParts) {
+        if (message[part] === undefined) {
+          extendedCall.logError(`Message key not found: ${key}`);
+          return key;
+        }
+        message = message[part];
+      }
+    }
+
     if (typeof message !== 'string') {
       extendedCall.logError(`Message key is not a string: ${key}`);
       return key;
     }
-    
+
     if (values) {
       for (const [placeholder, value] of Object.entries(values)) {
         message = (message as string).replace(new RegExp(`{${placeholder}}`, 'g'), value);
       }
     }
-    
+
     return message;
   };
 
@@ -215,10 +225,41 @@ export function createBaseExtendedCall(call: Call, logger: Logger, dataSource: D
       extendedCall.logInfo(`User found: ${user.id}`);
       extendedCall.userId = user.id;
       extendedCall.setContext('user', user);
+
+      // Load user texts after finding the user
+      await extendedCall.loadUserTexts(user.id);
     } else {
       extendedCall.logError(`User not found for phone number: ${extendedCall.did}`);
     }
     return user;
+  };
+
+  // Load and store user texts in context
+  extendedCall.loadUserTexts = async function (userId: number): Promise<void> {
+    extendedCall.logInfo(`Loading texts for user: ${userId}`);
+    try {
+      const textsRepository = dataSource.getRepository(TextByUser);
+      const userTexts = await textsRepository.findBy({ userId });
+
+      if (userTexts && userTexts.length > 0) {
+        extendedCall.logInfo(`Found ${userTexts.length} texts for user ${userId}`);
+
+        // Create a map of text name to text value
+        const textsMap: Record<string, string> = {};
+        for (const text of userTexts) {
+          textsMap[text.name] = text.value;
+        }
+
+        // Store in context
+        extendedCall.setContext('userTexts', textsMap);
+      } else {
+        extendedCall.logInfo(`No texts found for user ${userId}`);
+        extendedCall.setContext('userTexts', {});
+      }
+    } catch (error) {
+      extendedCall.logError(`Failed to load texts for user ${userId}: ${error.message}`);
+      extendedCall.setContext('userTexts', {});
+    }
   };
 
   extendedCall.getDataSource = function (): DataSource {
