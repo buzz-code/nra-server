@@ -1,6 +1,7 @@
 export interface IColumn<T = IContent> {
     label: string;
     value: string | ((record: T) => string | number | boolean | Date | IContent);
+    readOnly?: boolean;
 }
 
 export type IHeader<T = IContent> = IColumn<T> | string;

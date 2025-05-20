@@ -15,7 +15,7 @@ export async function getExportedFile<T>(format: CommonFileFormat, name: string,
     const formattedData = data.map(row => formatters.map(func => func(row)));
     const generator = await getGenerator(format, name);
 
-    return generateCommonFileResponse(generator, { headerRow, formattedData }, null);
+    return generateCommonFileResponse(generator, { headerRow, formattedData, headerConfig: headers }, null);
 };
 
 async function getGenerator<T>(format: CommonFileFormat, name: string): Promise<BaseReportGenerator> {

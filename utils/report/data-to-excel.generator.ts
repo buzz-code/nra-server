@@ -2,12 +2,14 @@ import * as ExcelJS from 'exceljs';
 import { ISpecialField } from "../importer/types";
 import { BaseReportGenerator } from './report.generators';
 import { CommonFileFormat } from './types';
+import { IHeader } from '../exporter/types';
 
 export interface IDataToExcelReportGenerator {
     headerRow: string[];
     formattedData: (string | number)[][];
     sheetName?: string;
     specialFields?: ISpecialField[];
+    headerConfig?: IHeader[];
 }
 export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcelReportGenerator, IDataToExcelReportGenerator> {
     fileFormat: CommonFileFormat = CommonFileFormat.Excel;
@@ -15,10 +17,12 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
     async getFileBuffer(data: IDataToExcelReportGenerator): Promise<Buffer> {
         const workbook = new ExcelJS.Workbook();
         const sheetName = data.sheetName || 'גליון1';
-        const worksheet = workbook.addWorksheet(sheetName.replace(/'$/, ''));
+        const worksheet = workbook.addWorksheet(sheetName.replace(/\'$$/, ''));
 
         this.insertSpecialFields(worksheet, data.specialFields);
-        this.addTable(worksheet, data);
+        const headerRow = this.addTable(worksheet, data);
+
+        this.protectSheet(worksheet, headerRow, data.headerConfig);
 
         const buffer = await workbook.xlsx.writeBuffer();
         return Buffer.from(buffer);
@@ -56,10 +60,30 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
         worksheet.columns.forEach((column, index) => {
             column.width = this.getColumnWidth(data.formattedData, index);
         });
+
+        return tableFirstRow;
     }
 
     private getColumnWidth(data: any[][], columnIndex: number, minWidth = 12) {
         return Math.max(minWidth, ...data.map(item => item[columnIndex]).map(String).map(item => item.length));
+    }
+
+    private protectSheet(worksheet: ExcelJS.Worksheet, headerRow: number, headerConfig?: IHeader[]) {
+        const headerCells = worksheet.getRow(headerRow);
+        headerCells.eachCell((cell) => {
+            cell.protection = {
+                locked: true,
+            };
+        });
+        headerConfig?.forEach((header, colIndex) => {
+            if (typeof header !== 'string' && header.readOnly) {
+                worksheet.getColumn(colIndex + 1).protection = {
+                    locked: true
+                };
+            }
+        });
+
+        worksheet.protect('1234', {});
     }
 }
 
