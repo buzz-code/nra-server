@@ -1,4 +1,4 @@
-import * as ExcelJS from 'exceljs';
+import * as ExcelJS from 'exceljs/dist/exceljs.min.js';
 import { ISpecialField } from "../importer/types";
 import { BaseReportGenerator } from './report.generators';
 import { CommonFileFormat } from './types';
