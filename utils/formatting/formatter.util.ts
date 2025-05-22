@@ -29,3 +29,9 @@ export const getJsonFormatter = (value: string) =>
 
 export const formatJson = (value: any) =>
     value ? JSON.stringify(value) : null;
+
+export const getISODateFormatter = (value: string) =>
+    row => formatISODate(getValueByPath(row, value));
+
+export const formatISODate = (value: any) =>
+    value && new Date(value).toString() !== 'Invalid Date' ? new Date(value).toISOString() : null;
