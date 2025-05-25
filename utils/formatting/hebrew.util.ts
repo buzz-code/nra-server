@@ -45,11 +45,15 @@ const hebrewLettersNames = {
   'ת': 'תָּו',
 };
 
-export function gematriyaLetters(number: number): string {
+export function gematriyaLetters(number: number, expanded: boolean = true): string {
   const letters = gematriya(number);
-  return letters.replace(/["'״׳]/g, '')
+  const cleanLetters = letters.replace(/["'״׳]/g, '');
+  if (!expanded) {
+    return cleanLetters;
+  }
+  return cleanLetters
     .split('')
-    .map(letter => hebrewLettersNames[letter] || letter)
+    .map((letter: string) => hebrewLettersNames[letter] || letter)
     .join(' ');
 }
 
