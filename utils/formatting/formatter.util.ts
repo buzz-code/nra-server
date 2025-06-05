@@ -35,3 +35,13 @@ export const getISODateFormatter = (value: string) =>
 
 export const formatISODate = (value: any) =>
     value && new Date(value).toString() !== 'Invalid Date' ? new Date(value).toISOString() : null;
+
+export const getHebrewBooleanFormatter = (value: string) =>
+    row => formatHebrewBoolean(getValueByPath(row, value));
+
+export const formatHebrewBoolean = (value: any) => {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    return value ? 'כן' : 'לא';
+};
