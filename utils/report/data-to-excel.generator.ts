@@ -69,12 +69,20 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
     }
 
     private protectSheet(worksheet: ExcelJS.Worksheet, headerRow: number, headerConfig?: IHeader[]) {
+        headerConfig?.forEach((header, colIndex) => {
+            const column = worksheet.getColumn(colIndex + 1);
+            column.protection = {
+                locked: false
+            };
+        });
+
         const headerCells = worksheet.getRow(headerRow);
         headerCells.eachCell((cell) => {
             cell.protection = {
                 locked: true,
             };
         });
+        
         headerConfig?.forEach((header, colIndex) => {
             if (typeof header !== 'string' && header.readOnly) {
                 worksheet.getColumn(colIndex + 1).protection = {
@@ -83,7 +91,19 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
             }
         });
 
-        worksheet.protect('1234', {});
+        worksheet.protect('1234', {
+            autoFilter: true,
+            sort: true,
+            insertRows: true,
+            insertColumns: true,
+            deleteRows: true,
+            deleteColumns: true,
+            formatCells: true,
+            formatColumns: true,
+            formatRows: true,
+            selectLockedCells: true,
+            selectUnlockedCells: true
+        });
     }
 }
 
