@@ -6,6 +6,7 @@ import {
     IsInt as _IsInt,
     IsPositive as _IsPositive,
     IsDate as _IsDate,
+    IsBoolean as _IsBoolean,
     IsNumberOptions,
     ValidationArguments,
     Min as _Min,
@@ -28,6 +29,8 @@ export const Min = (min: number, validationOptions?: ValidationOptions): Propert
     _Min(min, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות לפחות $constraint1') });
 export const IsDate = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsDate({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות תאריך $value') });
+export const IsBoolean = (validationOptions?: ValidationOptions): PropertyDecorator =>
+    _IsBoolean({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות ערך בוליאני (כן/לא) $value') });
 export const IsUniqueCombination = (otherProperties: string[] = [], entities: Function[] = [], validationOptions?: ValidationOptions) =>
     _IsUniqueCombination(otherProperties, entities, { ...validationOptions, message: getErrorMessageFunction('קיימת כבר רשומה עם ערכים זהים למשתמש בשדות $constraint1') });
 export const MaxCountByUserLimit = (entity: Function, getMaxLimit: GetMaxLimitType, entities: Function[] = [], foreignKey = 'id', validationOptions?: ValidationOptions) =>
