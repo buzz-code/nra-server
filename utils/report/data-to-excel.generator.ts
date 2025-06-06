@@ -69,11 +69,19 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
     }
 
     private protectSheet(worksheet: ExcelJS.Worksheet, headerRow: number, headerConfig?: IHeader[]) {
+        // TODO: compare with Harbor, plan how to do protection for teacher report file
+        if (!headerConfig) return;
+
         headerConfig?.forEach((header, colIndex) => {
-            const column = worksheet.getColumn(colIndex + 1);
-            column.protection = {
-                locked: false
-            };
+            if (typeof header !== 'string' && header.readOnly) {
+                worksheet.getColumn(colIndex + 1).protection = {
+                    locked: true
+                };
+            } else {
+                worksheet.getColumn(colIndex + 1).protection = {
+                    locked: false
+                };
+            }
         });
 
         const headerCells = worksheet.getRow(headerRow);
@@ -81,14 +89,6 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
             cell.protection = {
                 locked: true,
             };
-        });
-        
-        headerConfig?.forEach((header, colIndex) => {
-            if (typeof header !== 'string' && header.readOnly) {
-                worksheet.getColumn(colIndex + 1).protection = {
-                    locked: true
-                };
-            }
         });
 
         worksheet.protect('1234', {
