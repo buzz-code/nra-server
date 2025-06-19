@@ -62,7 +62,8 @@ describe('exporter.util', () => {
         expect.any(Object),
         {
           headerRow: expectedHeaderRow,
-          formattedData: expectedData
+          formattedData: expectedData,
+          headerConfig: headers
         },
         null
       );
@@ -87,7 +88,8 @@ describe('exporter.util', () => {
         expect.any(Object),
         {
           headerRow: expectedHeaderRow,
-          formattedData: expectedData
+          formattedData: expectedData,
+          headerConfig: headers
         },
         null
       );
@@ -111,7 +113,8 @@ describe('exporter.util', () => {
         expect.any(Object),
         {
           headerRow: expectedHeaderRow,
-          formattedData: expectedData
+          formattedData: expectedData,
+          headerConfig: headers
         },
         null
       );
@@ -134,7 +137,8 @@ describe('exporter.util', () => {
         expect.any(Object),
         {
           headerRow: expectedHeaderRow,
-          formattedData: expectedData
+          formattedData: expectedData,
+          headerConfig: headers
         },
         null
       );
@@ -158,7 +162,8 @@ describe('exporter.util', () => {
         expect.any(Object),
         {
           headerRow: expectedHeaderRow,
-          formattedData: expectedData
+          formattedData: expectedData,
+          headerConfig: headers
         },
         null
       );
@@ -196,7 +201,8 @@ describe('exporter.util', () => {
         expect.any(Object),
         {
           headerRow: expectedHeaderRow,
-          formattedData: expectedData
+          formattedData: expectedData,
+          headerConfig: headers
         },
         null
       );
@@ -232,7 +238,8 @@ describe('exporter.util', () => {
         expect.any(Object),
         {
           headerRow: expectedHeaderRow,
-          formattedData: expectedData
+          formattedData: expectedData,
+          headerConfig: headers
         },
         null
       );
