@@ -4,8 +4,6 @@ import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { TextByUser } from "@shared/view-entities/TextByUser.entity";
 import { User } from "@shared/entities/User.entity";
 import util from "../yemot.util";
-import { AttReport } from "src/db/entities/AttReport.entity";
-import { Grade } from "src/db/entities/Grade.entity";
 import { getCurrentHebrewYear } from "../../entity/year.util";
 
 export class MockYemotRequest extends YemotRequest {
@@ -27,11 +25,11 @@ export class MockYemotRequest extends YemotRequest {
   saveReport(reportData: any, type: any) {
     return {} as any;
   }
-  getExistingAttReports(klassId: string, lessonId: string, sheetName: string) {
-    return [] as any;
+  async getExistingAttReports(klassId: string, lessonId: string, sheetName: string): Promise<any[]> {
+    return [];
   }
-  getExistingGradeReports(klassId: string, lessonId: string, sheetName: string) {
-    return [] as any;
+  async getExistingGradeReports(klassId: string, lessonId: string, sheetName: string): Promise<any[]> {
+    return [];
   }
   deleteExistingReports(existingReports: any[], type: any) {
     return {} as any;
