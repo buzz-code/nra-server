@@ -4,6 +4,7 @@ import { IsOptional } from "class-validator";
 import { CrudValidationGroups } from "@dataui/crud";
 import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
 import { StringType } from "@shared/utils/entity/class-transformer";
+import { CreatedAtColumn, UpdatedAtColumn, TinyIntColumn } from "@shared/utils/entity/column-types.util";
 
 @Entity("users")
 export abstract class User {
@@ -44,13 +45,13 @@ export abstract class User {
   @Column("varchar", { name: "phone_number", nullable: true, length: 11 })
   phoneNumber: string | null;
 
-  @Column("tinyint", { name: "active", nullable: true })
+  @TinyIntColumn({ name: "active", nullable: true })
   active: number | null;
 
-  @CreateDateColumn({ name: "created_at", type: "timestamp" })
+  @CreatedAtColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at", type: 'timestamp' })
+  @UpdatedAtColumn()
   updatedAt: Date;
 
   @Column({ nullable: true })

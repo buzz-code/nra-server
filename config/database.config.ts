@@ -4,7 +4,18 @@ import { KeyvCacheProvider } from "typeorm-cache";
 
 const cacheTTL = 300_000;
 
-export const databaseConfig: DataSourceOptions = {
+// Test configuration for sqlite in-memory
+const testDatabaseConfig: DataSourceOptions = {
+    type: 'sqlite',
+    database: ':memory:',
+    synchronize: true,
+    logging: false,
+    dropSchema: true,
+    migrationsRun: false,
+};
+
+// Production configuration for MySQL
+const productionDatabaseConfig: DataSourceOptions = {
     type: 'mysql',
     extra: {
         decimalNumbers: true
@@ -31,3 +42,6 @@ export const databaseConfig: DataSourceOptions = {
     migrations: [join(__dirname, '/../../src/migrations/*.{js,ts}')],
     migrationsTransactionMode: "all",
 };
+
+export const databaseConfig: DataSourceOptions = 
+    process.env.NODE_ENV === 'test' ? testDatabaseConfig : productionDatabaseConfig;

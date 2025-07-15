@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
 import { StringType } from "@shared/utils/entity/class-transformer";
+import { LongTextColumn } from "@shared/utils/entity/column-types.util";
 
 
 @Entity()
@@ -24,7 +25,7 @@ export class PaymentTrack {
   name: string;
 
   @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-  @Column('longtext')
+  @LongTextColumn()
   description: string;
 
   @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })

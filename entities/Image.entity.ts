@@ -3,6 +3,7 @@ import { IsOptional } from 'class-validator';
 import { CrudValidationGroups } from "@dataui/crud";
 import { IsNotEmpty, IsUniqueCombination, MaxLength } from "@shared/utils/validation/class-validator-he";
 import { StringType } from "@shared/utils/entity/class-transformer";
+import { MediumTextColumn, TextColumn } from "@shared/utils/entity/column-types.util";
 
 export enum ImageTargetEnum {
     reportLogo = 'לוגו לתעודה',
@@ -12,12 +13,12 @@ export enum ImageTargetEnum {
 export class FileData {
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-    @Column('mediumtext')
+    @MediumTextColumn()
     src: string;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-    @Column('text')
+    @TextColumn()
     title: string;
 }
 
