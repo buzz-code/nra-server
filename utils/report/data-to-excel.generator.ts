@@ -70,7 +70,7 @@ export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcel
 
     private protectSheet(worksheet: ExcelJS.Worksheet, headerRow: number, headerConfig?: IHeader[]) {
         // TODO: compare with Harbor, plan how to do protection for teacher report file
-        if (!headerConfig) return;
+        if (!headerConfig?.some(header => typeof header !== 'string' && header.readOnly)) return;
 
         headerConfig?.forEach((header, colIndex) => {
             if (typeof header !== 'string' && header.readOnly) {
