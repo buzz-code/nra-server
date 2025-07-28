@@ -20,6 +20,24 @@ export interface IAbsCountEffectByUser {
   effect: number;
 }
 
+function createEffectExpressionByThreshold(thresholdColumn: string): string {
+  return `
+    CAST(
+      COALESCE(
+        SUBSTRING_INDEX(
+          MAX(
+            CASE WHEN att_grade_effect.${thresholdColumn} <= numbers.number 
+            THEN CONCAT(LPAD(att_grade_effect.${thresholdColumn}, 10, '0'), '|', att_grade_effect.effect)
+            ELSE NULL END
+          ), 
+          '|', -1
+        ),
+        '0'
+      ) AS SIGNED
+    )
+  `;
+}
+
 /**
  * Creates SQL expression for GradeEffectByUser view
  * @param dataSource TypeORM DataSource
@@ -32,10 +50,10 @@ export function createGradeEffectByUserExpression(dataSource: DataSource, UserEn
     .select('CONCAT(users.id, "_", numbers.number)', 'id')
     .addSelect('users.id', 'userId')
     .addSelect('numbers.number', 'number')
-    .addSelect('MAX(att_grade_effect.effect)', 'effect')
+    .addSelect(createEffectExpressionByThreshold('percents'), 'effect')
     .from('numbers', 'numbers')
     .leftJoin(UserEntity, 'users', '1 = 1')
-    .leftJoin(AttGradeEffectEntity, 'att_grade_effect', 'att_grade_effect.user_id = users.id AND att_grade_effect.percents <= numbers.number')
+    .leftJoin(AttGradeEffectEntity, 'att_grade_effect', 'att_grade_effect.user_id = users.id')
     .groupBy('users.id')
     .addGroupBy('numbers.number')
     .orderBy('users.id')
@@ -54,10 +72,10 @@ export function createAbsCountEffectByUserExpression(dataSource: DataSource, Use
     .select('CONCAT(users.id, "_", numbers.number)', 'id')
     .addSelect('users.id', 'userId')
     .addSelect('numbers.number', 'number')
-    .addSelect('MIN(att_grade_effect.effect)', 'effect')
+    .addSelect(createEffectExpressionByThreshold('count'), 'effect')
     .from('numbers', 'numbers')
     .leftJoin(UserEntity, 'users', '1 = 1')
-    .leftJoin(AttGradeEffectEntity, 'att_grade_effect', 'att_grade_effect.user_id = users.id AND att_grade_effect.count <= numbers.number')
+    .leftJoin(AttGradeEffectEntity, 'att_grade_effect', 'att_grade_effect.user_id = users.id')
     .groupBy('users.id')
     .addGroupBy('numbers.number')
     .orderBy('users.id')
