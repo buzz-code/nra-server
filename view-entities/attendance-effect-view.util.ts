@@ -34,7 +34,7 @@ function createEffectExpressionByThreshold(thresholdColumn: string): string {
         ),
         '0'
       ) AS SIGNED
-    )
+    ) + 0
   `;
 }
 
