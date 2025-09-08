@@ -81,6 +81,7 @@ const translationDict = {
     to: 'אל',
     studentTz: 'תעודת זהות תלמידה',
     studentReferenceId: 'מזהה תלמידה',
+    teacherTz: 'תעודת זהות מורה',
     teacherId: 'תעודת זהות מורה',
     teacherReferenceId: 'מזהה מורה',
     klassId: 'מזהה כיתה',
