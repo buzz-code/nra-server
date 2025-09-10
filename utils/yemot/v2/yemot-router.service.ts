@@ -5,11 +5,12 @@ import * as express from 'express';
 import { Call, TapOptions, YemotRouter } from 'yemot-router2';
 import { User } from '@shared/entities/User.entity';
 import { TextByUser } from '@shared/view-entities/TextByUser.entity';
+import { YemotCallTrackingService } from './yemot-call-tracking.service';
 
 const logger = new Logger('YemotRouterService');
 
 export const YEMOT_HANDLER_FACTORY = 'YemotHandlerFactory';
-export type YemotHandlerFactory = new (dataSource: DataSource, call: Call) => BaseYemotHandlerService;
+export type YemotHandlerFactory = new (dataSource: DataSource, call: Call, callTracker: YemotCallTrackingService) => BaseYemotHandlerService;
 type TextParams = Record<string, string | number>;
 
 @Injectable()
@@ -19,6 +20,7 @@ export class YemotRouterService {
   constructor(
     @InjectDataSource() private dataSource: DataSource,
     @Inject(YEMOT_HANDLER_FACTORY) private yemotHandlerFactory: YemotHandlerFactory,
+    private callTrackingService: YemotCallTrackingService,
   ) { }
 
   getRouter(): express.Router {
@@ -27,7 +29,7 @@ export class YemotRouterService {
     router.use('/', yemotRouter);
 
     yemotRouter.all('/', async (call: Call) => {
-      const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call);
+      const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call, this.callTrackingService);
       await yemotHandlerService.processCall();
     });
 
@@ -71,14 +73,16 @@ export class YemotRouterService {
       },
     });
 
-    yemotRouter.events.on('call_hangup', (call) => {
+    yemotRouter.events.on('call_hangup', async (call) => {
       this.logger.log(`Call ${call.callId} was hungup - Phone: ${call.phone}`);
+      await this.callTrackingService.finalizeCall(call.callId);
     });
     yemotRouter.events.on('call_continue', (call) => {
       this.logger.log(`Call ${call.callId} continues - Phone: ${call.phone}`);
     });
-    yemotRouter.events.on('new_call', (call) => {
+    yemotRouter.events.on('new_call', async (call) => {
       this.logger.log(`New call ${call.callId} from ${call.phone}`);
+      await this.callTrackingService.initializeCall(call);
     });
 
     return yemotRouter.asExpressRouter;
@@ -92,6 +96,7 @@ export class BaseYemotHandlerService {
   constructor(
     @InjectDataSource() protected dataSource: DataSource,
     protected call: Call,
+    protected callTracker: YemotCallTrackingService,
   ) { }
 
   async processCall(): Promise<void> {
@@ -137,23 +142,30 @@ export class BaseYemotHandlerService {
 
   protected hangupWithMessage(message: string) {
     this.logger.log(`Hanging up with message: ${message}`);
+    this.callTracker.logConversationStep(this.call.callId, message, undefined, 'hangup_message');
     this.call.id_list_message([{ type: 'text', data: message }], { prependToNextAction: true });
     this.call.hangup();
   }
 
-  protected askForInput(message: string, options?: TapOptions) {
+  protected async askForInput(message: string, options?: TapOptions) {
     this.logger.log(`Asking for input with message: ${message}`);
-    return this.call.read([{ type: 'text', data: message }], 'tap', options);
+    await this.callTracker.logConversationStep(this.call.callId, message, undefined, 'ask_input');
+    const userInput = await this.call.read([{ type: 'text', data: message }], 'tap', options);
+    await this.callTracker.logConversationStep(this.call.callId, message, userInput, 'user_input');
+    return userInput;
   }
 
   protected sendMessage(message: string) {
     this.logger.log(`Sending message: ${message}`);
+    this.callTracker.logConversationStep(this.call.callId, message, undefined, 'send_message');
     return this.call.id_list_message([{ type: 'text', data: message }], { prependToNextAction: true });
   }
 
   protected async hangupWithMessageByKey(textKey: string, values?: TextParams) {
     const messageObj = await this.getMessageByKey(textKey, values);
     this.logger.log(`Hanging up with ${messageObj.type}: ${messageObj.data}`);
+    const messageText = messageObj.type === 'file' ? `[File: ${messageObj.data}]` : messageObj.data;
+    await this.callTracker.logConversationStep(this.call.callId, messageText, undefined, 'hangup_message');
     this.call.id_list_message([messageObj], { prependToNextAction: true });
     this.call.hangup();
   }
@@ -161,12 +173,19 @@ export class BaseYemotHandlerService {
   protected async askForInputByKey(textKey: string, values?: TextParams, options?: TapOptions) {
     const messageObj = await this.getMessageByKey(textKey, values);
     this.logger.log(`Asking for input from ${messageObj.type}: ${messageObj.data}`);
-    return this.call.read([messageObj], 'tap', options);
+    const messageText = messageObj.type === 'file' ? `[File: ${messageObj.data}]` : messageObj.data;
+    await this.callTracker.logConversationStep(this.call.callId, messageText, undefined, 'ask_input');
+
+    const userInput = await this.call.read([messageObj], 'tap', options);
+    await this.callTracker.logConversationStep(this.call.callId, messageText, userInput, 'user_input');
+    return userInput;
   }
 
   protected async sendMessageByKey(textKey: string, values?: TextParams) {
     const messageObj = await this.getMessageByKey(textKey, values);
     this.logger.log(`Sending ${messageObj.type} message: ${messageObj.data}`);
+    const messageText = messageObj.type === 'file' ? `[File: ${messageObj.data}]` : messageObj.data;
+    await this.callTracker.logConversationStep(this.call.callId, messageText, undefined, 'send_message');
     return this.call.id_list_message([messageObj], { prependToNextAction: true });
   }
 
@@ -184,13 +203,25 @@ export class BaseYemotHandlerService {
     this.logger.log(`Asking for menu with text key: ${textKey}`);
 
     const menuOptions = options.map(({ key, name }) => `${key} - ${name}`).join(', ');
+    const menuPrompt = await this.getTextByUserId(textKey, { options: menuOptions });
+    await this.callTracker.logConversationStep(this.call.callId, `${menuPrompt} [Options: ${menuOptions}]`, undefined, 'ask_menu');
+
     const menuKey = await this.askForInputByKey(textKey, { options: menuOptions }, {
       min_digits: 1,
       max_digits: Math.max(...options.map((et) => et.key.toString().length)),
       digits_allowed: options.map((et) => et.key.toString()),
     });
 
-    return options.find((et) => et.key.toString() === menuKey);
+    const selectedOption = options.find((et) => et.key.toString() === menuKey);
+
+    await this.callTracker.logConversationStep(
+      this.call.callId,
+      `${menuPrompt} [Options: ${menuOptions}]`,
+      `${menuKey} (${selectedOption?.name || 'unknown'})`,
+      'menu_selection'
+    );
+
+    return selectedOption;
   }
 
   protected async askConfirmation(textKey: string, values: TextParams = {}, yesTextKey?: string, noTextKey?: string, yesValue = '1', noValue = '2') {
@@ -198,6 +229,8 @@ export class BaseYemotHandlerService {
 
     const yes = await this.getTextByUserId(yesTextKey || 'GENERAL.YES', values);
     const no = await this.getTextByUserId(noTextKey || 'GENERAL.NO', values);
+    const confirmationPrompt = await this.getTextByUserId(textKey, { ...values, yes, no });
+    await this.callTracker.logConversationStep(this.call.callId, `${confirmationPrompt} [${yesValue}: ${yes}, ${noValue}: ${no}]`, undefined, 'ask_confirmation');
 
     const confirmationKey = await this.askForInputByKey(textKey, { ...values, yes, no }, {
       min_digits: 1,
@@ -205,6 +238,15 @@ export class BaseYemotHandlerService {
       digits_allowed: [yesValue, noValue],
     });
 
-    return confirmationKey === yesValue;
+    const confirmed = confirmationKey === yesValue;
+    const responseText = confirmed ? yes : no;
+    await this.callTracker.logConversationStep(
+      this.call.callId,
+      `${confirmationPrompt} [${yesValue}: ${yes}, ${noValue}: ${no}]`,
+      `${confirmationKey} (${responseText})`,
+      'confirmation_result'
+    );
+
+    return confirmed;
   }
 }
