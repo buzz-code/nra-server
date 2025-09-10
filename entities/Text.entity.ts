@@ -44,6 +44,12 @@ export class Text implements IHasUserId {
   @Column("varchar", { name: "value", length: 10000 })
   value: string;
 
+  @IsOptional({ always: true })
+  @StringType
+  @MaxLength(255, { always: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  filepath: string;
+
   @CreateDateColumn({ name: "created_at" })
   createdAt: Date;
 

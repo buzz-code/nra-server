@@ -139,6 +139,22 @@ export class BaseYemotHandlerService {
     return this.call.id_list_message([{ type: 'text', data: message }], { prependToNextAction: true });
   }
 
+  protected hangupWithFile(filePath: string) {
+    this.logger.log(`Hanging up with file: ${filePath}`);
+    this.call.id_list_message([{ type: 'file', data: filePath }], { prependToNextAction: true });
+    this.call.hangup();
+  }
+
+  protected askForInputFromFile(filePath: string, options?: TapOptions) {
+    this.logger.log(`Asking for input from file: ${filePath}`);
+    return this.call.read([{ type: 'file', data: filePath }], 'tap', options);
+  }
+
+  protected sendMessageFromFile(filePath: string) {
+    this.logger.log(`Sending message from file: ${filePath}`);
+    return this.call.id_list_message([{ type: 'file', data: filePath }], { prependToNextAction: true });
+  }
+
   protected async askForMenu<T extends { key: string | number, name: string }>(textKey: string, options: T[]) {
     this.logger.log(`Asking for menu with text key: ${textKey}`);
 

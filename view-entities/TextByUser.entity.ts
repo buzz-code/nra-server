@@ -11,6 +11,7 @@ import { DataSource, PrimaryColumn, ViewColumn, ViewEntity } from "typeorm";
         .addSelect('t_base.name', 'name')
         .addSelect('t_base.description', 'description')
         .addSelect('COALESCE(t_user.value, t_base.value)', 'value')
+        .addSelect('COALESCE(t_user.filepath, t_base.filepath)', 'filepath')
         .addSelect('t_user.id', 'overrideTextId')
         .where('t_base.userId = 0')
         .from(Text, 't_base')
@@ -34,6 +35,9 @@ export class TextByUser implements IHasUserId {
 
     @ViewColumn()
     value: string;
+
+    @ViewColumn()
+    filepath: string;
 
     @ViewColumn()
     overrideTextId: number | null;
