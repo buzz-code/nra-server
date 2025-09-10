@@ -109,18 +109,27 @@ export class BaseYemotHandlerService {
     this.user = user;
   }
 
-  protected async getTextByUserId(textKey: string, values?: TextParams): Promise<string> {
-    this.logger.log(`Getting text for user ID: ${this.user.id}, text key: ${textKey}`);
+  protected async getTextDataByUserId(textKey: string, values?: TextParams): Promise<{ value: string; filepath: string | null }> {
+    this.logger.log(`Getting text data for user ID: ${this.user.id}, text key: ${textKey}`);
     const text = await this.dataSource
       .getRepository(TextByUser)
       .findOneBy({ userId: this.user.id, name: textKey });
+
     let textValue = text?.value || textKey;
+    let filepath = text?.filepath || null;
+
     if (values) {
       Object.keys(values).forEach((key) => {
         textValue = textValue.replace(`{${key}}`, values[key].toString());
       });
     }
-    return textValue;
+
+    return { value: textValue, filepath };
+  }
+
+  protected async getTextByUserId(textKey: string, values?: TextParams): Promise<string> {
+    const textData = await this.getTextDataByUserId(textKey, values);
+    return textData.value;
   }
 
   protected hangupWithMessage(message: string) {
@@ -139,30 +148,40 @@ export class BaseYemotHandlerService {
     return this.call.id_list_message([{ type: 'text', data: message }], { prependToNextAction: true });
   }
 
-  protected hangupWithFile(filePath: string) {
-    this.logger.log(`Hanging up with file: ${filePath}`);
-    this.call.id_list_message([{ type: 'file', data: filePath }], { prependToNextAction: true });
+  protected async hangupWithMessageByKey(textKey: string, values?: TextParams) {
+    const messageObj = await this.getMessageByKey(textKey, values);
+    this.logger.log(`Hanging up with ${messageObj.type}: ${messageObj.data}`);
+    this.call.id_list_message([messageObj], { prependToNextAction: true });
     this.call.hangup();
   }
 
-  protected askForInputFromFile(filePath: string, options?: TapOptions) {
-    this.logger.log(`Asking for input from file: ${filePath}`);
-    return this.call.read([{ type: 'file', data: filePath }], 'tap', options);
+  protected async askForInputByKey(textKey: string, values?: TextParams, options?: TapOptions) {
+    const messageObj = await this.getMessageByKey(textKey, values);
+    this.logger.log(`Asking for input from ${messageObj.type}: ${messageObj.data}`);
+    return this.call.read([messageObj], 'tap', options);
   }
 
-  protected sendMessageFromFile(filePath: string) {
-    this.logger.log(`Sending message from file: ${filePath}`);
-    return this.call.id_list_message([{ type: 'file', data: filePath }], { prependToNextAction: true });
+  protected async sendMessageByKey(textKey: string, values?: TextParams) {
+    const messageObj = await this.getMessageByKey(textKey, values);
+    this.logger.log(`Sending ${messageObj.type} message: ${messageObj.data}`);
+    return this.call.id_list_message([messageObj], { prependToNextAction: true });
+  }
+
+  private async getMessageByKey(textKey: string, values?: TextParams): Promise<{ type: 'text' | 'file'; data: string }> {
+    const textData = await this.getTextDataByUserId(textKey, values);
+
+    if (textData.filepath && textData.filepath.trim()) {
+      return { type: 'file', data: textData.filepath };
+    } else {
+      return { type: 'text', data: textData.value };
+    }
   }
 
   protected async askForMenu<T extends { key: string | number, name: string }>(textKey: string, options: T[]) {
     this.logger.log(`Asking for menu with text key: ${textKey}`);
 
     const menuOptions = options.map(({ key, name }) => `${key} - ${name}`).join(', ');
-    const message = await this.getTextByUserId(textKey, { options: menuOptions });
-    this.logger.log(`Menu message: ${message}`);
-
-    const menuKey = await this.askForInput(message, {
+    const menuKey = await this.askForInputByKey(textKey, { options: menuOptions }, {
       min_digits: 1,
       max_digits: Math.max(...options.map((et) => et.key.toString().length)),
       digits_allowed: options.map((et) => et.key.toString()),
@@ -176,10 +195,8 @@ export class BaseYemotHandlerService {
 
     const yes = await this.getTextByUserId(yesTextKey || 'GENERAL.YES', values);
     const no = await this.getTextByUserId(noTextKey || 'GENERAL.NO', values);
-    const confirmationMessage = await this.getTextByUserId(textKey, { ...values, yes, no });
-    this.logger.log(`Confirmation message: ${confirmationMessage}`);
 
-    const confirmationKey = await this.askForInput(confirmationMessage, {
+    const confirmationKey = await this.askForInputByKey(textKey, { ...values, yes, no }, {
       min_digits: 1,
       max_digits: 1,
       digits_allowed: [yesValue, noValue],
