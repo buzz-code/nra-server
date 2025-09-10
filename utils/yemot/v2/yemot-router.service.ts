@@ -113,7 +113,10 @@ export class BaseYemotHandlerService {
     this.logger.log(`Getting text data for user ID: ${this.user.id}, text key: ${textKey}`);
     const text = await this.dataSource
       .getRepository(TextByUser)
-      .findOneBy({ userId: this.user.id, name: textKey });
+      .findOne({
+        where: { userId: this.user.id, name: textKey },
+        cache: true
+      });
 
     let textValue = text?.value || textKey;
     let filepath = text?.filepath || null;
