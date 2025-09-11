@@ -36,7 +36,7 @@ async function getGenerator<T>(format: CommonFileFormat, name: string): Promise<
     }
 }
 
-function getHeaderNames(headers: IHeader[]): string[] {
+export function getHeaderNames(headers: IHeader[]): string[] {
     return headers.map(item => {
         if (typeof (item) === 'string') {
             return item;
