@@ -55,7 +55,7 @@ function getSimpleFormatter(key: string) {
     }
 }
 
-function getHeaderFormatters(headers: IHeader[]): IFormatter[] {
+export function getHeaderFormatters(headers: IHeader[]): IFormatter[] {
     return headers.map(item => {
         if (typeof (item) === 'string') {
             return getSimpleFormatter(item);
