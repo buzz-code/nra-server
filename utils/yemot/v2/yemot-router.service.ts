@@ -203,9 +203,6 @@ export class BaseYemotHandlerService {
     this.logger.log(`Asking for menu with text key: ${textKey}`);
 
     const menuOptions = options.map(({ key, name }) => `${key} - ${name}`).join(', ');
-    const menuPrompt = await this.getTextByUserId(textKey, { options: menuOptions });
-    await this.callTracker.logConversationStep(this.call.callId, `${menuPrompt} [Options: ${menuOptions}]`, undefined, 'ask_menu');
-
     const menuKey = await this.askForInputByKey(textKey, { options: menuOptions }, {
       min_digits: 1,
       max_digits: Math.max(...options.map((et) => et.key.toString().length)),
@@ -214,6 +211,7 @@ export class BaseYemotHandlerService {
 
     const selectedOption = options.find((et) => et.key.toString() === menuKey);
 
+    const menuPrompt = await this.getTextByUserId(textKey, { options: menuOptions });
     await this.callTracker.logConversationStep(
       this.call.callId,
       `${menuPrompt} [Options: ${menuOptions}]`,
