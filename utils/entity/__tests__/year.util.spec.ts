@@ -67,4 +67,56 @@ describe('yearUtil', () => {
             expect(months[0].getFullYear()).not.toBe(months[11].getFullYear());
         });
     });
+
+    describe('getCurrentHebrewYear with useAcademicYear parameter', () => {
+        it('should return academic year when useAcademicYear=true (default)', () => {
+            // 12 September 2025 - between academic year start and Rosh Hashana
+            jest.spyOn(global.Date, 'now').mockImplementation(() =>
+                new Date('2025-09-12T12:00:00Z').valueOf()
+            );
+
+            const academicYear = getCurrentHebrewYear(); // default is true
+            const academicYearExplicit = getCurrentHebrewYear(true);
+
+            expect(academicYear).toBe(5786); // Academic year
+            expect(academicYearExplicit).toBe(5786); // Academic year
+        });
+
+        it('should return actual Hebrew year when useAcademicYear=false', () => {
+            // 12 September 2025 - still in 5785 according to actual Hebrew calendar
+            jest.spyOn(global.Date, 'now').mockImplementation(() =>
+                new Date('2025-09-12T12:00:00Z').valueOf()
+            );
+
+            const actualYear = getCurrentHebrewYear(false);
+            
+            expect(actualYear).toBe(5785); // Actual Hebrew year (before Rosh Hashana)
+        });
+
+        it('should behave the same for both modes after Rosh Hashana', () => {
+            // 20 October 2025 - after Rosh Hashana
+            jest.spyOn(global.Date, 'now').mockImplementation(() =>
+                new Date('2025-10-20T12:00:00Z').valueOf()
+            );
+
+            const academicYear = getCurrentHebrewYear(true);
+            const actualYear = getCurrentHebrewYear(false);
+            
+            expect(academicYear).toBe(5786);
+            expect(actualYear).toBe(5786);
+        });
+
+        it('should behave the same for both modes before September', () => {
+            // 15 August 2025 - before academic year and before Rosh Hashana
+            jest.spyOn(global.Date, 'now').mockImplementation(() =>
+                new Date('2025-08-15T12:00:00Z').valueOf()
+            );
+
+            const academicYear = getCurrentHebrewYear(true);
+            const actualYear = getCurrentHebrewYear(false);
+            
+            expect(academicYear).toBe(5785);
+            expect(actualYear).toBe(5785);
+        });
+    });
 })

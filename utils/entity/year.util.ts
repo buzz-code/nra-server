@@ -47,8 +47,14 @@ export const getHebrewYearByGregorianDate = (gregorianDate: Date) => {
     return hebrewYear;
 }
 
-export const getCurrentHebrewYear = () => {
+export const getCurrentHebrewYear = (useAcademicYear: boolean = true) => {
     const now = new Date(Date.now());
+
+    if (!useAcademicYear) {
+        const jewishDate = toJewishDate(now);
+        return jewishDate.year;
+    }
+
     return getHebrewYearByGregorianDate(now);
 }
 
