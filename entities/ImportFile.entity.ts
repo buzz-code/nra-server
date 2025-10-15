@@ -45,6 +45,9 @@ export class ImportFile {
     @Column()
     response: string;
 
+    @Column('json', { nullable: true })
+    metadata: LessonSignatureMetadata;
+
     @CreateDateColumn()
     createdAt: Date;
 }
@@ -52,4 +55,11 @@ export class ImportFile {
 export enum ImportFileSource {
     UploadFile = 'קובץ שהועלה',
     Email = 'נשלח במייל',
+    AttendanceForm = 'טופס נוכחות',
+}
+
+export interface LessonSignatureMetadata {
+    lessonTime?: string;    // "HH:MM"
+    lessonTopic?: string;   // "מתמטיקה"
+    signatureData?: string; // data:image/png;base64,...
 }
