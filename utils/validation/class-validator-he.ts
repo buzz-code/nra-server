@@ -100,6 +100,7 @@ const translationDict = {
     klassTypeReferenceId: 'מזהה סוג כיתה',
     startDate: 'תאריך התחלה',
     endDate: 'תאריך סיום',
+    effectiveDate: 'תאריך אפקטיבי',
     tz: 'תעודת זהות',
     email: 'דוא"ל',
     phoneNumber: 'מספר טלפון',
