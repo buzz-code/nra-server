@@ -56,7 +56,7 @@ export interface GenericScenarioStep {
  */
 export interface GenericExpectedResult {
   /** Should the call end with hangup? */
-  callEnded: boolean;
+  callEnded?: boolean;
 
   /** Custom validation function */
   customValidation?: (context: any) => void | Promise<void>;
