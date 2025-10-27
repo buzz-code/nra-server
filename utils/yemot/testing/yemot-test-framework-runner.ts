@@ -16,6 +16,17 @@ import { YemotCallTrackingService } from '../v2/yemot-call-tracking.service';
 import { BaseYemotHandlerService } from '../v2/yemot-router.service';
 
 /**
+ * Error thrown when user hangs up during a call
+ * This is used for testing partial flows
+ */
+export class UserHangupError extends Error {
+  constructor(message = 'User hung up the call') {
+    super(message);
+    this.name = 'UserHangupError';
+  }
+}
+
+/**
  * Message matching utility functions
  */
 export class MessageMatcherUtils {
@@ -120,7 +131,18 @@ export abstract class GenericScenarioRunner<
     this.setupMockCallResponses(scenario.steps);
 
     // 3. Execute the service
-    await this.executeService();
+    try {
+      await this.executeService();
+    } catch (error) {
+      // If user hung up, this is expected for partial flow testing
+      if (error instanceof UserHangupError) {
+        // Hangup already tracked in interaction history by mock
+        // Just swallow the error to allow test to continue
+      } else {
+        // Re-throw other errors
+        throw error;
+      }
+    }
 
     // 4. Validate expected results
     await this.validateResults(scenario);
@@ -260,9 +282,12 @@ export abstract class GenericScenarioRunner<
   protected async validateResults(scenario: TScenario): Promise<void> {
     const expectedResult = scenario.expectedResult;
 
-    // Validate call ended
-    if (expectedResult?.callEnded) {
+    // Validate call ended - only check if explicitly expected
+    // (partialFlowCompleted scenarios won't have callEnded=true)
+    if (expectedResult?.callEnded === true) {
       expect(this.context.call.hangup).toHaveBeenCalled();
+    } else if (expectedResult?.callEnded === false) {
+      expect(this.context.call.hangup).not.toHaveBeenCalled();
     }
 
     // Run custom validation
@@ -278,27 +303,35 @@ export abstract class GenericScenarioRunner<
     const mockCall = this.context.call;
     const readMock = jest.fn();
 
-    // For each step that expects user input, queue the response
+    // Setup response for each step
     for (const step of steps) {
       if (step.userResponse !== undefined) {
-        readMock.mockResolvedValueOnce(step.userResponse);
+        readMock.mockImplementationOnce(async (...args) => {
+          const message = MessageMatcherUtils.extractMessageFromArgs(args);
+          this.context.interactionHistory.push({
+            type: 'read',
+            message,
+            response: step.userResponse,
+            options: args[2],
+          });
+          return step.userResponse;
+        });
       }
     }
 
-    mockCall.read = readMock;
-
-    // Track all call interactions
-    const originalRead = mockCall.read;
-    mockCall.read = jest.fn(async (...args) => {
-      const result = await originalRead(...args);
+    // Automatic hangup safety net - if flow continues beyond defined steps
+    readMock.mockImplementation(async (...args) => {
+      const message = MessageMatcherUtils.extractMessageFromArgs(args);
       this.context.interactionHistory.push({
         type: 'read',
-        message: MessageMatcherUtils.extractMessageFromArgs(args),
-        response: result,
+        message,
+        response: '[USER HUNG UP]',
         options: args[2],
       });
-      return result;
+      throw new UserHangupError('User hung up - no more steps defined');
     });
+
+    mockCall.read = readMock;
 
     const originalIdListMessage = mockCall.id_list_message;
     mockCall.id_list_message = jest.fn((...args) => {
