@@ -6,7 +6,12 @@
  * repository mocking and service execution logic.
  */
 
+import { Test, TestingModule } from '@nestjs/testing';
+import { DataSource } from 'typeorm';
+import { getDataSourceToken } from '@nestjs/typeorm';
 import { MessageMatcher } from './yemot-test-framework.types';
+import { RepositoryMockBuilder, getEntityKey } from '../../testing/repository-mock-builder';
+import { YemotCallTrackingService } from '../v2/yemot-call-tracking.service';
 
 /**
  * Message matching utility functions
@@ -82,9 +87,113 @@ export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
   }
 
   /**
-   * Setup test context with mocks and dependencies - must be implemented by subclass
+   * Setup test context with mocks and dependencies - FULLY GENERIC!
    */
-  protected abstract setupTestContext(setup: TSetup): Promise<TContext>;
+  protected async setupTestContext(setup: TSetup): Promise<TContext> {
+    // Initialize tracking arrays in setup (project-specific)
+    this.initializeTrackingArrays(setup);
+
+    // Create mock repositories using builder
+    const repositories = this.createMockRepositories(setup);
+
+    // Create mock DataSource with automatic entity mapping
+    const mockDataSource = this.createMockDataSource(repositories);
+
+    // Create mock call tracker (generic structure)
+    const mockCallTracker = this.createMockCallTracker();
+
+    // Create mock call object
+    const mockCall = this.createMockCall(setup);
+
+    // Create test module with DataSource
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        {
+          provide: getDataSourceToken(),
+          useValue: mockDataSource,
+        },
+      ],
+    }).compile();
+
+    const dataSource = module.get<DataSource>(getDataSourceToken());
+
+    // Create service instance (subclass provides the class and dependencies)
+    const service = this.createService(dataSource, mockCall, mockCallTracker);
+
+    // Build final context
+    return this.buildContext(setup, repositories, mockCall, service);
+  }
+
+  /**
+   * Initialize tracking arrays in setup - override for project-specific tracking
+   * Example: setup.savedattreports = []
+   */
+  protected initializeTrackingArrays(setup: TSetup): void {
+    // Default: no tracking
+    // Override in subclass
+  }
+
+  /**
+   * Build test context - default implementation
+   * Override if you need additional context properties
+   */
+  protected buildContext(setup: TSetup, repositories: any, call: any, service: any): TContext {
+    return {
+      call,
+      service,
+      repositories,
+      currentStepIndex: 0,
+      interactionHistory: [],
+      setup,
+    } as TContext;
+  }
+
+  /**
+   * Create mock repositories - uses builder pattern
+   */
+  protected createMockRepositories(setup: TSetup): any {
+    const builder = new RepositoryMockBuilder(setup, this.context);
+    return this.defineRepositories(builder);
+  }
+
+  /**
+   * Create mock DataSource - automatic entity mapping
+   */
+  protected createMockDataSource(repositories: any): any {
+    return {
+      getRepository: jest.fn((entity) => {
+        const entityKey = getEntityKey(entity);
+        return repositories[entityKey] || {};
+      }),
+    };
+  }
+
+  /**
+   * Create mock call tracker - uses shared YemotCallTrackingService
+   */
+  protected createMockCallTracker(): YemotCallTrackingService {
+    return {
+      logConversationStep: jest.fn().mockResolvedValue(undefined),
+      initializeCall: jest.fn().mockResolvedValue(undefined),
+      finalizeCall: jest.fn().mockResolvedValue(undefined),
+      markCallError: jest.fn().mockResolvedValue(undefined),
+    } as unknown as YemotCallTrackingService;
+  }
+
+  /**
+   * Create mock call - override to customize call properties
+   */
+  protected abstract createMockCall(setup: TSetup): any;
+
+  /**
+   * Create service instance - override to provide your service class
+   */
+  protected abstract createService(dataSource: any, call: any, callTracker: any): any;
+
+  /**
+   * Define repositories - override in subclass
+   */
+  protected abstract defineRepositories(builder: RepositoryMockBuilder<TSetup, TContext>): any;
 
   /**
    * Execute the service being tested - must be implemented by subclass
