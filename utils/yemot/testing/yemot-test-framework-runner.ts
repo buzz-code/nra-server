@@ -9,9 +9,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { getDataSourceToken } from '@nestjs/typeorm';
+import { Call } from 'yemot-router2';
 import { MessageMatcher } from './yemot-test-framework.types';
 import { RepositoryMockBuilder, getEntityKey } from '../../testing/repository-mock-builder';
 import { YemotCallTrackingService } from '../v2/yemot-call-tracking.service';
+import { BaseYemotHandlerService } from '../v2/yemot-router.service';
 
 /**
  * Message matching utility functions
@@ -62,20 +64,60 @@ export class MessageMatcherUtils {
 }
 
 /**
+ * Base scenario interface - defines minimum required properties
+ */
+export interface BaseScenario<TSetup = any> {
+  setup: TSetup;
+  steps: any[];
+  expectedResult?: {
+    callEnded?: boolean;
+    customValidation?: (context: any) => void | Promise<void>;
+  };
+}
+
+/**
+ * Base context interface - defines minimum required properties
+ * TService extends BaseYemotHandlerService, TCall is from yemot-router2
+ */
+export interface BaseContext<
+  TService extends BaseYemotHandlerService = BaseYemotHandlerService,
+  TCall extends Call = Call
+> {
+  call: TCall;
+  service: TService;
+  interactionHistory: Array<{
+    type: 'read' | 'id_list_message' | 'hangup';
+    message?: string;
+    response?: string;
+    options?: any;
+  }>;
+}
+
+/**
  * Base test scenario runner
  */
-export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
+export abstract class GenericScenarioRunner<
+  TScenario extends BaseScenario<TSetup>,
+  TContext extends BaseContext,
+  TSetup
+> {
   protected context: TContext;
+  protected currentSetup: TSetup;
+
+  /**
+   * Constructor - optionally provide service class for automatic instantiation
+   */
+  constructor(protected serviceClass?: typeof BaseYemotHandlerService) {}
 
   /**
    * Execute a complete test scenario
    */
   async runScenario(scenario: TScenario): Promise<TContext> {
     // 1. Setup test context and mocks
-    this.context = await this.setupTestContext(this.getSetup(scenario));
+    this.context = await this.setupTestContext(scenario.setup);
 
     // 2. Setup mock call responses based on scenario steps
-    this.setupMockCallResponses(this.getSteps(scenario));
+    this.setupMockCallResponses(scenario.steps);
 
     // 3. Execute the service
     await this.executeService();
@@ -90,8 +132,8 @@ export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
    * Setup test context with mocks and dependencies - FULLY GENERIC!
    */
   protected async setupTestContext(setup: TSetup): Promise<TContext> {
-    // Initialize tracking arrays in setup (project-specific)
-    this.initializeTrackingArrays(setup);
+    // Store setup for access in repository callbacks
+    this.currentSetup = setup;
 
     // Create mock repositories using builder
     const repositories = this.createMockRepositories(setup);
@@ -125,15 +167,6 @@ export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
   }
 
   /**
-   * Initialize tracking arrays in setup - override for project-specific tracking
-   * Example: setup.savedattreports = []
-   */
-  protected initializeTrackingArrays(setup: TSetup): void {
-    // Default: no tracking
-    // Override in subclass
-  }
-
-  /**
    * Build test context - default implementation
    * Override if you need additional context properties
    */
@@ -145,7 +178,7 @@ export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
       currentStepIndex: 0,
       interactionHistory: [],
       setup,
-    } as TContext;
+    } as unknown as TContext;
   }
 
   /**
@@ -181,14 +214,31 @@ export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
   }
 
   /**
-   * Create mock call - override to customize call properties
+   * Create mock call - basic implementation with common mocked methods
+   * Override to customize did, phone, and ApiPhone properties
    */
-  protected abstract createMockCall(setup: TSetup): any;
+  protected createMockCall(setup: TSetup): Call {
+    return {
+      callId: 'test-call-' + Date.now(),
+      did: 'test-did',
+      phone: 'test-phone',
+      ApiPhone: 'test-phone',
+      read: jest.fn(),
+      id_list_message: jest.fn(),
+      hangup: jest.fn(),
+    } as unknown as Call;
+  }
 
   /**
-   * Create service instance - override to provide your service class
+   * Create service instance - uses serviceClass from constructor if provided
+   * Override if you need custom service instantiation logic
    */
-  protected abstract createService(dataSource: any, call: any, callTracker: any): any;
+  protected createService(dataSource: any, call: any, callTracker: any): any {
+    if (this.serviceClass) {
+      return new this.serviceClass(dataSource, call, callTracker);
+    }
+    throw new Error('Either provide serviceClass in constructor or override createService()');
+  }
 
   /**
    * Define repositories - override in subclass
@@ -196,30 +246,36 @@ export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
   protected abstract defineRepositories(builder: RepositoryMockBuilder<TSetup, TContext>): any;
 
   /**
-   * Execute the service being tested - must be implemented by subclass
+   * Execute the service being tested - default implementation calls processCall()
+   * Override if your service has a different entry point method
    */
-  protected abstract executeService(): Promise<void>;
+  protected async executeService(): Promise<void> {
+    await this.context.service.processCall();
+  }
 
   /**
-   * Validate results against expected outcomes - must be implemented by subclass
+   * Validate results against expected outcomes - common validation
+   * Override in subclass and call super.validateResults() for entity-specific validation
    */
-  protected abstract validateResults(scenario: TScenario): Promise<void>;
+  protected async validateResults(scenario: TScenario): Promise<void> {
+    const expectedResult = scenario.expectedResult;
 
-  /**
-   * Get setup from scenario - must be implemented by subclass
-   */
-  protected abstract getSetup(scenario: TScenario): TSetup;
+    // Validate call ended
+    if (expectedResult?.callEnded) {
+      expect(this.context.call.hangup).toHaveBeenCalled();
+    }
 
-  /**
-   * Get steps from scenario - must be implemented by subclass
-   */
-  protected abstract getSteps(scenario: TScenario): any[];
+    // Run custom validation
+    if (expectedResult?.customValidation) {
+      await expectedResult.customValidation(this.context);
+    }
+  }
 
   /**
    * Setup mock call responses to return predefined user inputs
    */
   protected setupMockCallResponses(steps: any[]): void {
-    const mockCall = this.getMockCall();
+    const mockCall = this.context.call;
     const readMock = jest.fn();
 
     // For each step that expects user input, queue the response
@@ -235,7 +291,7 @@ export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
     const originalRead = mockCall.read;
     mockCall.read = jest.fn(async (...args) => {
       const result = await originalRead(...args);
-      this.trackInteraction({
+      this.context.interactionHistory.push({
         type: 'read',
         message: MessageMatcherUtils.extractMessageFromArgs(args),
         response: result,
@@ -246,7 +302,7 @@ export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
 
     const originalIdListMessage = mockCall.id_list_message;
     mockCall.id_list_message = jest.fn((...args) => {
-      this.trackInteraction({
+      this.context.interactionHistory.push({
         type: 'id_list_message',
         message: MessageMatcherUtils.extractMessageFromArgs(args),
       });
@@ -255,20 +311,10 @@ export abstract class GenericScenarioRunner<TScenario, TContext, TSetup> {
 
     const originalHangup = mockCall.hangup;
     mockCall.hangup = jest.fn(() => {
-      this.trackInteraction({
+      this.context.interactionHistory.push({
         type: 'hangup',
       });
       return originalHangup?.();
     });
   }
-
-  /**
-   * Get mock call from context - must be implemented by subclass
-   */
-  protected abstract getMockCall(): any;
-
-  /**
-   * Track interaction in context - must be implemented by subclass
-   */
-  protected abstract trackInteraction(interaction: any): void;
 }

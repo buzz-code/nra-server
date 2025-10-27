@@ -53,6 +53,7 @@ export class RepositoryMockBuilder<TSetup, TContext> {
    * Create repository with save tracking
    * Convention: tracking array is at setup['saved' + PascalCase + 's']
    * Example: AttReport → setup.savedAttReports
+   * Auto-initializes tracking array if it doesn't exist
    */
   withSaveTracking<TEntity>(EntityClass: Function): any {
     const standardRepo = this.standard(EntityClass);
@@ -63,11 +64,14 @@ export class RepositoryMockBuilder<TSetup, TContext> {
     return {
       ...standardRepo,
       save: jest.fn((entity) => {
-        // Access tracking array at runtime from setup
-        const trackingArray = this.setup[trackingKey];
-        if (trackingArray) {
-          trackingArray.push(entity);
+        // Auto-initialize tracking array if it doesn't exist
+        if (!this.setup[trackingKey]) {
+          this.setup[trackingKey] = [];
         }
+        
+        // Add entity to tracking array
+        this.setup[trackingKey].push(entity);
+        
         return Promise.resolve(entity);
       }),
     };

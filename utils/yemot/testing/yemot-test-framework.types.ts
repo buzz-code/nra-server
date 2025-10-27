@@ -8,6 +8,9 @@
  * entity definitions and database setup requirements.
  */
 
+import { Call } from 'yemot-router2';
+import { BaseYemotHandlerService } from '../v2/yemot-router.service';
+
 /**
  * Message matcher types - allows flexible message verification
  */
@@ -62,12 +65,15 @@ export interface GenericExpectedResult {
 /**
  * Test execution context - tracks state during test execution
  */
-export interface GenericTestContext {
+export interface GenericTestContext<
+  TService extends BaseYemotHandlerService = BaseYemotHandlerService,
+  TCall extends Call = Call
+> {
   /** Mock call object */
-  call: any;
+  call: TCall;
 
   /** Service instance */
-  service: any;
+  service: TService;
 
   /** Current step index */
   currentStepIndex: number;
