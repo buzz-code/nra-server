@@ -59,11 +59,12 @@ export enum ImportFileSource {
 }
 
 export interface LessonSignatureMetadata {
-    dateDetails?: { 
+    dateDetails?: {
         [date: string]: {    // ISO date string: "2025-10-17"
-            lessonTime?: string;    // "HH:MM"
-            lessonTopic?: string;   // "מתמטיקה"
-        } 
+            lessonStartTime?: string;  // "HH:MM"
+            lessonEndTime?: string;    // "HH:MM"
+            lessonTopic?: string;      // "מתמטיקה"
+        }
     };
     signatureData?: string;         // data:image/png;base64,...
 }
