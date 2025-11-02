@@ -48,6 +48,9 @@ export class ImportFile {
     @Column('json', { nullable: true })
     metadata: LessonSignatureMetadata;
 
+    @Column({ nullable: true })
+    reportGroupId: number;
+
     @CreateDateColumn()
     createdAt: Date;
 }
