@@ -48,9 +48,6 @@ export class ImportFile {
     @Column('json', { nullable: true })
     metadata: LessonSignatureMetadata;
 
-    @Column({ nullable: true })
-    reportGroupId: number;
-
     @CreateDateColumn()
     createdAt: Date;
 }
@@ -70,4 +67,5 @@ export interface LessonSignatureMetadata {
         }
     };
     signatureData?: string;         // data:image/png;base64,...
+    reportGroupId?: number;
 }
