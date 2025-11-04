@@ -11,3 +11,11 @@ export function cleanDateFields(item: any, fields: string[]) {
         }
     }
 }
+
+export function cleanTimeFields(item: any, fields: string[]) {
+    for (const field of fields) {
+        if (item[field] && typeof item[field] === 'string' && item[field].length === 24) {
+            item[field] = item[field].substr(11, 8);
+        }
+    }
+}
