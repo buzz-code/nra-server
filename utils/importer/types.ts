@@ -18,6 +18,7 @@ export interface ISpecialField {
     value?: string | number;
     dataValidation?: ExcelJS.DataValidation;
     style?: Partial<ExcelJS.Style>;
+    merge?: { s: XLSX.CellAddress; e: XLSX.CellAddress; };
 }
 
 export interface IHardCodedField {
