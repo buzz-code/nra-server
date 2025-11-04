@@ -11,7 +11,7 @@ export interface IDataToExcelReportGenerator {
     specialFields?: ISpecialField[];
     headerConfig?: IHeader[];
 }
-export class DataToExcelReportGenerator extends BaseReportGenerator<IDataToExcelReportGenerator, IDataToExcelReportGenerator> {
+export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends BaseReportGenerator<T, IDataToExcelReportGenerator> {
     fileFormat: CommonFileFormat = CommonFileFormat.Excel;
 
     async getFileBuffer(data: IDataToExcelReportGenerator): Promise<Buffer> {
@@ -150,3 +150,5 @@ export function getDateDataValidation(allowBlank = true, error = 'הערך חי�
         showInputMessage: true,
     }
 }
+
+export class GenericDataToExcelReportGenerator<T = any> extends DataToExcelReportGenerator<T> { }
