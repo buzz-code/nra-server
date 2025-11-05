@@ -1,5 +1,5 @@
 import * as ExcelJS from 'exceljs';
-import { ISpecialField } from "../importer/types";
+import { IBorderRange, ISpecialField } from "../importer/types";
 import { BaseReportGenerator } from './report.generators';
 import { CommonFileFormat } from './types';
 import { IHeader } from '../exporter/types';
@@ -10,6 +10,7 @@ export interface IDataToExcelReportGenerator {
     sheetName?: string;
     specialFields?: ISpecialField[];
     headerConfig?: IHeader[];
+    borderRanges?: IBorderRange[];
 }
 export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends BaseReportGenerator<T, IDataToExcelReportGenerator> {
     fileFormat: CommonFileFormat = CommonFileFormat.Excel;
@@ -20,6 +21,7 @@ export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends
         this.insertSpecialFields(worksheet, data.specialFields);
         const headerRow = this.addTable(worksheet, data);
         this.protectSheet(worksheet, headerRow, data.headerConfig);
+        this.applyBorders(worksheet, data.borderRanges);
 
         return this.getBufferFromWorkbook(workbook);
     }
@@ -122,6 +124,39 @@ export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends
             formatRows: true,
             selectLockedCells: true,
             selectUnlockedCells: true
+        });
+    }
+
+    private applyBorders(worksheet: ExcelJS.Worksheet, borderRanges?: IBorderRange[]) {
+        if (!borderRanges?.length) return;
+
+        borderRanges.forEach(range => {
+            const { from, to, outerBorder, innerBorder } = range;
+            
+            // Convert 0-indexed to 1-indexed for ExcelJS
+            const startRow = from.r + 1;
+            const endRow = to.r + 1;
+            const startCol = from.c + 1;
+            const endCol = to.c + 1;
+
+            // Iterate through the range and apply borders
+            for (let row = startRow; row <= endRow; row++) {
+                for (let col = startCol; col <= endCol; col++) {
+                    const cell = worksheet.getCell(row, col);
+                    const isTopEdge = row === startRow;
+                    const isBottomEdge = row === endRow;
+                    const isLeftEdge = col === startCol;
+                    const isRightEdge = col === endCol;
+
+                    // Build border object - outer borders on edges, inner borders inside
+                    cell.border = {
+                        top: isTopEdge && outerBorder ? outerBorder : innerBorder,
+                        bottom: isBottomEdge && outerBorder ? outerBorder : innerBorder,
+                        left: isLeftEdge && outerBorder ? outerBorder : innerBorder,
+                        right: isRightEdge && outerBorder ? outerBorder : innerBorder,
+                    };
+                }
+            }
         });
     }
 }

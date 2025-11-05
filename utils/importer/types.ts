@@ -25,3 +25,10 @@ export interface IHardCodedField {
     field: string;
     value: any;
 }
+
+export interface IBorderRange {
+    from: XLSX.CellAddress;
+    to: XLSX.CellAddress;
+    outerBorder?: ExcelJS.Border;
+    innerBorder?: ExcelJS.Border;
+}
