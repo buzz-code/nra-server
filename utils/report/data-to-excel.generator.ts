@@ -15,17 +15,23 @@ export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends
     fileFormat: CommonFileFormat = CommonFileFormat.Excel;
 
     async getFileBuffer(data: IDataToExcelReportGenerator): Promise<Buffer> {
-        const workbook = new ExcelJS.Workbook();
-        const sheetName = data.sheetName || 'גליון1';
-        const worksheet = workbook.addWorksheet(sheetName.replace(/\'$$/, ''));
+        const { workbook, worksheet } = this.createWorkbook(data.sheetName);
 
         this.insertSpecialFields(worksheet, data.specialFields);
         const headerRow = this.addTable(worksheet, data);
-
         this.protectSheet(worksheet, headerRow, data.headerConfig);
 
-        const buffer = await workbook.xlsx.writeBuffer();
-        return Buffer.from(buffer);
+        return this.getBufferFromWorkbook(workbook);
+    }
+
+    private createWorkbook(sheetName: string = 'גליון1') {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet(sheetName.replace(/\'$$/, ''));
+        return { workbook, worksheet };
+    }
+
+    private getBufferFromWorkbook(workbook: ExcelJS.Workbook): Promise<Buffer> {
+        return workbook.xlsx.writeBuffer().then(buffer => Buffer.from(buffer));
     }
 
     private insertSpecialFields(worksheet: ExcelJS.Worksheet, specialFields: ISpecialField[]) {
