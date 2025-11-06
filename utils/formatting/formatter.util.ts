@@ -45,3 +45,12 @@ export const formatHebrewBoolean = (value: any) => {
     }
     return value ? 'כן' : 'לא';
 };
+
+export const getTimeFormatter = (value: string) =>
+    row => formatTime(getValueByPath(row, value));
+
+export const formatTime = (timeStr: string) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':');
+    return `${hours}:${minutes}`;
+};
