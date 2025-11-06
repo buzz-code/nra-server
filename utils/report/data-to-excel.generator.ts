@@ -1,5 +1,5 @@
 import * as ExcelJS from 'exceljs';
-import { IBorderRange, ISpecialField } from "../importer/types";
+import { IBorderRange, IImageField, ISpecialField, SupportedImageExtension } from "../importer/types";
 import { BaseReportGenerator } from './report.generators';
 import { CommonFileFormat } from './types';
 import { IHeader } from '../exporter/types';
@@ -11,6 +11,7 @@ export interface IDataToExcelReportGenerator {
     specialFields?: ISpecialField[];
     headerConfig?: IHeader[];
     borderRanges?: IBorderRange[];
+    images?: IImageField[];
 }
 export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends BaseReportGenerator<T, IDataToExcelReportGenerator> {
     fileFormat: CommonFileFormat = CommonFileFormat.Excel;
@@ -22,6 +23,7 @@ export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends
         const headerRow = this.addTable(worksheet, data);
         this.protectSheet(worksheet, headerRow, data.headerConfig);
         this.applyBorders(worksheet, data.borderRanges);
+        this.addImages(workbook, worksheet, data.images);
 
         return this.getBufferFromWorkbook(workbook);
     }
@@ -156,6 +158,56 @@ export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends
                         right: isRightEdge && outerBorder ? outerBorder : innerBorder,
                     };
                 }
+            }
+        });
+    }
+
+    private addImages(workbook: ExcelJS.Workbook, worksheet: ExcelJS.Worksheet, images?: IImageField[]) {
+        if (!images?.length) return;
+
+        images.forEach(image => {
+            try {
+                // Extract base64 data, removing data URL prefix if present
+                let base64Data = image.imageBase64Data;
+                const dataUrlMatch = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+                
+                let extension: SupportedImageExtension = 'png';
+                if (dataUrlMatch) {
+                    const detectedExt = dataUrlMatch[1].toLowerCase();
+                    if (detectedExt === 'jpg') {
+                        extension = 'jpeg';
+                    } else if (detectedExt === 'jpeg' || detectedExt === 'png' || detectedExt === 'gif') {
+                        extension = detectedExt;
+                    }
+                    base64Data = dataUrlMatch[2];
+                } else if (image.ext) {
+                    const ext = image.ext.toLowerCase();
+                    if (ext === 'jpg') {
+                        extension = 'jpeg';
+                    } else if (ext === 'jpeg' || ext === 'png' || ext === 'gif') {
+                        extension = ext;
+                    }
+                }
+
+                // Add image to workbook
+                const imageId = workbook.addImage({
+                    base64: base64Data,
+                    extension: extension,
+                });
+
+                // Add image to worksheet at specified position/range
+                if (image.range) {
+                    // Use range for precise positioning (0-indexed to 0-indexed, ExcelJS uses 0-based)
+                    worksheet.addImage(imageId, image.range);
+                } else {
+                    // Use position with default size
+                    worksheet.addImage(imageId, image.position || {
+                        tl: { col: 0, row: 0 },
+                        ext: { width: 100, height: 100 }
+                    });
+                }
+            } catch (error) {
+                console.error('Error adding image to Excel:', error);
             }
         });
     }

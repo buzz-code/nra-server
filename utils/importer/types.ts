@@ -32,3 +32,12 @@ export interface IBorderRange {
     outerBorder?: ExcelJS.Border;
     innerBorder?: ExcelJS.Border;
 }
+
+export type SupportedImageExtension = 'png' | 'jpeg' | 'gif';
+
+export interface IImageField {
+    imageBase64Data: string;
+    position?: ExcelJS.ImagePosition
+    range?: ExcelJS.ImageRange;
+    ext?: SupportedImageExtension;
+}
