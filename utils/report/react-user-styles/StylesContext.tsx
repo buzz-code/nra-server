@@ -34,8 +34,8 @@ export const useFontLinks = (): string[] => {
 interface IUserStyles {
     userStyles: ReportStyles;
 }
-export const wrapWithStyles = (Component: React.ComponentType<any>, defaultStyles: ReportStyles) => {
-    return (props: IUserStyles) => {
+export const wrapWithStyles = <T extends object>(Component: React.ComponentType<T>, defaultStyles: ReportStyles) => {
+    return (props: IUserStyles & T) => {
         const { userStyles } = props;
         return (
             <StylesProvider value={userStyles} defaultStyles={defaultStyles}>
