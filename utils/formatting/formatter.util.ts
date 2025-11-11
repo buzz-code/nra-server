@@ -54,3 +54,15 @@ export const formatTime = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(':');
     return `${hours}:${minutes}`;
 };
+
+export const getDateFormatter = (value: string) =>
+    row => formatDate(getValueByPath(row, value));
+
+export const formatDate = (value: any) => {
+    if (!value || new Date(value).toString() === 'Invalid Date') return null;
+    const date = new Date(value);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+};
