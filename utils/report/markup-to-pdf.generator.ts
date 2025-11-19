@@ -23,6 +23,20 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
 
             await page.setContent(markup, { waitUntil: 'networkidle0' });
 
+            // Wait for all images (including base64 data URIs) to load
+            await page.evaluate(() => {
+              return Promise.all(
+                Array.from(document.images).map((img) => {
+                  if (img.complete && img.naturalWidth > 0) {
+                    return Promise.resolve();
+                  }
+                  return new Promise((resolve) => {
+                    img.onload = img.onerror = resolve;
+                  });
+                }),
+              );
+            });
+
             const pdf = await page.pdf({
                 format: 'A4',
                 printBackground: true
