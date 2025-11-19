@@ -21,7 +21,7 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
             });
             const page = await browser.newPage();
 
-            await page.setContent(markup);
+            await page.setContent(markup, { waitUntil: 'networkidle0' });
 
             const pdf = await page.pdf({
                 format: 'A4',
