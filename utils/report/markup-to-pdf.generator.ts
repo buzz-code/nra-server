@@ -21,6 +21,10 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
             });
             const page = await browser.newPage();
 
+            // Log any console errors from the page
+            page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
+            page.on('pageerror', (error) => console.log('PAGE ERROR:', error.message));
+
             await page.setContent(markup, { waitUntil: 'networkidle0' });
 
             // Wait for all images (including base64 data URIs) to load
@@ -37,9 +41,14 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
               );
             });
 
+            // Small delay to ensure rendering is complete
+            await page.waitForTimeout(500);
+
             const pdf = await page.pdf({
                 format: 'A4',
-                printBackground: true
+                printBackground: true,
+                preferCSSPageSize: false,
+                displayHeaderFooter: false,
             });
             await browser.close();
 
