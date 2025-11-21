@@ -21,28 +21,7 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
             });
             const page = await browser.newPage();
 
-            // Log any console errors from the page
-            page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
-            page.on('pageerror', (error) => console.log('PAGE ERROR:', error.message));
-
             await page.setContent(markup, { waitUntil: 'networkidle0' });
-
-            // Wait for all images (including base64 data URIs) to load
-            await page.evaluate(() => {
-              return Promise.all(
-                Array.from(document.images).map((img) => {
-                  if (img.complete && img.naturalWidth > 0) {
-                    return Promise.resolve();
-                  }
-                  return new Promise((resolve) => {
-                    img.onload = img.onerror = resolve;
-                  });
-                }),
-              );
-            });
-
-            // Small delay to ensure rendering is complete
-            await page.waitForTimeout(500);
 
             const pdf = await page.pdf({
                 format: 'A4',
