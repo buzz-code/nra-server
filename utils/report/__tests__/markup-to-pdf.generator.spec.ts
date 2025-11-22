@@ -63,7 +63,7 @@ describe('MarkupToPdfReportGenerator', () => {
           '--disable-setuid-sandbox'
         ]
       });
-      expect(mockPage.setContent).toHaveBeenCalledWith(markup);
+      expect(mockPage.setContent).toHaveBeenCalledWith(markup, expect.any(Object));
       expect(mockPage.pdf).toHaveBeenCalledWith({
         format: 'A4',
         printBackground: true
