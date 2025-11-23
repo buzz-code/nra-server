@@ -26,8 +26,6 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
             const pdf = await page.pdf({
                 format: 'A4',
                 printBackground: true,
-                preferCSSPageSize: false,
-                displayHeaderFooter: false,
             });
             await browser.close();
 
