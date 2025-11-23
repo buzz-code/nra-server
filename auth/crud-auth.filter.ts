@@ -1,5 +1,6 @@
 import { AuthOptions } from "@dataui/crud";
 import { getUserIdFromUser } from "./auth.util";
+import { isAdmin } from "@shared/utils/permissionsUtil";
 
 type FilterFunc = (user: any) => any;
 type PermissionFunc = (permissions: any) => boolean;
@@ -15,31 +16,31 @@ export const getUserIdFilter = (user) => ({
 });
 
 export const CrudAuthFilter: AuthOptions = {
-    filter: (user) => user.permissions.admin
+    filter: (user) => isAdmin(user)
         ? ADMIN_FILTER
         : getUserIdFilter(user)
 };
 
 export const CrudAuthAdminFilter: AuthOptions = {
-    filter: (user) => user.permissions.admin
+    filter: (user) => isAdmin(user)
         ? ADMIN_FILTER
         : NO_DATA_FILTER
 }
 
 export const CrudAuthWithPermissionsFilter: AuthWithPermissionFunc = (permissionsFunc) => ({
-    filter: (user) => user.permissions.admin || permissionsFunc(user.permissions)
+    filter: (user) => isAdmin(user) || permissionsFunc(user.permissions)
         ? ADMIN_FILTER
         : NO_DATA_FILTER
 })
 
 export const CrudAuthReadOnlyWithPermissionFunc: AuthWithPermissionFunc = (permissionsFunc) => ({
-    persist: (user) => user.permissions.admin || permissionsFunc(user.permissions)
+    persist: (user) => isAdmin(user) || permissionsFunc(user.permissions)
         ? ADMIN_FILTER
         : READ_ONLY_FILTER
 })
 
 export const CrudAuthCustomFilter: AuthWithFilterFunc = (buildFilterFunc) => ({
-    filter: (user) => user.permissions.admin
+    filter: (user) => isAdmin(user)
         ? ADMIN_FILTER
         : buildFilterFunc(user)
 })
