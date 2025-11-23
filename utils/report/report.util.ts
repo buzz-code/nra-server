@@ -12,10 +12,12 @@ export async function generateCommonFileResponse<T = any>(generator: BaseReportG
 function getCommonFileResponse(buffer: Buffer, format: CommonFileFormat, name: string) {
     const type = getFileType(format);
     const disposition = getFileDisposition(format, name);
+    const base64Str = buffer.toString('base64')
     return {
-        data: buffer.toString('base64'),
+        data: base64Str,
         type,
         disposition,
+        contentLength: base64Str.length,
     }
 }
 
