@@ -32,7 +32,7 @@ export interface ImportDefinition {
 
 export interface ExportDefinition<T = IContent> {
     processReqForExport?(req: CrudRequest, innerFunc: (req: CrudRequest) => Promise<any>): Promise<any[]>;
-    getExportHeaders?(entityColumns: string[], req?: CrudRequest): IHeader<T>[];
+    getExportHeaders?(entityColumns: string[], req?: CrudRequest, data?: any[]): IHeader<T>[];
     getImportDefinition?(importFields: string[]): ImportDefinition;
 }
 

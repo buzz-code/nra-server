@@ -79,7 +79,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
     getExportHeaders(req: CrudRequest<any, any>, data: any[]): IHeader[] {
         let headers: IHeader[];
         if (this.exportDefinition?.getExportHeaders) {
-            headers = this.exportDefinition.getExportHeaders(this.entityColumns, req);
+            headers = this.exportDefinition.getExportHeaders(this.entityColumns, req, data);
         } else {
             headers = this.entityColumns;
         }
