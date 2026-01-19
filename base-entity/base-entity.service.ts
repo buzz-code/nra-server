@@ -116,7 +116,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         const res = await this.getMany(req);
         const list = Array.isArray(res) ? res : res.data;
         if (list.length > 0) {
-            const pivotName = req.parsed.extra.pivot?.replace('?', '');
+            const pivotName = req.parsed.extra?.pivot?.replace('?', '');
             await this.populatePivotData(pivotName, list, req.parsed.extra, req.parsed.filter, req.auth);
         }
         return res;
