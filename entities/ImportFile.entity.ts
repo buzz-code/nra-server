@@ -3,6 +3,8 @@ import { IsOptional } from "class-validator";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
 import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
 import { StringType } from "@shared/utils/entity/class-transformer";
+import { JsonColumn } from "@shared/utils/entity/column-types.util";
+
 @Entity()
 export class ImportFile {
     @PrimaryGeneratedColumn()
@@ -45,7 +47,7 @@ export class ImportFile {
     @Column()
     response: string;
 
-    @Column('json', { nullable: true })
+    @JsonColumn({ nullable: true })
     metadata: LessonSignatureMetadata;
 
     @CreateDateColumn()
