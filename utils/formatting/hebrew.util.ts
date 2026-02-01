@@ -86,3 +86,13 @@ export function getGregorianDateFromHebrew(year: number, monthIndex: number, day
   });
   return date;
 }
+
+export function getHebrewMonthName(monthIndex: number, year: number): string {
+  if (!monthIndex || !year) return '';
+  try {
+    const month = getJewishMonthByIndex(monthIndex, year);
+    return getJewishMonthInHebrew(month);
+  } catch (e) {
+    return monthIndex?.toString() || '';
+  }
+}
