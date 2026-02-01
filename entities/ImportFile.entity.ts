@@ -1,11 +1,12 @@
 import { CrudValidationGroups } from "@dataui/crud";
 import { IsOptional } from "class-validator";
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
 import { IsNotEmpty, MaxLength } from "@shared/utils/validation/class-validator-he";
 import { StringType } from "@shared/utils/entity/class-transformer";
 import { JsonColumn } from "@shared/utils/entity/column-types.util";
 
 @Entity()
+@Index("import_file_user_id_idx", ["userId"])
 export class ImportFile {
     @PrimaryGeneratedColumn()
     id: number;
