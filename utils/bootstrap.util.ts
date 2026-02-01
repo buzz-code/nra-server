@@ -1,9 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
+import { Reflector } from '@nestjs/core';
 import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
 import { YemotRouterService } from './yemot/v2/yemot-router.service';
+import { MaintenanceGuard } from '@shared/guards/maintenance.guard';
 
 export interface BootstrapOptions {
   swaggerTitle: string;
@@ -15,6 +17,10 @@ export interface BootstrapOptions {
 export function setupApplication(app: INestApplication, options: BootstrapOptions) {
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
+
+  // Setup maintenance mode guard
+  const reflector = new Reflector();
+  app.useGlobalGuards(new MaintenanceGuard(reflector));
 
   const config = new DocumentBuilder()
     .setTitle(options.swaggerTitle)
