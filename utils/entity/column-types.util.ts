@@ -1,18 +1,23 @@
 import { databaseConfig } from '@shared/config/database.config';
 import { Column, CreateDateColumn, UpdateDateColumn, ColumnOptions } from 'typeorm';
 
+enum DatabaseType {
+  SQLITE = 'sqlite',
+  MYSQL = 'mysql'
+}
+
 /**
  * Detects the current database type from environment
  * Returns 'sqlite' for test environment, 'mysql' for production
  */
-function getDatabaseType(): 'sqlite' | 'mysql' {
-  return databaseConfig.type === 'sqlite' ? 'sqlite' : 'mysql';
+function getDatabaseType(): DatabaseType {
+  return databaseConfig.type === 'sqlite' ? DatabaseType.SQLITE : DatabaseType.MYSQL;
 }
 
 /**
  * Maps database-specific column types to compatible alternatives
  */
-const TYPE_MAPPINGS: Record<string, Record<'sqlite' | 'mysql', string>> = {
+const TYPE_MAPPINGS: Record<string, Record<DatabaseType, string>> = {
   longtext: {
     sqlite: 'text',
     mysql: 'longtext'
@@ -73,7 +78,7 @@ export function TinyIntColumn(options?: ColumnOptions) {
  */
 export function CreatedAtColumn(options?: { name?: string }) {
   const dbType = getDatabaseType();
-  if (dbType === 'mysql') {
+  if (dbType === DatabaseType.MYSQL) {
     return CreateDateColumn({
       name: options?.name || 'created_at',
       type: 'timestamp'
@@ -90,7 +95,7 @@ export function CreatedAtColumn(options?: { name?: string }) {
  */
 export function UpdatedAtColumn(options?: { name?: string }) {
   const dbType = getDatabaseType();
-  if (dbType === 'mysql') {
+  if (dbType === DatabaseType.MYSQL) {
     return UpdateDateColumn({
       name: options?.name || 'updated_at',
       type: 'timestamp'
@@ -113,7 +118,7 @@ export function BooleanIntColumn(options?: ColumnOptions) {
     ...options
   };
 
-  if (dbType === 'mysql') {
+  if (dbType === DatabaseType.MYSQL) {
     return Column('tinyint', { width: 1, ...defaultOptions });
   } else {
     return Column('integer', defaultOptions);
@@ -124,6 +129,11 @@ export function BooleanIntColumn(options?: ColumnOptions) {
  * JSON column with proper transformer for different databases
  */
 export function JsonColumn(options?: ColumnOptions) {
+  if (options?.type === 'json') {
+    if (getDatabaseType() === DatabaseType.SQLITE) {
+      delete options.type;
+    }
+  }
   return Column('simple-json', options);
 }
 
@@ -146,12 +156,13 @@ export function TextColumn(options?: ColumnOptions) {
  * MySQL: GROUP_CONCAT(DISTINCT column SEPARATOR ', ')
  * SQLite: group_concat(DISTINCT column, ', ')
  */
-export function getGroupConcatExpression(column: string, separator: string = ', ', distinct: boolean = true): string {
+export function getGroupConcatExpression(column: string, separator: string = ', ', distinct: boolean = true, orderBy?: string): string {
   const dbType = getDatabaseType();
   const distinctKeyword = distinct ? 'DISTINCT ' : '';
+  const orderClause = orderBy ? ` ORDER BY ${orderBy}` : '';
 
-  if (dbType === 'mysql') {
-    return `GROUP_CONCAT(${distinctKeyword}${column} SEPARATOR '${separator}')`;
+  if (dbType === DatabaseType.MYSQL) {
+    return `GROUP_CONCAT(${distinctKeyword}${column}${orderClause} SEPARATOR '${separator}')`;
   } else {
     // SQLite
     return `group_concat(${distinctKeyword}${column}, '${separator}')`;
@@ -166,7 +177,7 @@ export function getGroupConcatExpression(column: string, separator: string = ', 
 export function getConcatExpression(...parts: string[]): string {
   const dbType = getDatabaseType();
 
-  if (dbType === 'mysql') {
+  if (dbType === DatabaseType.MYSQL) {
     return `CONCAT(${parts.join(', ')})`;
   } else {
     // SQLite
