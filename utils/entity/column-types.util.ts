@@ -184,3 +184,32 @@ export function getConcatExpression(...parts: string[]): string {
     return parts.join(' || ');
   }
 }
+
+/**
+ * Database-agnostic JSON unnesting function (JSON_TABLE in MySQL, json_each in SQLite)
+ * MySQL: JSON_TABLE(column, "$[*]" COLUMNS(idField INT PATH "$"))
+ * SQLite: json_each(column)
+ */
+export function getJsonTableExpression(column: string, idField: string): string {
+  const dbType = getDatabaseType();
+
+  if (dbType === DatabaseType.MYSQL) {
+    return `JSON_TABLE(
+      ${column},
+      "$[*]" COLUMNS(${idField} INT PATH "$")
+    )`;
+  } else {
+    // SQLite - returns virtual table with 'value' column
+    return `json_each(${column})`;
+  }
+}
+
+/**
+ * Returns the column name for the unnested JSON value
+ * MySQL: use the field name defined in getJsonTableExpression
+ * SQLite: use 'value' (default for json_each)
+ */
+export function getJsonTableColumn(idField: string): string {
+  const dbType = getDatabaseType();
+  return dbType === DatabaseType.MYSQL ? idField : 'value';
+}
