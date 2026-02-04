@@ -12,6 +12,11 @@ const testDatabaseConfig: DataSourceOptions = {
     logging: false,
     dropSchema: true,
     migrationsRun: false,
+    entities: [
+        join(__dirname, '/../../src/db/**/*.{js,ts}'),
+        join(__dirname, '/../../shared/entities/**/*.entity.{js,ts}'),
+        join(__dirname, '/../../shared/view-entities/**/*.{js,ts}'),
+    ],
 };
 
 // Production configuration for MySQL
@@ -43,5 +48,5 @@ const productionDatabaseConfig: DataSourceOptions = {
     migrationsTransactionMode: "all",
 };
 
-export const databaseConfig: DataSourceOptions = 
+export const databaseConfig: DataSourceOptions =
     process.env.NODE_ENV === 'test' ? testDatabaseConfig : productionDatabaseConfig;
