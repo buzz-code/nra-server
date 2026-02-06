@@ -27,9 +27,14 @@ function createEffectExpressionByThreshold(thresholdColumn: string): string {
         SUBSTRING_INDEX(
           MAX(
             CASE WHEN att_grade_effect.${thresholdColumn} <= numbers.number 
-            THEN CONCAT(LPAD(att_grade_effect.${thresholdColumn}, 10, '0'), '|', att_grade_effect.effect)
+            /* Force utf8mb4_bin collation to avoid "Illegal mix of collations" error during DB dump */
+            THEN CONCAT(
+              LPAD(att_grade_effect.${thresholdColumn}, 10, '0') COLLATE utf8mb4_bin, 
+              '|' COLLATE utf8mb4_bin, 
+              CAST(att_grade_effect.effect AS CHAR) COLLATE utf8mb4_bin
+            )
             ELSE NULL END
-          ), 
+          ) COLLATE utf8mb4_bin, 
           '|', -1
         ),
         '0'
