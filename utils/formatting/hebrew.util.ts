@@ -70,8 +70,12 @@ export function getHebrewMonthsList(hebrewYear: number = getCurrentHebrewYear())
     }));
 }
 
-export function formatHebrewDateForIVR(date: Date): string {
-  const hebrewDateObj = toJewishDate(date);
+export function formatHebrewDateForIVR(date: Date | string): string {
+  if (!date) {
+    return '';
+  }
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const hebrewDateObj = toJewishDate(dateObj);
   const datePart = gematriyaLetters(hebrewDateObj.day);
   const monthPart = pointedMonths[hebrewDateObj.monthName];
   const yearPart = gematriyaLetters(hebrewDateObj.year % 1000);
