@@ -32,6 +32,14 @@ export function roundObjectProperty<T>(obj: T, key: KeyOfType<T, number>) {
     }
 }
 
+export function roundAllNumericProperties<T>(obj: T){
+    for (const key in obj) {
+        if (typeof obj[key] === 'number') {
+            roundObjectProperty(obj, key as KeyOfType<T, number>);
+        }
+    }
+}
+
 export function getUniqueValues<T, S>(arr: T[], getValue: (item: T) => S): S[] {
     return [...new Set(arr.map(getValue).filter(Boolean))];
 }
