@@ -35,7 +35,7 @@ export function roundObjectProperty<T>(obj: T, key: KeyOfType<T, number>) {
 export function roundAllNumericProperties<T>(obj: T){
     for (const key in obj) {
         if (typeof obj[key] === 'number') {
-            roundObjectProperty(obj, key as KeyOfType<T, number>);
+            roundObjectProperty(obj, key as any);
         }
     }
 }
