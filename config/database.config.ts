@@ -44,7 +44,10 @@ const productionDatabaseConfig: DataSourceOptions = {
         }
     },
     migrationsRun: false,
-    migrations: [join(__dirname, '/../../src/migrations/*.{js,ts}')],
+    migrations: [
+        join(__dirname, '/../../src/migrations/*.{js,ts}'),
+        join(__dirname, '/../migrations/*.{js,ts}'),
+    ],
     migrationsTransactionMode: "all",
 };
 
