@@ -44,6 +44,32 @@ export function getUniqueValues<T, S>(arr: T[], getValue: (item: T) => S): S[] {
     return [...new Set(arr.map(getValue).filter(Boolean))];
 }
 
+export function getSingleUnique<T, V>(
+    arr: T[],
+    getValue: (item: T) => V,
+    getIdentity: (value: V) => any = (v) => v
+): V | null {
+    if (!arr || !arr.length) return null;
+    let firstValue: V = null;
+    let firstIdentity: any = null;
+    let hasValue = false;
+    for (const item of arr) {
+        const val = getValue(item);
+        if (val === null || val === undefined) continue;
+        const identity = getIdentity(val);
+        if (identity === null || identity === undefined) continue;
+
+        if (!hasValue) {
+            firstValue = val;
+            firstIdentity = identity;
+            hasValue = true;
+        } else if (identity !== firstIdentity) {
+            return null;
+        }
+    }
+    return firstValue;
+}
+
 export function groupDataByKeys<T>(data: T[], keys: KeyOfType<T, any>[]): Record<string, T[]> {
     return (data ?? []).reduce((a, b) => {
         const key = keys.map(k => b[k]).map(String).join('_');
