@@ -66,3 +66,14 @@ export const formatDate = (value: any) => {
     const year = date.getFullYear();
     return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
 };
+
+export const getDisplayNameFormatter = (value: string) =>
+    row => formatDisplayName(getValueByPath(row, value));
+
+export const formatDisplayName = (value: any) => {
+    if (!value) return null;
+    if (typeof value !== 'object') return null;
+    if ('displayName' in value && value.displayName) return value.displayName;
+    if ('name' in value && value.name) return value.name;
+    return null;
+}
