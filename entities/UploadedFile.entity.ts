@@ -23,7 +23,7 @@ export class UploadedFile implements IHasUserId {
     @Column()
     title: string;
 
-    @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+    @IsOptional({ always: true })
     @StringType
     @MaxLength(500, { groups: [CrudValidationGroups.CREATE] })
     @Column({ nullable: true })
