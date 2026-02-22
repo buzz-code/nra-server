@@ -5,6 +5,7 @@ export const permissionKeys = {
     editPagesData: 'editPagesData',
     editPaymentTracksData: 'editPaymentTracksData',
     genericImageUpload: 'genericImageUpload',
+    uploadedFiles: 'uploadedFiles',
 };
 
 /**
