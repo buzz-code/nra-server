@@ -31,6 +31,7 @@ export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends
     private createWorkbook(sheetName: string = 'גליון1') {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet(sheetName.replace(/\'$$/, ''));
+        worksheet.views = [{ rightToLeft: true }];
         return { workbook, worksheet };
     }
 
