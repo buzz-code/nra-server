@@ -19,3 +19,16 @@ export function dateFromString(dateStr: string): Date {
     }
     return dateObj;
 }
+
+export function getDateRange(startDate: Date, endDate: Date): Date[] {
+    const current = new Date(startDate);
+    current.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    const dates: Date[] = [];
+    while (current <= end) {
+        dates.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+    }
+    return dates;
+}
