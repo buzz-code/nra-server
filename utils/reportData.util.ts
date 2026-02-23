@@ -71,12 +71,17 @@ export function getSingleUnique<T, V>(
 }
 
 export function groupDataByKeys<T>(data: T[], keys: KeyOfType<T, any>[]): Record<string, T[]> {
-    return (data ?? []).reduce((a, b) => {
-        const key = keys.map(k => b[k]).map(String).join('_');
-        a[key] ??= [];
-        a[key].push(b);
-        return a;
-    }, {});
+    return groupDataByKeyFn(data, item => keys.map(key => item[key]).map(String).join('_'));
+}
+
+type GroupedDataKey = string | number | symbol;
+export function groupDataByKeyFn<T>(data: T[], getKey: (item: T) => GroupedDataKey): Record<string, T[]> {
+    return (data ?? []).reduce((acc, item) => {
+        const key = getKey(item);
+        acc[key] ??= [];
+        acc[key].push(item);
+        return acc;
+    }, {} as Record<GroupedDataKey, T[]>);
 }
 
 export function groupDataByKeysAndCalc<T, V>(data: T[], keys: KeyOfType<T, any>[], getValue: (item: T[]) => V): Record<string, V> {
