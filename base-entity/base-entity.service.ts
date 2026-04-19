@@ -28,6 +28,10 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         return snakeCase(this.entityType.name);
     }
 
+    getExportName(req?: CrudRequest, data?: any[]): string {
+        return this.getName();
+    }
+
     @Override()
     async createOne(req: CrudRequest<any>, dto: DeepPartial<T>): Promise<T> {
         await validateNotTrialEnded(req.auth, this.dataSource);

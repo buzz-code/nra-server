@@ -34,7 +34,7 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
         const data = await this.service.getDataForExport(req);
         const format = exportFormatDict[req.parsed.extra.format];
         const headers = this.service.getExportHeaders(req, data);
-        const name = this.service.getName();
+        const name = this.service.getExportName(req, data);
         return getExportedFile(format, name, data, headers);
     }
 
