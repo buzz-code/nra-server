@@ -1,3 +1,5 @@
+import { In } from 'typeorm';
+
 type KeyOfType<T, V> = keyof {
     [P in keyof T as T[P] extends V ? P : never]: any
 }
@@ -87,6 +89,14 @@ export function groupDataByKeyFn<T>(data: T[], getKey: (item: T) => GroupedDataK
 export function groupDataByKeysAndCalc<T, V>(data: T[], keys: KeyOfType<T, any>[], getValue: (item: T[]) => V): Record<string, V> {
     const map = groupDataByKeys(data, keys);
     return Object.fromEntries(Object.entries(map).map(([key, value]) => [key, getValue(value)]));
+}
+
+export function optionalInFilter<T>(ids: T[], field: string): Record<string, any> {
+    return ids.length ? { [field]: In(ids) } : {};
+}
+
+export function recordToMap<K = string, V = unknown>(record: Record<string, V>, mapKey: (k: string) => K = (k) => k as unknown as K): Map<K, V> {
+    return new Map(Object.entries(record).map(([k, v]) => [mapKey(k), v]));
 }
 
 export function calcPercents(val: number, total: number): number {
