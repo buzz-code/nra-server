@@ -106,6 +106,7 @@ describe('BaseEntityController', () => {
       getCount: jest.fn().mockResolvedValue(5),
       getDataForExport: jest.fn().mockResolvedValue([]),
       getExportHeaders: jest.fn().mockReturnValue([]),
+      getExportName: jest.fn().mockReturnValue('test'),
       getName: jest.fn().mockReturnValue('test'),
       getImportDefinition: jest.fn().mockReturnValue({
         importFields: ['field1', 'field2'],
