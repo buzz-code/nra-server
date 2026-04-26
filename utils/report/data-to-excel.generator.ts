@@ -13,10 +13,10 @@ export interface IDataToExcelReportGenerator {
     borderRanges?: IBorderRange[];
     images?: IImageField[];
 }
-export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator> extends BaseReportGenerator<T, IDataToExcelReportGenerator> {
+export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator, D extends IDataToExcelReportGenerator = IDataToExcelReportGenerator> extends BaseReportGenerator<T, D> {
     fileFormat: CommonFileFormat = CommonFileFormat.Excel;
 
-    async getFileBuffer(data: IDataToExcelReportGenerator): Promise<Buffer> {
+    async getFileBuffer(data: D): Promise<Buffer> {
         const { workbook, worksheet } = this.createWorkbook(data.sheetName);
 
         this.insertSpecialFields(worksheet, data.specialFields);
