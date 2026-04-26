@@ -133,15 +133,16 @@ export function createEntityConfigTests(
 
     // ── processReqForExport ──────────────────────────────────────────────────
     if (expectedExportJoins !== undefined) {
-      it('processReqForExport should mutate request joins and call innerFunc', () => {
+      it('processReqForExport should mutate request joins and call innerFunc', async () => {
+        expect(config.exporter).toBeDefined();
         expect(config.exporter!.processReqForExport).toBeInstanceOf(Function);
 
         const mockReq = {
           options: { query: { join: {} } },
         } as unknown as CrudRequest;
-        const mockInner = jest.fn((req: CrudRequest) => req as any);
+        const mockInner = jest.fn((req: CrudRequest) => Promise.resolve(req) as any);
 
-        config.exporter!.processReqForExport!(mockReq, mockInner);
+        await config.exporter!.processReqForExport!(mockReq, mockInner);
 
         expect(mockInner).toHaveBeenCalledWith(mockReq);
         expect(mockReq.options.query.join).toEqual(expectedExportJoins);
@@ -151,6 +152,7 @@ export function createEntityConfigTests(
     // ── getExportHeaders ─────────────────────────────────────────────────────
     if (expectedExportHeaders !== undefined) {
       it('getExportHeaders should return expected headers', () => {
+        expect(config.exporter).toBeDefined();
         expect(config.exporter!.getExportHeaders).toBeInstanceOf(Function);
 
         const headers = config.exporter!.getExportHeaders!([], undefined, undefined);
@@ -178,6 +180,7 @@ export function createEntityConfigTests(
     // ── getImportDefinition ──────────────────────────────────────────────────
     if (expectedImport !== undefined) {
       it('getImportDefinition should return expected structure', () => {
+        expect(config.exporter).toBeDefined();
         expect(config.exporter!.getImportDefinition).toBeInstanceOf(Function);
 
         const importDef = config.exporter!.getImportDefinition!([]);

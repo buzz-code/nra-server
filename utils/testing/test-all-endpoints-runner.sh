@@ -2,7 +2,8 @@
 # test-all-endpoints-runner.sh
 #
 # Shared backend API smoke test runner.
-# Reads all configuration from environment variables — no hardcoded values.
+# Reads configuration from environment variables, with defaults for optional
+# values when they are unset.
 #
 # Required env vars:
 #   ENDPOINTS   — space-separated list of endpoint names to test
@@ -38,9 +39,10 @@ COOKIE_FILE="$(mktemp /tmp/e2e-cookies-XXXXXX.txt)"
 trap 'rm -f "$COOKIE_FILE"' EXIT
 
 echo "Step 1: Login..."
+LOGIN_BODY="$(python3 -c "import json,sys; print(json.dumps({'username':sys.argv[1],'password':sys.argv[2]}))" "$USERNAME" "$PASSWORD")"
 LOGIN_RESPONSE="$(curl -X POST \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}" \
+  -d "$LOGIN_BODY" \
   -c "$COOKIE_FILE" -s \
   "$BACKEND_URL/auth/login")"
 
