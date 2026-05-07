@@ -70,7 +70,7 @@ export class AppController {
       console.log('impersonate non authorized');
       throw new UnauthorizedException();
     }
-    const cookie = await this.authService.getCookieForImpersonate(req.body.userId);
+    const cookie = await this.authService.getCookieForImpersonate(Number(req.body.userId));
     response.setHeader('Set-Cookie', cookie);
     return response.send({ success: true });
   }
@@ -87,6 +87,9 @@ export class AppController {
   @Post('settings')
   async updateSettings(@Request() req: AuthenticatedRequest, @Body() data: any) {
     const userId = getUserIdFromUser(req.user);
+    if (!userId) {
+      throw new UnauthorizedException();
+    }
     return this.authService.updateSettings(userId, data);
   }
 

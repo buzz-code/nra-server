@@ -79,7 +79,12 @@ export async function bootstrapNraApplication(
     ...options,
   });
 
-  setupYemotRouter(app);
+  try {
+    setupYemotRouter(app);
+  } catch {
+    // YemotRouterService not registered in this module — skip
+  }
 
-  await app.listen(3000);
+  const port = Number(process.env.PORT || 3000);
+  await app.listen(port);
 }

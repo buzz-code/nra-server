@@ -4,7 +4,7 @@ module.exports = function makeJestBase(compilerOptions) {
   return {
     preset: 'ts-jest',
     testEnvironment: 'node',
-    moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths),
+    moduleNameMapper: pathsToModuleNameMapper((compilerOptions && compilerOptions.paths) || {}),
     modulePaths: ['<rootDir>'],
     maxWorkers: 1,
     testRegex: '.*\\.(spec|test)\\.(ts|tsx)$',
