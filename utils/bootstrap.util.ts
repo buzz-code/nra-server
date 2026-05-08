@@ -25,6 +25,7 @@ export interface BootstrapOptions {
   swaggerDescription?: string;
   swaggerVersion?: string;
   swaggerTag?: string;
+  port?: number;
 }
 
 export function setupApplication(app: INestApplication, options: BootstrapOptions) {
@@ -85,6 +86,6 @@ export async function bootstrapNraApplication(
     // YemotRouterService not registered in this module — skip
   }
 
-  const port = Number(process.env.PORT || 3000);
+  const port = options?.port ?? Number(process.env.PORT || 3000);
   await app.listen(port);
 }

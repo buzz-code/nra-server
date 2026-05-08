@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -66,11 +67,15 @@ export class AppController {
   @UseGuards(JwtAuthGuard)
   @Post('auth/impersonate')
   async impersonate(@Request() req: AuthenticatedRequest, @Res() response: Response) {
-    if (!isAdmin(req.user) || !req.body.userId) {
+    const userId = Number(req.body.userId);
+    if (!isAdmin(req.user)) {
       console.log('impersonate non authorized');
       throw new UnauthorizedException();
     }
-    const cookie = await this.authService.getCookieForImpersonate(Number(req.body.userId));
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new BadRequestException('Invalid userId');
+    }
+    const cookie = await this.authService.getCookieForImpersonate(userId);
     response.setHeader('Set-Cookie', cookie);
     return response.send({ success: true });
   }

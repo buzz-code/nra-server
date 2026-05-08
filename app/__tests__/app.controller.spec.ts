@@ -3,7 +3,7 @@ import { AppController } from '../app.controller';
 import { AppService } from '../app.service';
 import { AuthService } from '@shared/auth/auth.service';
 import { Response } from 'express';
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AuthenticatedRequest } from '@shared/auth/auth.types';
 
 describe('AppController', () => {
@@ -82,6 +82,16 @@ describe('AppController', () => {
     await expect(appController.impersonate(req, res)).rejects.toThrow(UnauthorizedException);
   });
 
+  it('should throw a BadRequestException with invalid impersonation userId', async () => {
+    const req = {
+      user: { permissions: { admin: true } },
+      body: { userId: 'abc' },
+    } as unknown as AuthenticatedRequest;
+    const res = { setHeader: jest.fn(), send: jest.fn() } as unknown as Response;
+
+    await expect(appController.impersonate(req, res)).rejects.toThrow(BadRequestException);
+  });
+
   it('should log out a user and return a success message', async () => {
     const responseMock = {
       setHeader: jest.fn(),
@@ -149,5 +159,11 @@ describe('AppController', () => {
     await appController.updateSettings(req, data);
 
     expect(authService.updateSettings).toHaveBeenCalledWith(1, data);
+  });
+
+  it('should reject update settings when user id is missing', async () => {
+    const req = { user: { permissions: { admin: true } } } as unknown as AuthenticatedRequest;
+
+    await expect(appController.updateSettings(req, { key: 'value' })).rejects.toThrow(UnauthorizedException);
   });
 });

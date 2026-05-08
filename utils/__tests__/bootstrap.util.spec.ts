@@ -64,5 +64,48 @@ describe('bootstrapNraApplication', () => {
     expect(NestFactory.create).toHaveBeenCalledWith(MockModule);
     expect(mockApp.listen).toHaveBeenCalledWith(3000);
   });
+
+  it('should listen on the explicit options port when provided', async () => {
+    const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()) };
+    const mockApp = {
+      useLogger: jest.fn(),
+      useGlobalInterceptors: jest.fn(),
+      useGlobalGuards: jest.fn(),
+      enableCors: jest.fn(),
+      use: jest.fn(),
+      listen: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn().mockReturnValue(mockYemotRouter),
+    };
+    (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
+
+    class MockModule { }
+    await bootstrapNraApplication(MockModule, { port: 4100 });
+
+    expect(mockApp.listen).toHaveBeenCalledWith(4100);
+  });
+
+  it('should skip yemot router setup when the service is not registered', async () => {
+    const logger = { info: jest.fn(), error: jest.fn(), warn: jest.fn() };
+    const mockApp = {
+      useLogger: jest.fn(),
+      useGlobalInterceptors: jest.fn(),
+      useGlobalGuards: jest.fn(),
+      enableCors: jest.fn(),
+      use: jest.fn(),
+      listen: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn().mockImplementation((token) => {
+        if (token && token.name === 'YemotRouterService') {
+          throw new Error('missing provider');
+        }
+        return logger;
+      }),
+    };
+    (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
+
+    class MockModule { }
+
+    await expect(bootstrapNraApplication(MockModule)).resolves.toBeUndefined();
+    expect(mockApp.listen).toHaveBeenCalledWith(3000);
+  });
 });
 
