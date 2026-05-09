@@ -82,7 +82,11 @@ export async function bootstrapNraApplication(
 
   try {
     setupYemotRouter(app);
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!message.includes('Nest could not find')) {
+      throw err;
+    }
     // YemotRouterService not registered in this module — skip
   }
 

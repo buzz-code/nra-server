@@ -95,7 +95,7 @@ describe('bootstrapNraApplication', () => {
       listen: jest.fn().mockResolvedValue(undefined),
       get: jest.fn().mockImplementation((token) => {
         if (token && token.name === 'YemotRouterService') {
-          throw new Error('missing provider');
+          throw new Error('Nest could not find YemotRouterService');
         }
         return logger;
       }),
@@ -106,6 +106,30 @@ describe('bootstrapNraApplication', () => {
 
     await expect(bootstrapNraApplication(MockModule)).resolves.toBeUndefined();
     expect(mockApp.listen).toHaveBeenCalledWith(3000);
+  });
+
+  it('should rethrow unexpected errors from yemot router setup', async () => {
+    const logger = { info: jest.fn(), error: jest.fn(), warn: jest.fn() };
+    const unexpectedError = new Error('getRouter failed unexpectedly');
+    const mockApp = {
+      useLogger: jest.fn(),
+      useGlobalInterceptors: jest.fn(),
+      useGlobalGuards: jest.fn(),
+      enableCors: jest.fn(),
+      use: jest.fn(),
+      listen: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn().mockImplementation((token) => {
+        if (token && token.name === 'YemotRouterService') {
+          return { getRouter: () => { throw unexpectedError; } };
+        }
+        return logger;
+      }),
+    };
+    (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
+
+    class MockModule { }
+
+    await expect(bootstrapNraApplication(MockModule)).rejects.toThrow('getRouter failed unexpectedly');
   });
 });
 
