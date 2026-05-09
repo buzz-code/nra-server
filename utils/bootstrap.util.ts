@@ -1,4 +1,7 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { INestApplication } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { Reflector } from '@nestjs/core';
@@ -7,11 +10,22 @@ import * as cookieParser from 'cookie-parser';
 import { YemotRouterService } from './yemot/v2/yemot-router.service';
 import { MaintenanceGuard } from '@shared/guards/maintenance.guard';
 
+export function readPackageJsonName(): string {
+  try {
+    const pkgPath = path.join(process.cwd(), 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+    return pkg.name || 'nra-app';
+  } catch {
+    return 'nra-app';
+  }
+}
+
 export interface BootstrapOptions {
   swaggerTitle: string;
   swaggerDescription?: string;
   swaggerVersion?: string;
   swaggerTag?: string;
+  port?: number;
 }
 
 export function setupApplication(app: INestApplication, options: BootstrapOptions) {
@@ -53,4 +67,29 @@ export function setupApplication(app: INestApplication, options: BootstrapOption
 export function setupYemotRouter(app: INestApplication) {
   const yemotRouterSvc = app.get(YemotRouterService);
   app.use('/yemot/handle-call', yemotRouterSvc.getRouter());
+}
+
+export async function bootstrapNraApplication(
+  module: any,
+  options?: Partial<BootstrapOptions>,
+): Promise<void> {
+  const app = await NestFactory.create(module);
+
+  setupApplication(app, {
+    swaggerTitle: readPackageJsonName(),
+    ...options,
+  });
+
+  try {
+    setupYemotRouter(app);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!message.includes('Nest could not find')) {
+      throw err;
+    }
+    // YemotRouterService not registered in this module — skip
+  }
+
+  const port = options?.port ?? Number(process.env.PORT || 3000);
+  await app.listen(port);
 }

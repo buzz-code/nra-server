@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
+import { DynamicModule, Module, Type } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalStrategy } from './local.strategy';
 import LocalRegisterStrategy from './local-register.strategy';
@@ -8,12 +8,10 @@ import { User } from '@shared/entities/User.entity';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
-import { IUserInitializationService, USER_INITIALIZATION_SERVICE } from './user-initialization.interface';
 
 // Interface for AuthModule configuration
 export interface AuthModuleOptions {
-  userInitServiceType?: Type<IUserInitializationService>;
-  imports?: any[];
+  userInitModule?: Type<any> | DynamicModule;
 }
 
 @Module({
@@ -30,22 +28,13 @@ export interface AuthModuleOptions {
 })
 export class AuthModule {
   /**
-   * Register AuthModule with an initialization service from another module
+   * Register AuthModule, optionally providing a user initialization module.
+   * If no userInitModule is provided, the module handles its own initialization.
    */
-  static forRootAsync(options: AuthModuleOptions): DynamicModule {
-    const providers: Provider[] = [];
-
-    if (options.userInitServiceType) {
-      providers.push({
-        provide: USER_INITIALIZATION_SERVICE,
-        useExisting: options.userInitServiceType,
-      });
-    }
-
+  static forRoot(options?: AuthModuleOptions): DynamicModule {
     return {
       module: AuthModule,
-      imports: options.imports || [],
-      providers,
+      imports: options?.userInitModule ? [options.userInitModule] : [],
     };
   }
 }
