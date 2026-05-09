@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Inject, Optional } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject, Optional, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from '@shared/entities/User.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -99,9 +99,12 @@ export class AuthService {
   }
 
   async getCookieForImpersonate(userId: number) {
-    const user = await this.userRepository.findOneBy({ id: userId })
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     const userForCookie = this.getSafeUserDetails(user);
-    userForCookie.impersonated = true
+    userForCookie.impersonated = true;
     return this.getCookieWithJwtToken(userForCookie);
   }
 

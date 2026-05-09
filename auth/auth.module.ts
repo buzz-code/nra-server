@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
+import { DynamicModule, Module, Type } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalStrategy } from './local.strategy';
 import LocalRegisterStrategy from './local-register.strategy';
@@ -8,7 +8,6 @@ import { User } from '@shared/entities/User.entity';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
-import { IUserInitializationService, USER_INITIALIZATION_SERVICE } from './user-initialization.interface';
 
 // Interface for AuthModule configuration
 export interface AuthModuleOptions {

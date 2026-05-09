@@ -3,7 +3,7 @@ import { AuthService } from '../auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UnauthorizedException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as cookie from 'cookie';
 import { User } from '@shared/entities/User.entity';
@@ -277,6 +277,13 @@ describe('AuthService', () => {
                 permissions: {},
                 impersonated: true,
             });
+        });
+
+        it('should throw NotFoundException when user does not exist', async () => {
+            const userId = 123;
+            jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
+
+            await expect(service.getCookieForImpersonate(userId)).rejects.toThrow(NotFoundException);
         });
     });
 

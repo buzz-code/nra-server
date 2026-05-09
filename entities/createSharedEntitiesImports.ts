@@ -1,5 +1,5 @@
 import { BaseEntityModule } from '@shared/base-entity/base-entity.module';
-import userConfig from '@shared/entities/configs/user.config';
+import { BaseEntityModuleOptions } from '@shared/base-entity/interface';
 import textConfig from '@shared/entities/configs/text.config';
 import pageConfig from '@shared/entities/configs/page.config';
 import paymentTrackConfig from '@shared/entities/configs/payment-track.config';
@@ -14,7 +14,7 @@ import { Image } from '@shared/entities/Image.entity';
  * Returns the 10 BaseEntityModule registrations that are common to all NRA projects.
  * Spread this into your entities module's imports array alongside project-specific registrations.
  */
-export function createSharedEntitiesImports() {
+export function createSharedEntitiesImports(userConfig: BaseEntityModuleOptions) {
   return [
     BaseEntityModule.register(userConfig),
     BaseEntityModule.register(textConfig),
