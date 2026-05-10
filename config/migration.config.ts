@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { join } from "path";
 import { DataSource } from "typeorm";
 import { databaseConfig } from "./database.config";
