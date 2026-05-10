@@ -9,25 +9,25 @@ export class AuditLog {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({ type: 'int' })
     userId: number;
 
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-    @Column()
+    @Column({ type: 'int' })
     entityId: number;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @StringType
     @MaxLength(255, { groups: [CrudValidationGroups.CREATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-    @Column()
+    @Column({ type: 'varchar', length: 255 })
     entityName: string;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @StringType
     @MaxLength(255, { groups: [CrudValidationGroups.CREATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-    @Column()
+    @Column({ type: 'varchar', length: 255 })
     operation: string;
 
     @Column('simple-json')
