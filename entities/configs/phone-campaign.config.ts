@@ -8,6 +8,8 @@ import { PhoneCampaign, PhoneEntry } from "@shared/entities/PhoneCampaign.entity
 import { PhoneTemplate } from "@shared/entities/PhoneTemplate.entity";
 import { YemotApiService } from "@shared/utils/phone/yemot-api.service";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
+import { User } from "@shared/entities/User.entity";
+import { getUserIdFromUser } from "@shared/auth/auth.util";
 
 @Injectable()
 export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
@@ -23,16 +25,13 @@ export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
         switch (req.parsed.extra.action) {
             case "refresh-status": {
                 const ids: number[] = req.parsed.extra.ids?.toString().split(",").map(Number) ?? [];
-                const userId = req.auth?.userId;
+                const userId = getUserIdFromUser(req.auth);
                 const results = await Promise.all(ids.map(id => this.refreshCampaignStatus(id, userId)));
                 return { results };
             }
             case "execute-phone-campaign": {
-                const { templateId, ids } = body;
-                const phoneNumbers: PhoneEntry[] = ids?.map((id: any) => ({
-                    phone: String(id),
-                })) ?? [];
-                return this.executeCampaign(req.auth?.userId, Number(templateId), phoneNumbers);
+                const { templateId, phoneNumbers } = body;
+                return this.executeCampaign(getUserIdFromUser(req.auth), Number(templateId), phoneNumbers ?? []);
             }
         }
         return super.doAction(req, body);
@@ -148,7 +147,7 @@ export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
     }
 
     private async getUserYemotApiKey(userId: number): Promise<string | null> {
-        const user = await this.dataSource.getRepository("User").findOne({
+        const user = await this.dataSource.getRepository(User).findOne({
             where: { id: userId },
             select: ["id", "additionalData"],
         });

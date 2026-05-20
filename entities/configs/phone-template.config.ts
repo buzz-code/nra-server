@@ -7,6 +7,8 @@ import { CrudAuthFilter } from "@shared/auth/crud-auth.filter";
 import { PhoneTemplate } from "@shared/entities/PhoneTemplate.entity";
 import { YemotApiService } from "@shared/utils/phone/yemot-api.service";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
+import { User } from "@shared/entities/User.entity";
+import { getUserIdFromUser } from "@shared/auth/auth.util";
 
 @Injectable()
 class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
@@ -25,12 +27,12 @@ class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
                 if (!templateId || !phoneNumber) {
                     return { error: "Missing templateId or phoneNumber" };
                 }
-                const userId = req.auth?.userId;
+                const userId = getUserIdFromUser(req.auth);
                 const template = await this.repo.findOne({ where: { id: templateId, userId } });
                 if (!template) {
                     return { error: "Template not found" };
                 }
-                const apiKey = await this.getUserYemotApiKey(userId);
+                const apiKey = await this.getUserYemotApiKey(req.auth?.id);
                 if (!apiKey) {
                     return { error: "Yemot API key not configured" };
                 }
@@ -50,8 +52,7 @@ class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
     }
 
     async createOne(req: CrudRequest, dto: DeepPartial<PhoneTemplate>): Promise<PhoneTemplate> {
-        const userId = req.auth?.userId;
-        const apiKey = await this.getUserYemotApiKey(userId);
+        const apiKey = await this.getUserYemotApiKey(req.auth?.id);
         if (!apiKey) {
             throw new Error("Yemot API key not configured in user settings");
         }
@@ -67,7 +68,7 @@ class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
     }
 
     private async getUserYemotApiKey(userId: number): Promise<string | null> {
-        const user = await this.dataSource.getRepository("User").findOne({
+        const user = await this.dataSource.getRepository(User).findOne({
             where: { id: userId },
             select: ["id", "additionalData"],
         });
