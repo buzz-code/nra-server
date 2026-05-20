@@ -36,7 +36,7 @@ export class PhoneTemplate {
     @Column({ nullable: true })
     yemotTemplateId: string;
 
-    @Column({ type: "enum", enum: ["text"], default: "text" })
+    @Column({ type: "varchar", length: 50, default: "text" })
     messageType: "text";
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })

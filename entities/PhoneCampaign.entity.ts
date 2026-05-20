@@ -27,8 +27,8 @@ export class PhoneCampaign {
     yemotCampaignId: string;
 
     @Column({
-        type: "enum",
-        enum: ["pending", "running", "completed", "failed", "cancelled"],
+        type: "varchar",
+        length: 50,
         default: "pending",
     })
     @Index("phone_campaign_status_idx")
