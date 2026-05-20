@@ -21,6 +21,8 @@ export interface BaseEntityModuleOptions {
     crudAuth?: AuthOptions;
     exporter?: ExportDefinition;
     service?: typeof BaseEntityService;
+    /** Additional providers to register in the entity module (e.g. custom services). */
+    providers?: any[];
 }
 
 export interface ImportDefinition {
