@@ -3,13 +3,14 @@ import { CrudRequest } from "@dataui/crud";
 import { Repository } from "typeorm";
 import { BaseEntityModuleOptions, InjectEntityRepository } from "@shared/base-entity/interface";
 import { BaseEntityService } from "@shared/base-entity/base-entity.service";
-import { CrudAuthFilter } from "@shared/auth/crud-auth.filter";
+import { CrudAuthWithPermissionsFilter } from "@shared/auth/crud-auth.filter";
 import { PhoneCampaign, PhoneEntry } from "@shared/entities/PhoneCampaign.entity";
 import { PhoneTemplate } from "@shared/entities/PhoneTemplate.entity";
 import { YemotApiService } from "@shared/utils/phone/yemot-api.service";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { User } from "@shared/entities/User.entity";
 import { getUserIdFromUser } from "@shared/auth/auth.util";
+import { getAsNumberArray } from "@shared/utils/queryParam.util";
 
 @Injectable()
 export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
@@ -24,14 +25,15 @@ export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
     async doAction(req: CrudRequest<any, any>, body: any): Promise<any> {
         switch (req.parsed.extra.action) {
             case "refresh-status": {
-                const ids: number[] = req.parsed.extra.ids?.toString().split(",").map(Number) ?? [];
+                const ids = getAsNumberArray(req.parsed.extra.ids) ?? [];
                 const userId = getUserIdFromUser(req.auth);
                 const results = await Promise.all(ids.map(id => this.refreshCampaignStatus(id, userId)));
                 return { results };
             }
             case "execute-phone-campaign": {
-                const { templateId, phoneNumbers } = body;
-                return this.executeCampaign(getUserIdFromUser(req.auth), Number(templateId), phoneNumbers ?? []);
+                const templateId = req.parsed.extra.templateId;
+                const phoneNumbers = req.parsed.extra.phoneNumbers ?? [];
+                return this.executeCampaign(getUserIdFromUser(req.auth), Number(templateId), phoneNumbers);
             }
         }
         return super.doAction(req, body);
@@ -45,22 +47,9 @@ export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
         templateId: number,
         phoneNumbers: PhoneEntry[]
     ): Promise<any> {
-        if (!phoneNumbers || phoneNumbers.length === 0) {
-            throw new Error("No phone numbers provided");
-        }
-        const template = await this.dataSource.getRepository(PhoneTemplate).findOne({
-            where: { id: templateId, userId },
-        });
-        if (!template) {
-            throw new Error("Template not found or access denied");
-        }
-        if (!template.isActive) {
-            throw new Error("Template is not active");
-        }
-        const apiKey = await this.getUserYemotApiKey(userId);
-        if (!apiKey) {
-            throw new Error("Yemot API key not configured");
-        }
+        const template = await this.validateTemplate(templateId, userId);
+        const apiKey = await this.validateYemotApiKey(userId);
+        
         const campaign = this.repo.create({
             userId,
             phoneTemplateId: templateId,
@@ -71,22 +60,13 @@ export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
             failedCalls: 0,
         });
         await this.repo.save(campaign);
+        
         try {
-            await this.yemotApiService.uploadPhoneList(apiKey, template.yemotTemplateId, phoneNumbers);
-            const result = await this.yemotApiService.runCampaign(apiKey, template.yemotTemplateId, {
-                ttsText: template.messageText,
-                callerId: template.callerId,
-            });
-            if (result.responseStatus !== "OK" || !result.id) {
-                throw new Error(`Failed to run campaign: ${result.message || "Unknown error"}`);
-            }
-            campaign.yemotCampaignId = result.id;
-            campaign.status = "running";
-            await this.repo.save(campaign);
+            await this.runYemotCampaign(campaign, template, apiKey, phoneNumbers);
             return {
                 success: true,
                 campaignId: campaign.id,
-                yemotCampaignId: result.id,
+                yemotCampaignId: campaign.yemotCampaignId,
                 message: `Campaign started with ${phoneNumbers.length} phone numbers`,
             };
         } catch (error) {
@@ -95,6 +75,52 @@ export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
             await this.repo.save(campaign);
             throw error;
         }
+    }
+
+    private async validateTemplate(templateId: number, userId: number): Promise<PhoneTemplate> {
+        const template = await this.dataSource.getRepository(PhoneTemplate).findOne({
+            where: { id: templateId, userId },
+        });
+        if (!template) {
+            throw new Error("Template not found or access denied");
+        }
+        if (!template.isActive) {
+            throw new Error("Template is not active");
+        }
+        return template;
+    }
+
+    private async validateYemotApiKey(userId: number): Promise<string> {
+        const apiKey = await this.getUserYemotApiKey(userId);
+        if (!apiKey) {
+            throw new Error("Yemot API key not configured");
+        }
+        return apiKey;
+    }
+
+    private async runYemotCampaign(
+        campaign: PhoneCampaign,
+        template: PhoneTemplate,
+        apiKey: string,
+        phoneNumbers: PhoneEntry[]
+    ): Promise<void> {
+        if (!phoneNumbers || phoneNumbers.length === 0) {
+            throw new Error("No phone numbers provided");
+        }
+        
+        await this.yemotApiService.uploadPhoneList(apiKey, template.yemotTemplateId, phoneNumbers);
+        const result = await this.yemotApiService.runCampaign(apiKey, template.yemotTemplateId, {
+            ttsText: template.messageText,
+            callerId: template.callerId,
+        });
+        
+        if (result.responseStatus !== "OK" || !result.id) {
+            throw new Error(`Failed to run campaign: ${result.message || "Unknown error"}`);
+        }
+        
+        campaign.yemotCampaignId = result.id;
+        campaign.status = "running";
+        await this.repo.save(campaign);
     }
 
     /**
@@ -160,7 +186,7 @@ function getConfig(): BaseEntityModuleOptions {
         entity: PhoneCampaign,
         service: PhoneCampaignService,
         providers: [YemotApiService],
-        crudAuth: CrudAuthFilter,
+        crudAuth: CrudAuthWithPermissionsFilter(permissions => permissions?.phoneCampaign),
     };
 }
 

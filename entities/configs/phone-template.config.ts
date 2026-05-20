@@ -3,7 +3,7 @@ import { CrudRequest } from "@dataui/crud";
 import { DeepPartial, Repository } from "typeorm";
 import { BaseEntityModuleOptions, InjectEntityRepository } from "@shared/base-entity/interface";
 import { BaseEntityService } from "@shared/base-entity/base-entity.service";
-import { CrudAuthFilter } from "@shared/auth/crud-auth.filter";
+import { CrudAuthWithPermissionsFilter } from "@shared/auth/crud-auth.filter";
 import { PhoneTemplate } from "@shared/entities/PhoneTemplate.entity";
 import { YemotApiService } from "@shared/utils/phone/yemot-api.service";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
@@ -23,32 +23,36 @@ class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
     async doAction(req: CrudRequest<any, any>, body: any): Promise<any> {
         switch (req.parsed.extra.action) {
             case "test": {
-                const { templateId, phoneNumber } = body;
+                const templateId = req.parsed.extra.templateId;
+                const phoneNumber = req.parsed.extra.phoneNumber;
                 if (!templateId || !phoneNumber) {
                     return { error: "Missing templateId or phoneNumber" };
                 }
-                const userId = getUserIdFromUser(req.auth);
-                const template = await this.repo.findOne({ where: { id: templateId, userId } });
-                if (!template) {
-                    return { error: "Template not found" };
-                }
-                const apiKey = await this.getUserYemotApiKey(req.auth?.id);
-                if (!apiKey) {
-                    return { error: "Yemot API key not configured" };
-                }
-                try {
-                    await this.yemotApiService.uploadPhoneList(apiKey, template.yemotTemplateId, [{ phone: phoneNumber }]);
-                    const result = await this.yemotApiService.runCampaign(apiKey, template.yemotTemplateId, {
-                        ttsText: template.messageText,
-                        callerId: template.callerId,
-                    });
-                    return { success: true, message: "Test call initiated", campaignId: result.id };
-                } catch (error) {
-                    return { error: error.message };
-                }
+                return this.sendTestCall(getUserIdFromUser(req.auth), templateId, phoneNumber);
             }
         }
         return super.doAction(req, body);
+    }
+
+    private async sendTestCall(userId: number, templateId: number, phoneNumber: string): Promise<any> {
+        const template = await this.repo.findOne({ where: { id: templateId, userId } });
+        if (!template) {
+            return { error: "Template not found" };
+        }
+        const apiKey = await this.getUserYemotApiKey(userId);
+        if (!apiKey) {
+            return { error: "Yemot API key not configured" };
+        }
+        try {
+            await this.yemotApiService.uploadPhoneList(apiKey, template.yemotTemplateId, [{ phone: phoneNumber }]);
+            const result = await this.yemotApiService.runCampaign(apiKey, template.yemotTemplateId, {
+                ttsText: template.messageText,
+                callerId: template.callerId,
+            });
+            return { success: true, message: "Test call initiated", campaignId: result.id };
+        } catch (error) {
+            return { error: error.message };
+        }
     }
 
     async createOne(req: CrudRequest, dto: DeepPartial<PhoneTemplate>): Promise<PhoneTemplate> {
@@ -81,7 +85,7 @@ function getConfig(): BaseEntityModuleOptions {
         entity: PhoneTemplate,
         service: PhoneTemplateService,
         providers: [YemotApiService],
-        crudAuth: CrudAuthFilter,
+        crudAuth: CrudAuthWithPermissionsFilter(permissions => permissions?.phoneCampaign),
     };
 }
 
