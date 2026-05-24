@@ -10,7 +10,7 @@ import { YemotApiService } from "@shared/utils/phone/yemot-api.service";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { User } from "@shared/entities/User.entity";
 import { getUserIdFromUser } from "@shared/auth/auth.util";
-import { getAsNumberArray } from "@shared/utils/queryParam.util";
+import { getAsNumberArray, getAsNumber } from "@shared/utils/queryParam.util";
 
 @Injectable()
 export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
@@ -31,9 +31,12 @@ export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
                 return { results };
             }
             case "execute-phone-campaign": {
-                const templateId = req.parsed.extra.templateId;
+                const templateId = getAsNumber(req.parsed.extra.templateId);
+                if (!templateId) {
+                    throw new Error("Invalid templateId");
+                }
                 const phoneNumbers = req.parsed.extra.phoneNumbers ?? [];
-                return this.executeCampaign(getUserIdFromUser(req.auth), Number(templateId), phoneNumbers);
+                return this.executeCampaign(getUserIdFromUser(req.auth), templateId, phoneNumbers);
             }
         }
         return super.doAction(req, body);

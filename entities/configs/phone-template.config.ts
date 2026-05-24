@@ -9,6 +9,7 @@ import { YemotApiService } from "@shared/utils/phone/yemot-api.service";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { User } from "@shared/entities/User.entity";
 import { getUserIdFromUser } from "@shared/auth/auth.util";
+import { getAsNumber } from "@shared/utils/queryParam.util";
 
 @Injectable()
 class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
@@ -23,10 +24,10 @@ class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
     async doAction(req: CrudRequest<any, any>, body: any): Promise<any> {
         switch (req.parsed.extra.action) {
             case "test": {
-                const templateId = req.parsed.extra.templateId;
+                const templateId = getAsNumber(req.parsed.extra.templateId);
                 const phoneNumber = req.parsed.extra.phoneNumber;
                 if (!templateId || !phoneNumber) {
-                    return { error: "Missing templateId or phoneNumber" };
+                    throw new Error("Missing templateId or phoneNumber");
                 }
                 return this.sendTestCall(getUserIdFromUser(req.auth), templateId, phoneNumber);
             }
@@ -35,24 +36,34 @@ class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
     }
 
     private async sendTestCall(userId: number, templateId: number, phoneNumber: string): Promise<any> {
+        const template = await this.validateTemplate(templateId, userId);
+        const apiKey = await this.validateYemotApiKey(userId);
+        
+        await this.yemotApiService.uploadPhoneList(apiKey, template.yemotTemplateId, [{ phone: phoneNumber }]);
+        const result = await this.yemotApiService.runCampaign(apiKey, template.yemotTemplateId, {
+            ttsText: template.messageText,
+            callerId: template.callerId,
+        });
+        return { success: true, message: "Test call initiated", campaignId: result.id };
+    }
+
+    private async validateTemplate(templateId: number, userId: number): Promise<PhoneTemplate> {
         const template = await this.repo.findOne({ where: { id: templateId, userId } });
         if (!template) {
-            return { error: "Template not found" };
+            throw new Error("Template not found or access denied");
         }
+        if (!template.isActive) {
+            throw new Error("Template is not active");
+        }
+        return template;
+    }
+
+    private async validateYemotApiKey(userId: number): Promise<string> {
         const apiKey = await this.getUserYemotApiKey(userId);
         if (!apiKey) {
-            return { error: "Yemot API key not configured" };
+            throw new Error("Yemot API key not configured");
         }
-        try {
-            await this.yemotApiService.uploadPhoneList(apiKey, template.yemotTemplateId, [{ phone: phoneNumber }]);
-            const result = await this.yemotApiService.runCampaign(apiKey, template.yemotTemplateId, {
-                ttsText: template.messageText,
-                callerId: template.callerId,
-            });
-            return { success: true, message: "Test call initiated", campaignId: result.id };
-        } catch (error) {
-            return { error: error.message };
-        }
+        return apiKey;
     }
 
     async createOne(req: CrudRequest, dto: DeepPartial<PhoneTemplate>): Promise<PhoneTemplate> {

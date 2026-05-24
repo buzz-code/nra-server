@@ -1,5 +1,5 @@
 import { AuthOptions, CrudRequest, QueryOptions, RoutesOptions } from "@dataui/crud";
-import { Inject } from "@nestjs/common";
+import { Inject, Provider } from "@nestjs/common";
 import { EntityClassOrSchema } from "@nestjs/typeorm/dist/interfaces/entity-class-or-schema.type";
 import { User } from "@shared/entities/User.entity";
 import { IContent, IHeader } from "@shared/utils/exporter/types";
@@ -22,7 +22,7 @@ export interface BaseEntityModuleOptions {
     exporter?: ExportDefinition;
     service?: typeof BaseEntityService;
     /** Additional providers to register in the entity module (e.g. custom services). */
-    providers?: any[];
+    providers?: Provider[];
 }
 
 export interface ImportDefinition {
