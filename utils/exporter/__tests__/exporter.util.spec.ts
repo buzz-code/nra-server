@@ -51,8 +51,8 @@ describe('exporter.util', () => {
       const headers: IHeader[] = ['id', 'name', 'age'];
       const expectedHeaderRow = ['id', 'name', 'age'];
       const expectedData = [
-        ['1', 'John', '30'],
-        ['2', 'Jane', '25']
+        [1, 'John', 30],
+        [2, 'Jane', 25]
       ];
 
       await getExportedFile(CommonFileFormat.Excel, 'test', mockData, headers);
@@ -77,8 +77,8 @@ describe('exporter.util', () => {
       ];
       const expectedHeaderRow = ['ID', 'Name', 'Age'];
       const expectedData = [
-        ['1', 'John', '30'],
-        ['2', 'Jane', '25']
+        [1, 'John', 30],
+        [2, 'Jane', 25]
       ];
 
       await getExportedFile(CommonFileFormat.Excel, 'test', mockData, headers);
@@ -102,8 +102,8 @@ describe('exporter.util', () => {
       ];
       const expectedHeaderRow = ['ID', 'Info'];
       const expectedData = [
-        ['1', 'John (30)'],
-        ['2', 'Jane (25)']
+        [1, 'John (30)'],
+        [2, 'Jane (25)']
       ];
 
       await getExportedFile(CommonFileFormat.Excel, 'test', mockData, headers);
@@ -190,8 +190,8 @@ describe('exporter.util', () => {
       const headers: IHeader[] = ['id', 'name'];
       const expectedHeaderRow = ['id', 'name'];
       const expectedData = [
-        ['1', 'John'],
-        ['2', 'Jane']
+        [1, 'John'],
+        [2, 'Jane']
       ];
 
       await getExportedFile(CommonFileFormat.Json, 'test', mockData, headers);

@@ -51,6 +51,9 @@ function getSimpleFormatter(key: string) {
         if (val instanceof Date) {
             return Intl.DateTimeFormat('he', { dateStyle: 'short' }).format(val);
         }
+        if (typeof val === 'number') {
+            return val;
+        }
         return val?.toString();
     }
 }

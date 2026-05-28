@@ -113,3 +113,15 @@ export function keepBetween(val: number, min: number, max: number): number {
 export function getItemById<T extends { id: number | string }>(arr: T[], id: T['id']): T {
     return arr.find(item => item.id === id);
 }
+
+export function findByThreshold<T, RK extends keyof T>(
+    val: unknown,
+    items: readonly T[] | undefined | null,
+    thresholdKey: keyof T,
+    resultKey: RK,
+): T[RK] | null {
+    if (!items?.length) return null;
+    const n = Number(val);
+    if (isNaN(n)) return null;
+    return items.find(item => n >= Number(item[thresholdKey]))?.[resultKey] ?? null;
+}

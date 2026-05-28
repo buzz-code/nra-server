@@ -2,6 +2,8 @@ export interface IColumn<T = IContent> {
     label: string;
     value: string | ((record: T) => string | number | boolean | Date | IContent);
     readOnly?: boolean;
+    numFmt?: string;
+    thresholds?: Array<{ min: number; argb: string }>;
 }
 
 export type IHeader<T = IContent> = IColumn<T> | string;

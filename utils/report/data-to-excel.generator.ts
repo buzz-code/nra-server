@@ -3,6 +3,7 @@ import { IBorderRange, IImageField, ISpecialField, SupportedImageExtension } fro
 import { BaseReportGenerator } from './report.generators';
 import { CommonFileFormat } from './types';
 import { IHeader } from '../exporter/types';
+import { findByThreshold } from '../reportData.util';
 
 export interface IDataToExcelReportGenerator {
     headerRow: string[];
@@ -21,6 +22,7 @@ export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator, D exten
 
         this.insertSpecialFields(worksheet, data.specialFields);
         const headerRow = this.addTable(worksheet, data);
+        this.applyColumnStyles(worksheet, headerRow, data);
         this.protectSheet(worksheet, headerRow, data.headerConfig);
         this.applyBorders(worksheet, data.borderRanges);
         this.addImages(workbook, worksheet, data.images);
@@ -90,6 +92,25 @@ export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator, D exten
 
     private getColumnWidth(data: any[][], columnIndex: number, minWidth = 12) {
         return Math.max(minWidth, ...data.map(item => item[columnIndex]).map(String).map(item => item.length));
+    }
+
+    private applyColumnStyles(
+        worksheet: ExcelJS.Worksheet,
+        tableFirstRow: number,
+        data: IDataToExcelReportGenerator,
+    ) {
+        if (!data.headerConfig?.length || !tableFirstRow) return;
+        data.headerConfig.forEach((header, colIdx) => {
+            if (typeof header === 'string') return;
+            const { numFmt, thresholds } = header;
+            if (!numFmt && !thresholds?.length) return;
+            for (let rowIdx = 0; rowIdx < data.formattedData.length; rowIdx++) {
+                const cell = worksheet.getCell(tableFirstRow + 1 + rowIdx, colIdx + 1);
+                if (numFmt) cell.numFmt = numFmt;
+                const argb = findByThreshold(cell.value, thresholds, 'min', 'argb');
+                if (argb) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb } };
+            }
+        });
     }
 
     private protectSheet(worksheet: ExcelJS.Worksheet, headerRow: number, headerConfig?: IHeader[]) {
