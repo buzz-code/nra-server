@@ -102,6 +102,7 @@ export class BaseEntityModule {
                 { provide: ENTITY_REPOSITORY, useExisting: getRepositoryToken(options.entity) },
                 { provide: ENTITY_EXPORTER, useValue: options.exporter || null },
                 { provide: ENTITY_SERVICE, useClass: options.service ?? BaseEntityService },
+                ...(options.providers ?? []),
             ],
             controllers: [EntityController],
         };
