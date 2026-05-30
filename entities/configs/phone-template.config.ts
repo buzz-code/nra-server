@@ -67,10 +67,8 @@ class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
     }
 
     async createOne(req: CrudRequest, dto: DeepPartial<PhoneTemplate>): Promise<PhoneTemplate> {
-        const apiKey = await this.getUserYemotApiKey(req.auth?.id);
-        if (!apiKey) {
-            throw new Error("Yemot API key not configured in user settings");
-        }
+        const userId = getUserIdFromUser(req.auth);
+        const apiKey = await this.validateYemotApiKey(userId);
         const yemotResponse = await this.yemotApiService.createTemplate(
             apiKey,
             (dto as PhoneTemplate).description || (dto as PhoneTemplate).name
@@ -96,7 +94,6 @@ function getConfig(): BaseEntityModuleOptions {
         entity: PhoneTemplate,
         service: PhoneTemplateService,
         providers: [YemotApiService],
-        crudAuth: CrudAuthWithPermissionsFilter(permissions => permissions?.phoneCampaign),
     };
 }
 

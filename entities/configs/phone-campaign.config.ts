@@ -189,7 +189,6 @@ function getConfig(): BaseEntityModuleOptions {
         entity: PhoneCampaign,
         service: PhoneCampaignService,
         providers: [YemotApiService],
-        crudAuth: CrudAuthWithPermissionsFilter(permissions => permissions?.phoneCampaign),
     };
 }
 
