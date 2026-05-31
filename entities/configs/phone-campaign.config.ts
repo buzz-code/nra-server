@@ -3,7 +3,6 @@ import { CrudRequest } from "@dataui/crud";
 import { Repository } from "typeorm";
 import { BaseEntityModuleOptions, InjectEntityRepository } from "@shared/base-entity/interface";
 import { BaseEntityService } from "@shared/base-entity/base-entity.service";
-import { CrudAuthWithPermissionsFilter } from "@shared/auth/crud-auth.filter";
 import { PhoneCampaign, PhoneEntry } from "@shared/entities/PhoneCampaign.entity";
 import { PhoneTemplate } from "@shared/entities/PhoneTemplate.entity";
 import { YemotApiService } from "@shared/utils/phone/yemot-api.service";
@@ -35,7 +34,7 @@ export class PhoneCampaignService extends BaseEntityService<PhoneCampaign> {
                 if (!templateId) {
                     throw new Error("Invalid templateId");
                 }
-                const phoneNumbers = req.parsed.extra.phoneNumbers ?? [];
+                const phoneNumbers = body?.phoneNumbers ?? [];
                 return this.executeCampaign(getUserIdFromUser(req.auth), templateId, phoneNumbers);
             }
         }

@@ -3,7 +3,6 @@ import { CrudRequest } from "@dataui/crud";
 import { DeepPartial, Repository } from "typeorm";
 import { BaseEntityModuleOptions, InjectEntityRepository } from "@shared/base-entity/interface";
 import { BaseEntityService } from "@shared/base-entity/base-entity.service";
-import { CrudAuthWithPermissionsFilter } from "@shared/auth/crud-auth.filter";
 import { PhoneTemplate } from "@shared/entities/PhoneTemplate.entity";
 import { YemotApiService } from "@shared/utils/phone/yemot-api.service";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
@@ -44,6 +43,9 @@ class PhoneTemplateService extends BaseEntityService<PhoneTemplate> {
             ttsText: template.messageText,
             callerId: template.callerId,
         });
+        if (result.responseStatus !== "OK" || !result.id) {
+            throw new Error(`Failed to initiate test call: ${result.message || "Unknown error"}`);
+        }
         return { success: true, message: "Test call initiated", campaignId: result.id };
     }
 
