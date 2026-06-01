@@ -20,7 +20,7 @@ export interface BaseEntityModuleOptions {
     routes?: RoutesOptions;
     crudAuth?: AuthOptions;
     exporter?: ExportDefinition;
-    service?: typeof BaseEntityService;
+    service?: typeof BaseEntityService | (new (...args: any[]) => BaseEntityService);
     /** Additional providers to register in the entity module (e.g. custom services). */
     providers?: Provider[];
 }
