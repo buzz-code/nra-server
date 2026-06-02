@@ -13,12 +13,12 @@ export enum ImageTargetEnum {
 export class FileData {
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-    @MediumTextColumn()
+    @MediumTextColumn({ nullable: true })
     src: string;
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
-    @TextColumn()
+    @TextColumn({ nullable: true })
     title: string;
 }
 
