@@ -3,6 +3,7 @@ import { In } from 'typeorm';
 type KeyOfType<T, V> = keyof {
     [P in keyof T as T[P] extends V ? P : never]: any
 }
+type KeyOrKeysOfType<T, V> = KeyOfType<T, V> | (KeyOfType<T, V>)[];
 
 export function getNumericValueOrNull(val: string): number {
     return val === 'null' ? null : Number(val);
@@ -72,8 +73,9 @@ export function getSingleUnique<T, V>(
     return firstValue;
 }
 
-export function groupDataByKeys<T>(data: T[], keys: KeyOfType<T, any>[]): Record<string, T[]> {
-    return groupDataByKeyFn(data, item => keys.map(key => item[key]).map(String).join('_'));
+export function groupDataByKeys<T>(data: T[], keys: KeyOrKeysOfType<T, any>): Record<string, T[]> {
+    const keyArray: KeyOfType<T, any>[] = Array.isArray(keys) ? keys : [keys];
+    return groupDataByKeyFn(data, item => keyArray.map(key => item[key]).map(String).join('_'));
 }
 
 type GroupedDataKey = string | number | symbol;
@@ -86,8 +88,13 @@ export function groupDataByKeyFn<T>(data: T[], getKey: (item: T) => GroupedDataK
     }, {} as Record<GroupedDataKey, T[]>);
 }
 
-export function groupDataByKeysAndCalc<T, V>(data: T[], keys: KeyOfType<T, any>[], getValue: (item: T[]) => V): Record<string, V> {
+export function groupDataByKeysAndCalc<T, V>(data: T[], keys: KeyOrKeysOfType<T, any>, getValue: (item: T[]) => V): Record<string, V> {
     const map = groupDataByKeys(data, keys);
+    return Object.fromEntries(Object.entries(map).map(([key, value]) => [key, getValue(value)]));
+}
+
+export function groupDataByKeyFnAndCalc<T, V>(data: T[], getKey: (item: T) => GroupedDataKey, getValue: (item: T[]) => V): Record<string, V> {
+    const map = groupDataByKeyFn(data, getKey);
     return Object.fromEntries(Object.entries(map).map(([key, value]) => [key, getValue(value)]));
 }
 
