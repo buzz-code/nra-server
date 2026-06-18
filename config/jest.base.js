@@ -1,5 +1,9 @@
 const { pathsToModuleNameMapper } = require('ts-jest');
 
+// Ensure tests run with the test database configuration (SQLite in-memory).
+// This also drives the database-agnostic column-type helpers in shared/utils/entity/column-types.util.ts.
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+
 module.exports = function makeJestBase(compilerOptions) {
   return {
     preset: 'ts-jest',

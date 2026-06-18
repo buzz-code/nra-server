@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { Scenario, ScenarioResult, ScenarioStep, MessageMatcher } from './scenario-types';
-import { MockCall, MockExitError, YemotMessage } from './mock-call';
+import { MockCall, MockExitError, MockInputExhaustedError, YemotMessage } from './mock-call';
 import { createRealDataSource } from './real-data-source';
 import { BaseYemotHandlerService } from '../v2/yemot-router.service';
 
@@ -57,11 +57,15 @@ export class YemotScenarioRunner {
 
       // 5. Execute
       const interactionHistory: ScenarioResult['interactionHistory'] = [];
+      let capturedError: string | undefined;
       try {
         await handler.processCall();
       } catch (e: any) {
         if (e instanceof MockExitError) {
           // Expected: call terminated normally
+        } else if (e instanceof MockInputExhaustedError) {
+          // Test failure: handler asked for more input than the scenario provided
+          capturedError = e.message;
         } else if (call.wasHungup()) {
           // Also expected: read after hangup, etc.
         } else {
@@ -86,13 +90,14 @@ export class YemotScenarioRunner {
       }
 
       // 7. Validate steps
-      const validationResult = this.validateSteps(scenario.steps, call);
+      const validationResult = this.validateSteps(scenario.steps, call, capturedError);
 
       // 8. Query post-run state for saved entities
       const saved = await this.computeSaved(ds, scenario.seed);
 
       return {
         passed: validationResult.passed,
+        failureMessage: validationResult.failureMessage,
         hungup: call.wasHungup(),
         messages: call.getMessages().flat(),
         saved,
@@ -206,7 +211,12 @@ export class YemotScenarioRunner {
   private validateSteps(
     steps: ScenarioStep[],
     call: MockCall,
+    capturedError?: string,
   ): { passed: boolean; failureMessage?: string } {
+    if (capturedError) {
+      return { passed: false, failureMessage: capturedError };
+    }
+
     const responses = call.getResponses();
     let respIdx = 0;
 

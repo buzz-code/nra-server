@@ -39,6 +39,22 @@ export class MockExitError extends Error {
   }
 }
 
+/**
+ * Error thrown when MockCall runs out of programmed inputs.
+ * This prevents infinite hangs in tests when a handler enters a retry loop
+ * that the scenario didn't account for.
+ */
+export class MockInputExhaustedError extends Error {
+  constructor(readCount: number) {
+    super(
+      `MockCall ran out of programmed inputs after ${readCount} read() calls. ` +
+      `The handler asked for more input than the scenario provided. ` +
+      `Check that your scenario steps cover all retry loops and branches.`
+    );
+    this.name = 'MockInputExhaustedError';
+  }
+}
+
 export class MockCall {
   did: string;
   phone: string;
@@ -110,7 +126,7 @@ export class MockCall {
     if (this.idx < this.inputs.length) {
       return this.inputs[this.idx++];
     }
-    return false;
+    throw new MockInputExhaustedError(this.responses.filter(r => r.type === 'read').length + 1);
   }
 
   async id_list_message(

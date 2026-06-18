@@ -74,7 +74,9 @@ export function TinyIntColumn(options?: ColumnOptions) {
 }
 
 /**
- * Database-agnostic CreateDateColumn with proper timestamp handling
+ * Database-agnostic CreateDateColumn with proper timestamp handling.
+ * MySQL uses `timestamp`; SQLite uses TypeORM's default `ClockDate`/`datetime`
+ * (the sqlite3 driver supports it, unlike sql.js).
  */
 export function CreatedAtColumn(options?: { name?: string }) {
   const dbType = getDatabaseType();
@@ -91,7 +93,8 @@ export function CreatedAtColumn(options?: { name?: string }) {
 }
 
 /**
- * Database-agnostic UpdateDateColumn with proper timestamp handling  
+ * Database-agnostic UpdateDateColumn with proper timestamp handling.
+ * MySQL uses `timestamp`; SQLite uses TypeORM's default `ClockDate`/`datetime`.
  */
 export function UpdatedAtColumn(options?: { name?: string }) {
   const dbType = getDatabaseType();
@@ -105,6 +108,17 @@ export function UpdatedAtColumn(options?: { name?: string }) {
       name: options?.name || 'updated_at'
     });
   }
+}
+
+/**
+ * Database-agnostic plain date column.
+ * MySQL uses `date`; SQLite uses `datetime` so time-based `Between` queries
+ * (e.g. startOfDay/endOfDay) match correctly.
+ */
+export function DateColumn(options?: ColumnOptions) {
+  const dbType = getDatabaseType();
+  const type = (dbType === DatabaseType.MYSQL ? 'date' : 'datetime') as any;
+  return Column(type, options);
 }
 
 /**

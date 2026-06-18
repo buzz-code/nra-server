@@ -28,5 +28,8 @@ export type { YemotHandlerConstructor } from './scenario-runner';
 export { createRealDataSource } from './real-data-source';
 
 // MockCall (for low-level usage)
-export { MockCall, MockExitError } from './mock-call';
+export { MockCall, MockExitError, MockInputExhaustedError } from './mock-call';
 export type { MockCallOptions, YemotMessage } from './mock-call';
+
+// Test helpers
+export { useFakeDateOnly } from './test-helpers';

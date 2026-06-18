@@ -70,6 +70,9 @@ export interface ScenarioResult {
   /** Did all steps pass validation? */
   passed: boolean;
 
+  /** Failure message if validation failed */
+  failureMessage?: string;
+
   /** Did the call end with hangup? */
   hungup: boolean;
 

@@ -14,7 +14,7 @@ import { DataSource } from 'typeorm';
  *
  * Usage:
  *   const ds = await createRealDataSource();
- *   // ds is a fully initialized TypeORM DataSource with sql.js
+ *   // ds is a fully initialized TypeORM DataSource with sqlite3
  *   await ds.destroy();  // clean up when done
  */
 export async function createRealDataSource(): Promise<DataSource> {
@@ -24,17 +24,16 @@ export async function createRealDataSource(): Promise<DataSource> {
   const serverRoot = join(__dirname, '..', '..', '..', '..');
 
   const ds = new DataSource({
-    type: 'sqljs',
+    type: 'sqlite',
+    database: ':memory:',
     synchronize: true,
+    dropSchema: true,
     logging: false,
     entities: [
       join(serverRoot, 'src/db/**/*.{js,ts}'),
       join(serverRoot, 'shared/entities/**/*.entity.{js,ts}'),
       join(serverRoot, 'shared/view-entities/**/*.{js,ts}'),
     ],
-    extra: {
-      autoSave: false,
-    } as any,
   });
 
   await ds.initialize();

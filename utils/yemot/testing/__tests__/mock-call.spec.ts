@@ -1,4 +1,4 @@
-import { MockCall, MockExitError } from '../mock-call';
+import { MockCall, MockExitError, MockInputExhaustedError } from '../mock-call';
 
 describe('MockCall', () => {
   it('should return programmed inputs in order', async () => {
@@ -10,11 +10,13 @@ describe('MockCall', () => {
     expect(await call.read([{ type: 'text', data: 'msg3' }], 'text')).toBe('third');
   });
 
-  it('should return false when inputs exhausted', async () => {
+  it('should throw MockInputExhaustedError when inputs exhausted', async () => {
     const call = new MockCall();
     call.setInputs(['only']);
     await call.read([{ type: 'text', data: 'msg' }], 'text');
-    expect(await call.read([{ type: 'text', data: 'msg' }], 'text')).toBe(false);
+    await expect(
+      call.read([{ type: 'text', data: 'msg' }], 'text')
+    ).rejects.toThrow(MockInputExhaustedError);
   });
 
   it('should throw MockExitError on hangup()', () => {
