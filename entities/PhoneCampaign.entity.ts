@@ -1,5 +1,5 @@
-import { Column, Entity, Index, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { CreatedAtColumn, DateColumn, UpdatedAtColumn } from "../utils/entity/column-types.util";
+import { Column, CreateDateColumn, Entity, Index, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { DateColumn } from "@shared/utils/entity/column-types.util";
 import { User } from "./User.entity";
 import { PhoneTemplate } from "./PhoneTemplate.entity";
 
@@ -50,10 +50,10 @@ export class PhoneCampaign {
     @Column({ type: "text", nullable: true })
     errorMessage: string;
 
-    @CreatedAtColumn()
+    @CreateDateColumn()
     createdAt: Date;
 
-    @UpdatedAtColumn()
+    @UpdateDateColumn()
     updatedAt: Date;
 
     @DateColumn({ nullable: true })

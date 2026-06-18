@@ -74,9 +74,7 @@ export function TinyIntColumn(options?: ColumnOptions) {
 }
 
 /**
- * Database-agnostic CreateDateColumn with proper timestamp handling.
- * MySQL uses `timestamp`; SQLite uses TypeORM's default `ClockDate`/`datetime`
- * (the sqlite3 driver supports it, unlike sql.js).
+ * Database-agnostic CreateDateColumn with proper timestamp handling
  */
 export function CreatedAtColumn(options?: { name?: string }) {
   const dbType = getDatabaseType();
@@ -93,8 +91,7 @@ export function CreatedAtColumn(options?: { name?: string }) {
 }
 
 /**
- * Database-agnostic UpdateDateColumn with proper timestamp handling.
- * MySQL uses `timestamp`; SQLite uses TypeORM's default `ClockDate`/`datetime`.
+ * Database-agnostic UpdateDateColumn with proper timestamp handling  
  */
 export function UpdatedAtColumn(options?: { name?: string }) {
   const dbType = getDatabaseType();
