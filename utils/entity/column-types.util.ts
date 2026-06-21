@@ -108,6 +108,17 @@ export function UpdatedAtColumn(options?: { name?: string }) {
 }
 
 /**
+ * Database-agnostic plain date column.
+ * MySQL uses `date`; SQLite uses `datetime` so time-based `Between` queries
+ * (e.g. startOfDay/endOfDay) match correctly.
+ */
+export function DateColumn(options?: ColumnOptions) {
+  const dbType = getDatabaseType();
+  const type = (dbType === DatabaseType.MYSQL ? 'date' : 'datetime') as any;
+  return Column(type, options);
+}
+
+/**
  * Boolean-like column using tinyint(1) in MySQL, integer in SQLite
  * For storing boolean values as 0/1
  */
