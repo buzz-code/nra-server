@@ -18,6 +18,7 @@ export interface MockCallOptions {
   ApiDID?: string;
   ApiPhone?: string;
   ApiCallId?: string;
+  ApiEnterID?: string;
   did?: string;
   phone?: string;
   callId?: string;
@@ -62,6 +63,7 @@ export class MockCall {
   ApiDID: string;
   ApiPhone: string;
   ApiCallId: string;
+  ApiEnterID?: string;
 
   private inputs: (string | false)[] = [];
   private idx = 0;
@@ -80,6 +82,7 @@ export class MockCall {
     this.ApiDID = opts.ApiDID || opts.did || '';
     this.ApiPhone = opts.ApiPhone || opts.phone || '';
     this.ApiCallId = opts.ApiCallId || opts.callId || '';
+    this.ApiEnterID = opts.ApiEnterID;
   }
 
   /** Set the ordered list of inputs that read() will return. */

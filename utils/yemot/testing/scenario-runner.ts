@@ -23,9 +23,11 @@ export type YemotHandlerConstructor = new (
  */
 export class YemotScenarioRunner {
   private HandlerClass: YemotHandlerConstructor;
+  private apiEnterId?: string;
 
-  constructor(HandlerClass: YemotHandlerConstructor) {
+  constructor(HandlerClass: YemotHandlerConstructor, apiEnterId?: string) {
     this.HandlerClass = HandlerClass;
+    this.apiEnterId = apiEnterId;
   }
 
   /**
@@ -129,6 +131,7 @@ export class YemotScenarioRunner {
       ApiDID: '099999999',
       ApiPhone: '0501234567',
       ApiCallId: 'test-call-1',
+      ApiEnterID: this.apiEnterId,
     });
 
     // Extract user responses from ask_input and confirmation steps
