@@ -104,14 +104,14 @@ export class BaseYemotHandlerService {
   async processCall(): Promise<void> {
     // Default implementation (can be overridden)
     this.logger.log(`Processing call with ID: ${this.call.callId}`);
-    this.hangupWithMessage('Default handler: Call processing not implemented.');
+    await this.hangupWithMessage('Default handler: Call processing not implemented.');
   }
 
   protected async getUserByDidPhone() {
     this.logger.log(`Getting user by phone: ${this.call.did}`);
     const user = await this.dataSource.getRepository(User).findOne({ where: { phoneNumber: this.call.did } });
     if (!user) {
-      this.hangupWithMessage('המערכת לא מחוברת, אנא פני למזכירות');
+      return this.hangupWithMessage('המערכת לא מחוברת, אנא פני למזכירות');
     }
     this.user = user;
   }
@@ -174,27 +174,18 @@ export class BaseYemotHandlerService {
     this.call.hangup();
   }
 
-  // ── String-based methods (plain text, kept for backwards compatibility) ──
+  // ── String-based methods (plain text) ───────────────────────────────────
 
   protected hangupWithMessage(message: string) {
-    this.logger.log(`Hanging up with message: ${message}`);
-    this.callTracker.logConversationStep(this.call.callId, message, undefined, 'hangup_message');
-    this.call.id_list_message([{ type: 'text', data: message }], { prependToNextAction: true });
-    this.call.hangup();
+    return this.dispatchHangup({ type: 'text', data: message });
   }
 
-  protected async askForInput(message: string, options?: TapOptions) {
-    this.logger.log(`Asking for input with message: ${message}`);
-    await this.callTracker.logConversationStep(this.call.callId, message, undefined, 'ask_input');
-    const userInput = await this.call.read([{ type: 'text', data: message }], 'tap', options);
-    await this.callTracker.logConversationStep(this.call.callId, message, userInput, 'user_input');
-    return userInput;
+  protected askForInput(message: string, options?: TapOptions) {
+    return this.dispatchRead({ type: 'text', data: message }, options);
   }
 
   protected sendMessage(message: string) {
-    this.logger.log(`Sending message: ${message}`);
-    this.callTracker.logConversationStep(this.call.callId, message, undefined, 'send_message');
-    return this.call.id_list_message([{ type: 'text', data: message }], { prependToNextAction: true });
+    return this.dispatchSend({ type: 'text', data: message });
   }
 
   // ── Text-key-based methods (lookup via TextByUser view) ──────────────────
