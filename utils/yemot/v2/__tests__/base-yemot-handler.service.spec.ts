@@ -316,7 +316,7 @@ describe('BaseYemotHandlerService', () => {
 
   describe('hangupWithMessage', () => {
     it('should log conversation step with stepType: hangup_message', async () => {
-      handler.testHangupWithMessage('Goodbye');
+      await handler.testHangupWithMessage('Goodbye');
 
       expect(mockCallTracker.logConversationStep).toHaveBeenCalledWith(
         'test-call-123',
@@ -326,8 +326,8 @@ describe('BaseYemotHandlerService', () => {
       );
     });
 
-    it('should send message via call.id_list_message()', () => {
-      handler.testHangupWithMessage('Test message');
+    it('should send message via call.id_list_message()', async () => {
+      await handler.testHangupWithMessage('Test message');
 
       expect(mockCall.id_list_message).toHaveBeenCalledWith(
         [{ type: 'text', data: 'Test message' }],
@@ -335,14 +335,14 @@ describe('BaseYemotHandlerService', () => {
       );
     });
 
-    it('should call call.hangup()', () => {
-      handler.testHangupWithMessage('Ending call');
+    it('should call call.hangup()', async () => {
+      await handler.testHangupWithMessage('Ending call');
 
       expect(mockCall.hangup).toHaveBeenCalled();
     });
 
-    it('should use prependToNextAction: true', () => {
-      handler.testHangupWithMessage('Message');
+    it('should use prependToNextAction: true', async () => {
+      await handler.testHangupWithMessage('Message');
 
       expect(mockCall.id_list_message).toHaveBeenCalledWith(
         expect.anything(),
@@ -413,8 +413,8 @@ describe('BaseYemotHandlerService', () => {
   });
 
   describe('sendMessage', () => {
-    it('should log conversation step (send_message)', () => {
-      handler.testSendMessage('Info message');
+    it('should log conversation step (send_message)', async () => {
+      await handler.testSendMessage('Info message');
 
       expect(mockCallTracker.logConversationStep).toHaveBeenCalledWith(
         'test-call-123',
@@ -424,8 +424,8 @@ describe('BaseYemotHandlerService', () => {
       );
     });
 
-    it('should call call.id_list_message()', () => {
-      handler.testSendMessage('Notification');
+    it('should call call.id_list_message()', async () => {
+      await handler.testSendMessage('Notification');
 
       expect(mockCall.id_list_message).toHaveBeenCalledWith(
         [{ type: 'text', data: 'Notification' }],
@@ -433,8 +433,8 @@ describe('BaseYemotHandlerService', () => {
       );
     });
 
-    it('should use prependToNextAction: true', () => {
-      handler.testSendMessage('Message');
+    it('should use prependToNextAction: true', async () => {
+      await handler.testSendMessage('Message');
 
       expect(mockCall.id_list_message).toHaveBeenCalledWith(
         expect.anything(),
