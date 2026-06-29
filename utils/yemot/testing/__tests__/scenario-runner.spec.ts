@@ -11,7 +11,7 @@ class FakeHandler extends BaseYemotHandlerService {
     const name = await this.askForInput('What is your name?', { max_digits: 10 });
     const age = await this.askForInput('What is your age?', { max_digits: 2 });
     const confirmed = await this.askForInput('Confirm? 1=yes, 2=no', { max_digits: 1 });
-    this.hangupWithMessage(`Thank you ${name}, age ${age}, confirmed: ${confirmed}`);
+    await this.hangupWithMessage(`Thank you ${name}, age ${age}, confirmed: ${confirmed}`);
   }
 }
 
@@ -71,7 +71,7 @@ describe('YemotScenarioRunner', () => {
     class EarlyHangupHandler extends BaseYemotHandlerService {
       override async processCall(): Promise<void> {
         await this.getUserByDidPhone();
-        this.hangupWithMessage('Goodbye early');
+        await this.hangupWithMessage('Goodbye early');
       }
     }
 
