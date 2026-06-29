@@ -12,6 +12,8 @@ const logger = new Logger('YemotRouterService');
 export const YEMOT_HANDLER_FACTORY = 'YemotHandlerFactory';
 export type YemotHandlerFactory = new (dataSource: DataSource, call: Call, callTracker: YemotCallTrackingService) => BaseYemotHandlerService;
 type TextParams = Record<string, string | number>;
+type MessageObj = { type: 'text' | 'file'; data: string };
+export type ContentData = { value?: string | null; filepath?: string | null };
 
 @Injectable()
 export class YemotRouterService {
@@ -102,14 +104,14 @@ export class BaseYemotHandlerService {
   async processCall(): Promise<void> {
     // Default implementation (can be overridden)
     this.logger.log(`Processing call with ID: ${this.call.callId}`);
-    this.hangupWithMessage('Default handler: Call processing not implemented.');
+    await this.hangupWithMessage('Default handler: Call processing not implemented.');
   }
 
   protected async getUserByDidPhone() {
     this.logger.log(`Getting user by phone: ${this.call.did}`);
     const user = await this.dataSource.getRepository(User).findOne({ where: { phoneNumber: this.call.did } });
     if (!user) {
-      this.hangupWithMessage('המערכת לא מחוברת, אנא פני למזכירות');
+      return this.hangupWithMessage('המערכת לא מחוברת, אנא פני למזכירות');
     }
     this.user = user;
   }
@@ -140,64 +142,89 @@ export class BaseYemotHandlerService {
     return textData.value;
   }
 
-  protected hangupWithMessage(message: string) {
-    this.logger.log(`Hanging up with message: ${message}`);
-    this.callTracker.logConversationStep(this.call.callId, message, undefined, 'hangup_message');
-    this.call.id_list_message([{ type: 'text', data: message }], { prependToNextAction: true });
+  // ── Private dispatch helpers ─────────────────────────────────────────────
+  // Single place that talks to this.call for send / read / hangup operations.
+
+  private buildMessageFromContent(content: ContentData): MessageObj {
+    if (content?.filepath?.trim()) return { type: 'file', data: content.filepath };
+    return { type: 'text', data: content?.value || '' };
+  }
+
+  private async dispatchSend(msgObj: MessageObj) {
+    const text = msgObj.type === 'file' ? `[File: ${msgObj.data}]` : msgObj.data;
+    this.logger.log(`Sending ${msgObj.type}: ${text}`);
+    await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'send_message');
+    return this.call.id_list_message([msgObj], { prependToNextAction: true });
+  }
+
+  private async dispatchRead(msgObj: MessageObj, options?: TapOptions): Promise<string> {
+    const text = msgObj.type === 'file' ? `[File: ${msgObj.data}]` : msgObj.data;
+    this.logger.log(`Asking for input from ${msgObj.type}: ${text}`);
+    await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'ask_input');
+    const input = await this.call.read([msgObj], 'tap', options);
+    await this.callTracker.logConversationStep(this.call.callId, text, input, 'user_input');
+    return input;
+  }
+
+  private async dispatchHangup(msgObj: MessageObj): Promise<void> {
+    const text = msgObj.type === 'file' ? `[File: ${msgObj.data}]` : msgObj.data;
+    this.logger.log(`Hanging up with ${msgObj.type}: ${text}`);
+    await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'hangup_message');
+    this.call.id_list_message([msgObj], { prependToNextAction: true });
     this.call.hangup();
   }
 
-  protected async askForInput(message: string, options?: TapOptions) {
-    this.logger.log(`Asking for input with message: ${message}`);
-    await this.callTracker.logConversationStep(this.call.callId, message, undefined, 'ask_input');
-    const userInput = await this.call.read([{ type: 'text', data: message }], 'tap', options);
-    await this.callTracker.logConversationStep(this.call.callId, message, userInput, 'user_input');
-    return userInput;
+  // ── String-based methods (plain text) ───────────────────────────────────
+
+  protected hangupWithMessage(message: string) {
+    return this.dispatchHangup({ type: 'text', data: message });
+  }
+
+  protected askForInput(message: string, options?: TapOptions) {
+    return this.dispatchRead({ type: 'text', data: message }, options);
   }
 
   protected sendMessage(message: string) {
-    this.logger.log(`Sending message: ${message}`);
-    this.callTracker.logConversationStep(this.call.callId, message, undefined, 'send_message');
-    return this.call.id_list_message([{ type: 'text', data: message }], { prependToNextAction: true });
+    return this.dispatchSend({ type: 'text', data: message });
   }
 
+  // ── Text-key-based methods (lookup via TextByUser view) ──────────────────
+
   protected async hangupWithMessageByKey(textKey: string, values?: TextParams) {
-    const messageObj = await this.getMessageByKey(textKey, values);
-    this.logger.log(`Hanging up with ${messageObj.type}: ${messageObj.data}`);
-    const messageText = messageObj.type === 'file' ? `[File: ${messageObj.data}]` : messageObj.data;
-    await this.callTracker.logConversationStep(this.call.callId, messageText, undefined, 'hangup_message');
-    this.call.id_list_message([messageObj], { prependToNextAction: true });
-    this.call.hangup();
+    return this.dispatchHangup(await this.getMessageByKey(textKey, values));
   }
 
   protected async askForInputByKey(textKey: string, values?: TextParams, options?: TapOptions) {
-    const messageObj = await this.getMessageByKey(textKey, values);
-    this.logger.log(`Asking for input from ${messageObj.type}: ${messageObj.data}`);
-    const messageText = messageObj.type === 'file' ? `[File: ${messageObj.data}]` : messageObj.data;
-    await this.callTracker.logConversationStep(this.call.callId, messageText, undefined, 'ask_input');
-
-    const userInput = await this.call.read([messageObj], 'tap', options);
-    await this.callTracker.logConversationStep(this.call.callId, messageText, userInput, 'user_input');
-    return userInput;
+    return this.dispatchRead(await this.getMessageByKey(textKey, values), options);
   }
 
   protected async sendMessageByKey(textKey: string, values?: TextParams) {
-    const messageObj = await this.getMessageByKey(textKey, values);
-    this.logger.log(`Sending ${messageObj.type} message: ${messageObj.data}`);
-    const messageText = messageObj.type === 'file' ? `[File: ${messageObj.data}]` : messageObj.data;
-    await this.callTracker.logConversationStep(this.call.callId, messageText, undefined, 'send_message');
-    return this.call.id_list_message([messageObj], { prependToNextAction: true });
+    return this.dispatchSend(await this.getMessageByKey(textKey, values));
   }
 
-  private async getMessageByKey(textKey: string, values?: TextParams): Promise<{ type: 'text' | 'file'; data: string }> {
+  private async getMessageByKey(textKey: string, values?: TextParams): Promise<MessageObj> {
     const textData = await this.getTextDataByUserId(textKey, values);
-
     if (textData.filepath && textData.filepath.trim()) {
       return { type: 'file', data: textData.filepath };
-    } else {
-      return { type: 'text', data: textData.value };
     }
+    return { type: 'text', data: textData.value };
   }
+
+  // ── Content-object-based methods (pass any { value, filepath } object) ───
+
+  protected sendMessageFromContent(content: ContentData) {
+    return this.dispatchSend(this.buildMessageFromContent(content));
+  }
+
+  protected askForInputFromContent(content: ContentData, options?: TapOptions) {
+    return this.dispatchRead(this.buildMessageFromContent(content), options);
+  }
+
+  protected hangupWithMessageFromContent(content: ContentData) {
+    return this.dispatchHangup(this.buildMessageFromContent(content));
+  }
+
+  // ── Composite helpers ────────────────────────────────────────────────────
 
   protected async askForMenu<T extends { key: string | number, name: string }>(textKey: string, options: T[]) {
     this.logger.log(`Asking for menu with text key: ${textKey}`);
