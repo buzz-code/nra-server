@@ -30,6 +30,7 @@ describe('report.util', () => {
             expect(getFileExtension(CommonFileFormat.Json)).toBe('json');
             expect(getFileExtension(CommonFileFormat.Zip)).toBe('zip');
             expect(getFileExtension(CommonFileFormat.Html)).toBe('html');
+            expect(getFileExtension(CommonFileFormat.Mp3)).toBe('mp3');
         });
     });
 
@@ -40,6 +41,7 @@ describe('report.util', () => {
             expect(getFileType(CommonFileFormat.Json)).toBe('application/json');
             expect(getFileType(CommonFileFormat.Zip)).toBe('application/zip');
             expect(getFileType(CommonFileFormat.Html)).toBe('text/html');
+            expect(getFileType(CommonFileFormat.Mp3)).toBe('audio/mpeg');
         })
     });
 

@@ -33,6 +33,8 @@ export function getFileType(format: CommonFileFormat): string {
             return 'application/zip';
         case CommonFileFormat.Html:
             return 'text/html';
+        case CommonFileFormat.Mp3:
+            return 'audio/mpeg';
     }
 }
 
@@ -54,6 +56,8 @@ export function getFileExtension(format: CommonFileFormat) {
             return 'zip';
         case CommonFileFormat.Html:
             return 'html';
+        case CommonFileFormat.Mp3:
+            return 'mp3';
     }
 
 }
