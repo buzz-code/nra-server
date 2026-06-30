@@ -92,6 +92,8 @@ export class YemotRouterService {
 export class BaseYemotHandlerService {
   protected readonly logger = logger;
   protected user: User;
+  /** True once hangupWithMessage() has been called. */
+  hungUp = false;
 
   constructor(
     @InjectDataSource() protected dataSource: DataSource,
@@ -144,6 +146,7 @@ export class BaseYemotHandlerService {
     this.logger.log(`Hanging up with message: ${message}`);
     this.callTracker.logConversationStep(this.call.callId, message, undefined, 'hangup_message');
     this.call.id_list_message([{ type: 'text', data: message }], { prependToNextAction: true });
+    this.hungUp = true;
     this.call.hangup();
   }
 
@@ -167,6 +170,7 @@ export class BaseYemotHandlerService {
     const messageText = messageObj.type === 'file' ? `[File: ${messageObj.data}]` : messageObj.data;
     await this.callTracker.logConversationStep(this.call.callId, messageText, undefined, 'hangup_message');
     this.call.id_list_message([messageObj], { prependToNextAction: true });
+    this.hungUp = true;
     this.call.hangup();
   }
 
