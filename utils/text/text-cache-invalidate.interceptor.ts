@@ -3,7 +3,6 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Observable, tap } from 'rxjs';
 import { Text } from '@shared/entities/Text.entity';
-import { User } from '@shared/entities/User.entity';
 import { getTextByUserCacheId } from '@shared/view-entities/TextByUser.entity';
 
 @Injectable()
@@ -23,13 +22,6 @@ export class TextCacheInvalidateInterceptor implements NestInterceptor {
             return;
         }
 
-        const ids = [getTextByUserCacheId(text.userId, text.name)];
-        if (text.userId === 0) {
-            // base text changed - also invalidate every user relying on the fallback value
-            const users = await this.dataSource.getRepository(User).find({ select: ['id'] });
-            ids.push(...users.map(user => getTextByUserCacheId(user.id, text.name)));
-        }
-
-        await this.dataSource.queryResultCache?.remove(ids);
+        await this.dataSource.queryResultCache?.remove([getTextByUserCacheId(text.userId, text.name)]);
     }
 }

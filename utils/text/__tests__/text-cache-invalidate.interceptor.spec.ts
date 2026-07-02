@@ -3,23 +3,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { of } from 'rxjs';
 import { Text } from '@shared/entities/Text.entity';
-import { User } from '@shared/entities/User.entity';
 import { getTextByUserCacheId } from '@shared/view-entities/TextByUser.entity';
 import { TextCacheInvalidateInterceptor } from '../text-cache-invalidate.interceptor';
 
 describe('TextCacheInvalidateInterceptor', () => {
   let interceptor: TextCacheInvalidateInterceptor;
   let dataSource: jest.Mocked<DataSource>;
-  let userRepo: { find: jest.Mock };
   let queryResultCache: { remove: jest.Mock };
 
   beforeEach(async () => {
     queryResultCache = { remove: jest.fn().mockResolvedValue(undefined) };
-    userRepo = { find: jest.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]) };
-    dataSource = {
-      getRepository: jest.fn().mockReturnValue(userRepo),
-      queryResultCache,
-    } as any;
+    dataSource = { queryResultCache } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -37,7 +31,7 @@ describe('TextCacheInvalidateInterceptor', () => {
     expect(interceptor).toBeDefined();
   });
 
-  it('invalidates only the affected user cache entry for a per-user override', (done) => {
+  it('invalidates the affected user cache entry after a write', (done) => {
     const text = { userId: 5, name: 'GREETING' } as Text;
     const mockCallHandler = { handle: () => of(text) };
 
@@ -45,14 +39,13 @@ describe('TextCacheInvalidateInterceptor', () => {
       next: async (result) => {
         expect(result).toBe(text);
         await Promise.resolve();
-        expect(dataSource.getRepository).not.toHaveBeenCalledWith(User);
         expect(queryResultCache.remove).toHaveBeenCalledWith([getTextByUserCacheId(5, 'GREETING')]);
         done();
       },
     });
   });
 
-  it('invalidates every user cache entry when the base text (userId=0) changes', (done) => {
+  it('invalidates the base text cache entry (userId=0) when the base text changes', (done) => {
     const text = { userId: 0, name: 'GREETING' } as Text;
     const mockCallHandler = { handle: () => of(text) };
 
@@ -60,11 +53,7 @@ describe('TextCacheInvalidateInterceptor', () => {
       next: async (result) => {
         expect(result).toBe(text);
         await Promise.resolve();
-        expect(queryResultCache.remove).toHaveBeenCalledWith([
-          getTextByUserCacheId(0, 'GREETING'),
-          getTextByUserCacheId(1, 'GREETING'),
-          getTextByUserCacheId(2, 'GREETING'),
-        ]);
+        expect(queryResultCache.remove).toHaveBeenCalledWith([getTextByUserCacheId(0, 'GREETING')]);
         done();
       },
     });
