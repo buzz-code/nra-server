@@ -4,7 +4,8 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import * as express from 'express';
 import { Call, TapOptions, YemotRouter } from 'yemot-router2';
 import { User } from '@shared/entities/User.entity';
-import { TextByUser } from '@shared/view-entities/TextByUser.entity';
+import { TextByUser, getTextByUserCacheId } from '@shared/view-entities/TextByUser.entity';
+import { cacheTTL } from '@shared/config/database.config';
 import { YemotCallTrackingService } from './yemot-call-tracking.service';
 
 const logger = new Logger('YemotRouterService');
@@ -122,7 +123,7 @@ export class BaseYemotHandlerService {
       .getRepository(TextByUser)
       .findOne({
         where: { userId: this.user.id, name: textKey },
-        cache: true
+        cache: { id: getTextByUserCacheId(this.user.id, textKey), milliseconds: cacheTTL }
       });
 
     let textValue = text?.value || textKey;

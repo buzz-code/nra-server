@@ -2,7 +2,8 @@ import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { Text } from "@shared/entities/Text.entity";
 import { Between, DataSource, In } from "typeorm";
 import util from "./yemot.util";
-import { TextByUser } from "@shared/view-entities/TextByUser.entity";
+import { TextByUser, getTextByUserCacheId } from "@shared/view-entities/TextByUser.entity";
+import { cacheTTL } from "@shared/config/database.config";
 import { getCurrentHebrewYear } from "../entity/year.util";
 import { User } from "@shared/entities/User.entity";
 
@@ -32,7 +33,7 @@ export abstract class YemotProcessor {
   protected async getText(userId: number, textKey: string, ...args): Promise<string> {
     const text = await this.dataSource.getRepository(TextByUser).findOne({
       where: { userId, name: textKey },
-      cache: true,
+      cache: { id: getTextByUserCacheId(userId, textKey), milliseconds: cacheTTL },
     })
     const textValue = text?.value || textKey
     return FormatString(textValue, args);
@@ -101,7 +102,7 @@ export class YemotResponse {
         userId: this.userId,
         name: textKey
       },
-      cache: true,
+      cache: { id: getTextByUserCacheId(this.userId, textKey), milliseconds: cacheTTL },
     })
     const textValue = text?.value || textKey
     return FormatString(textValue, args)?.replace(invalidCharsRegex, '');

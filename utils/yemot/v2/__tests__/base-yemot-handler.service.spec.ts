@@ -202,7 +202,7 @@ describe('BaseYemotHandlerService', () => {
 
       expect(textByUserRepo.findOne).toHaveBeenCalledWith({
         where: { userId: 1, name: 'TEST.KEY' },
-        cache: true,
+        cache: { id: 'text-by-user:1:TEST.KEY', milliseconds: 300_000 },
       });
       expect(result).toEqual({ value: 'Test value', filepath: null });
     });
@@ -278,7 +278,7 @@ describe('BaseYemotHandlerService', () => {
       await handler.testGetTextDataByUserId('TEST.KEY');
 
       expect(textByUserRepo.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({ cache: true }),
+        expect.objectContaining({ cache: { id: 'text-by-user:1:TEST.KEY', milliseconds: 300_000 } }),
       );
     });
   });

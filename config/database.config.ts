@@ -2,7 +2,7 @@ import { join } from "path";
 import { DataSourceOptions } from "typeorm";
 import { KeyvCacheProvider } from "typeorm-cache";
 
-const cacheTTL = 300_000;
+export const cacheTTL = 300_000;
 
 // Test configuration for sqlite in-memory
 const testDatabaseConfig: DataSourceOptions = {
