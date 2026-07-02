@@ -349,6 +349,18 @@ describe('BaseYemotHandlerService', () => {
         { prependToNextAction: true },
       );
     });
+
+    it('splits a multi-line message into one entry per line', async () => {
+      await handler.testHangupWithMessage('Goodbye\nSee you soon');
+
+      expect(mockCall.id_list_message).toHaveBeenCalledWith(
+        [
+          { type: 'text', data: 'Goodbye' },
+          { type: 'text', data: 'See you soon' },
+        ],
+        { prependToNextAction: true },
+      );
+    });
   });
 
   describe('askForInput', () => {
@@ -410,6 +422,21 @@ describe('BaseYemotHandlerService', () => {
         options,
       );
     });
+
+    it('plays each line as a separate message before reading', async () => {
+      (mockCall.read as jest.Mock).mockResolvedValue('1');
+
+      await handler.testAskForInput('Choose wisely\nOption 1 or 2?');
+
+      expect(mockCall.read).toHaveBeenCalledWith(
+        [
+          { type: 'text', data: 'Choose wisely' },
+          { type: 'text', data: 'Option 1 or 2?' },
+        ],
+        'tap',
+        undefined,
+      );
+    });
   });
 
   describe('sendMessage', () => {
@@ -441,14 +468,8 @@ describe('BaseYemotHandlerService', () => {
         { prependToNextAction: true },
       );
     });
-  });
 
-  describe('multi-line message splitting', () => {
-    beforeEach(() => {
-      handler.setUser(mockUser);
-    });
-
-    it('sendMessage: splits a multi-line message into one entry per line', async () => {
+    it('splits a multi-line message into one entry per line', async () => {
       await handler.testSendMessage('Line one\nLine two\nLine three');
 
       expect(mockCall.id_list_message).toHaveBeenCalledWith(
@@ -461,7 +482,7 @@ describe('BaseYemotHandlerService', () => {
       );
     });
 
-    it('sendMessage: ignores empty lines', async () => {
+    it('ignores empty lines when splitting', async () => {
       await handler.testSendMessage('Line one\n\n   \nLine two\n');
 
       expect(mockCall.id_list_message).toHaveBeenCalledWith(
@@ -473,54 +494,23 @@ describe('BaseYemotHandlerService', () => {
       );
     });
 
-    it('hangupWithMessage: splits a multi-line message into one entry per line', async () => {
-      await handler.testHangupWithMessage('Goodbye\nSee you soon');
-
-      expect(mockCall.id_list_message).toHaveBeenCalledWith(
-        [
-          { type: 'text', data: 'Goodbye' },
-          { type: 'text', data: 'See you soon' },
-        ],
-        { prependToNextAction: true },
-      );
-    });
-
-    it('askForInput: plays each line as a separate message before reading', async () => {
-      (mockCall.read as jest.Mock).mockResolvedValue('1');
-
-      await handler.testAskForInput('Choose wisely\nOption 1 or 2?');
-
-      expect(mockCall.read).toHaveBeenCalledWith(
-        [
-          { type: 'text', data: 'Choose wisely' },
-          { type: 'text', data: 'Option 1 or 2?' },
-        ],
-        'tap',
-        undefined,
-      );
-    });
-
-    it('sendMessageByKey: splits stored multi-line text into separate messages', async () => {
-      const mockText = { value: 'First line\n\nSecond line', filepath: null };
-      jest.spyOn(textByUserRepo, 'findOne').mockResolvedValue(mockText as TextByUser);
-
-      await handler.testSendMessageByKey('SOME.KEY');
-
-      expect(mockCall.id_list_message).toHaveBeenCalledWith(
-        [
-          { type: 'text', data: 'First line' },
-          { type: 'text', data: 'Second line' },
-        ],
-        { prependToNextAction: true },
-      );
-    });
-
-    it('sendMessage: a message with no non-empty lines still sends one empty message', async () => {
+    it('sends one empty message when every line is blank', async () => {
       await handler.testSendMessage('\n\n   \n');
 
       expect(mockCall.id_list_message).toHaveBeenCalledWith(
         [{ type: 'text', data: '' }],
         { prependToNextAction: true },
+      );
+    });
+
+    it('logs the original text unmodified even when blank lines are filtered from messages', async () => {
+      await handler.testSendMessage('Line one\n\nLine two');
+
+      expect(mockCallTracker.logConversationStep).toHaveBeenCalledWith(
+        'test-call-123',
+        'Line one\n\nLine two',
+        undefined,
+        'send_message',
       );
     });
   });
@@ -744,6 +734,12 @@ describe('BaseYemotHandlerService', () => {
         [{ type: 'file', data: '/audio/message.wav' }],
         expect.anything(),
       );
+      expect(mockCallTracker.logConversationStep).toHaveBeenCalledWith(
+        'test-call-123',
+        '[file: /audio/message.wav]',
+        undefined,
+        'send_message',
+      );
     });
 
     it('should log correctly', async () => {
@@ -761,6 +757,21 @@ describe('BaseYemotHandlerService', () => {
         'Logged message',
         undefined,
         'send_message',
+      );
+    });
+
+    it('splits stored multi-line text into separate messages', async () => {
+      const mockText = { value: 'First line\n\nSecond line', filepath: null };
+      jest.spyOn(textByUserRepo, 'findOne').mockResolvedValue(mockText as TextByUser);
+
+      await handler.testSendMessageByKey('SOME.KEY');
+
+      expect(mockCall.id_list_message).toHaveBeenCalledWith(
+        [
+          { type: 'text', data: 'First line' },
+          { type: 'text', data: 'Second line' },
+        ],
+        { prependToNextAction: true },
       );
     });
   });

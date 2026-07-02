@@ -150,36 +150,36 @@ export class BaseYemotHandlerService {
     return { type: 'text', data: content?.value || '' };
   }
 
-  private splitIntoMessages(msgObj: MessageObj): MessageObj[] {
-    if (msgObj.type === 'file') return [msgObj];
+  private prepareMessages(msgObj: MessageObj): { messages: MessageObj[]; text: string } {
+    if (msgObj.type !== 'text') {
+      return { messages: [msgObj], text: `[${msgObj.type}: ${msgObj.data}]` };
+    }
     const lines = msgObj.data.split(/\r?\n/).filter((line) => line.trim().length > 0);
-    return (lines.length ? lines : ['']).map((data) => ({ type: 'text' as const, data }));
+    const messages = (lines.length ? lines : ['']).map((data) => ({ type: 'text' as const, data }));
+    return { messages, text: msgObj.data };
   }
 
   private async dispatchSend(msgObj: MessageObj) {
-    const msgObjs = this.splitIntoMessages(msgObj);
-    const text = msgObjs.map((m) => (m.type === 'file' ? `[File: ${m.data}]` : m.data)).join('\n');
+    const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Sending: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'send_message');
-    return this.call.id_list_message(msgObjs, { prependToNextAction: true });
+    return this.call.id_list_message(messages, { prependToNextAction: true });
   }
 
   private async dispatchRead(msgObj: MessageObj, options?: TapOptions): Promise<string> {
-    const msgObjs = this.splitIntoMessages(msgObj);
-    const text = msgObjs.map((m) => (m.type === 'file' ? `[File: ${m.data}]` : m.data)).join('\n');
+    const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Asking for input from: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'ask_input');
-    const input = await this.call.read(msgObjs, 'tap', options);
+    const input = await this.call.read(messages, 'tap', options);
     await this.callTracker.logConversationStep(this.call.callId, text, input, 'user_input');
     return input;
   }
 
   private async dispatchHangup(msgObj: MessageObj): Promise<void> {
-    const msgObjs = this.splitIntoMessages(msgObj);
-    const text = msgObjs.map((m) => (m.type === 'file' ? `[File: ${m.data}]` : m.data)).join('\n');
+    const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Hanging up with: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'hangup_message');
-    this.call.id_list_message(msgObjs, { prependToNextAction: true });
+    this.call.id_list_message(messages, { prependToNextAction: true });
     this.call.hangup();
   }
 
