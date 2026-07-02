@@ -150,27 +150,36 @@ export class BaseYemotHandlerService {
     return { type: 'text', data: content?.value || '' };
   }
 
+  private prepareMessages(msgObj: MessageObj): { messages: MessageObj[]; text: string } {
+    if (msgObj.type !== 'text') {
+      return { messages: [msgObj], text: `[${msgObj.type}: ${msgObj.data}]` };
+    }
+    const lines = msgObj.data.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    const messages = (lines.length ? lines : ['']).map((data) => ({ type: 'text' as const, data }));
+    return { messages, text: msgObj.data };
+  }
+
   private async dispatchSend(msgObj: MessageObj) {
-    const text = msgObj.type === 'file' ? `[File: ${msgObj.data}]` : msgObj.data;
-    this.logger.log(`Sending ${msgObj.type}: ${text}`);
+    const { messages, text } = this.prepareMessages(msgObj);
+    this.logger.log(`Sending: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'send_message');
-    return this.call.id_list_message([msgObj], { prependToNextAction: true });
+    return this.call.id_list_message(messages, { prependToNextAction: true });
   }
 
   private async dispatchRead(msgObj: MessageObj, options?: TapOptions): Promise<string> {
-    const text = msgObj.type === 'file' ? `[File: ${msgObj.data}]` : msgObj.data;
-    this.logger.log(`Asking for input from ${msgObj.type}: ${text}`);
+    const { messages, text } = this.prepareMessages(msgObj);
+    this.logger.log(`Asking for input from: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'ask_input');
-    const input = await this.call.read([msgObj], 'tap', options);
+    const input = await this.call.read(messages, 'tap', options);
     await this.callTracker.logConversationStep(this.call.callId, text, input, 'user_input');
     return input;
   }
 
   private async dispatchHangup(msgObj: MessageObj): Promise<void> {
-    const text = msgObj.type === 'file' ? `[File: ${msgObj.data}]` : msgObj.data;
-    this.logger.log(`Hanging up with ${msgObj.type}: ${text}`);
+    const { messages, text } = this.prepareMessages(msgObj);
+    this.logger.log(`Hanging up with: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'hangup_message');
-    this.call.id_list_message([msgObj], { prependToNextAction: true });
+    this.call.id_list_message(messages, { prependToNextAction: true });
     this.call.hangup();
   }
 
