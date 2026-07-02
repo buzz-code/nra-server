@@ -42,3 +42,7 @@ export class TextByUser implements IHasUserId {
     @ViewColumn()
     overrideTextId: number | null;
 }
+
+export function getTextByUserCacheId(userId: number, name: string): string {
+    return `text-by-user:${userId}:${name}`;
+}
