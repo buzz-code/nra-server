@@ -443,6 +443,88 @@ describe('BaseYemotHandlerService', () => {
     });
   });
 
+  describe('multi-line message splitting', () => {
+    beforeEach(() => {
+      handler.setUser(mockUser);
+    });
+
+    it('sendMessage: splits a multi-line message into one entry per line', async () => {
+      await handler.testSendMessage('Line one\nLine two\nLine three');
+
+      expect(mockCall.id_list_message).toHaveBeenCalledWith(
+        [
+          { type: 'text', data: 'Line one' },
+          { type: 'text', data: 'Line two' },
+          { type: 'text', data: 'Line three' },
+        ],
+        { prependToNextAction: true },
+      );
+    });
+
+    it('sendMessage: ignores empty lines', async () => {
+      await handler.testSendMessage('Line one\n\n   \nLine two\n');
+
+      expect(mockCall.id_list_message).toHaveBeenCalledWith(
+        [
+          { type: 'text', data: 'Line one' },
+          { type: 'text', data: 'Line two' },
+        ],
+        { prependToNextAction: true },
+      );
+    });
+
+    it('hangupWithMessage: splits a multi-line message into one entry per line', async () => {
+      await handler.testHangupWithMessage('Goodbye\nSee you soon');
+
+      expect(mockCall.id_list_message).toHaveBeenCalledWith(
+        [
+          { type: 'text', data: 'Goodbye' },
+          { type: 'text', data: 'See you soon' },
+        ],
+        { prependToNextAction: true },
+      );
+    });
+
+    it('askForInput: plays each line as a separate message before reading', async () => {
+      (mockCall.read as jest.Mock).mockResolvedValue('1');
+
+      await handler.testAskForInput('Choose wisely\nOption 1 or 2?');
+
+      expect(mockCall.read).toHaveBeenCalledWith(
+        [
+          { type: 'text', data: 'Choose wisely' },
+          { type: 'text', data: 'Option 1 or 2?' },
+        ],
+        'tap',
+        undefined,
+      );
+    });
+
+    it('sendMessageByKey: splits stored multi-line text into separate messages', async () => {
+      const mockText = { value: 'First line\n\nSecond line', filepath: null };
+      jest.spyOn(textByUserRepo, 'findOne').mockResolvedValue(mockText as TextByUser);
+
+      await handler.testSendMessageByKey('SOME.KEY');
+
+      expect(mockCall.id_list_message).toHaveBeenCalledWith(
+        [
+          { type: 'text', data: 'First line' },
+          { type: 'text', data: 'Second line' },
+        ],
+        { prependToNextAction: true },
+      );
+    });
+
+    it('sendMessage: a message with no non-empty lines still sends one empty message', async () => {
+      await handler.testSendMessage('\n\n   \n');
+
+      expect(mockCall.id_list_message).toHaveBeenCalledWith(
+        [{ type: 'text', data: '' }],
+        { prependToNextAction: true },
+      );
+    });
+  });
+
   describe('hangupWithMessageByKey', () => {
     beforeEach(() => {
       handler.setUser(mockUser);

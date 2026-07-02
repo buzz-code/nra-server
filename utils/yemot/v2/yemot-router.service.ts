@@ -145,47 +145,54 @@ export class BaseYemotHandlerService {
   // ── Private dispatch helpers ─────────────────────────────────────────────
   // Single place that talks to this.call for send / read / hangup operations.
 
-  private buildMessageFromContent(content: ContentData): MessageObj {
-    if (content?.filepath?.trim()) return { type: 'file', data: content.filepath };
-    return { type: 'text', data: content?.value || '' };
+  // Multi-line text is sent as several prepended messages (one per non-empty
+  // line) instead of a single message with embedded line breaks.
+  private splitTextIntoMessages(text: string): MessageObj[] {
+    const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    return (lines.length ? lines : ['']).map((data) => ({ type: 'text' as const, data }));
   }
 
-  private async dispatchSend(msgObj: MessageObj) {
-    const text = msgObj.type === 'file' ? `[File: ${msgObj.data}]` : msgObj.data;
-    this.logger.log(`Sending ${msgObj.type}: ${text}`);
+  private buildMessageFromContent(content: ContentData): MessageObj[] {
+    if (content?.filepath?.trim()) return [{ type: 'file', data: content.filepath }];
+    return this.splitTextIntoMessages(content?.value || '');
+  }
+
+  private async dispatchSend(msgObjs: MessageObj[]) {
+    const text = msgObjs.map((m) => (m.type === 'file' ? `[File: ${m.data}]` : m.data)).join('\n');
+    this.logger.log(`Sending: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'send_message');
-    return this.call.id_list_message([msgObj], { prependToNextAction: true });
+    return this.call.id_list_message(msgObjs, { prependToNextAction: true });
   }
 
-  private async dispatchRead(msgObj: MessageObj, options?: TapOptions): Promise<string> {
-    const text = msgObj.type === 'file' ? `[File: ${msgObj.data}]` : msgObj.data;
-    this.logger.log(`Asking for input from ${msgObj.type}: ${text}`);
+  private async dispatchRead(msgObjs: MessageObj[], options?: TapOptions): Promise<string> {
+    const text = msgObjs.map((m) => (m.type === 'file' ? `[File: ${m.data}]` : m.data)).join('\n');
+    this.logger.log(`Asking for input from: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'ask_input');
-    const input = await this.call.read([msgObj], 'tap', options);
+    const input = await this.call.read(msgObjs, 'tap', options);
     await this.callTracker.logConversationStep(this.call.callId, text, input, 'user_input');
     return input;
   }
 
-  private async dispatchHangup(msgObj: MessageObj): Promise<void> {
-    const text = msgObj.type === 'file' ? `[File: ${msgObj.data}]` : msgObj.data;
-    this.logger.log(`Hanging up with ${msgObj.type}: ${text}`);
+  private async dispatchHangup(msgObjs: MessageObj[]): Promise<void> {
+    const text = msgObjs.map((m) => (m.type === 'file' ? `[File: ${m.data}]` : m.data)).join('\n');
+    this.logger.log(`Hanging up with: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'hangup_message');
-    this.call.id_list_message([msgObj], { prependToNextAction: true });
+    this.call.id_list_message(msgObjs, { prependToNextAction: true });
     this.call.hangup();
   }
 
   // ── String-based methods (plain text) ───────────────────────────────────
 
   protected hangupWithMessage(message: string) {
-    return this.dispatchHangup({ type: 'text', data: message });
+    return this.dispatchHangup(this.splitTextIntoMessages(message));
   }
 
   protected askForInput(message: string, options?: TapOptions) {
-    return this.dispatchRead({ type: 'text', data: message }, options);
+    return this.dispatchRead(this.splitTextIntoMessages(message), options);
   }
 
   protected sendMessage(message: string) {
-    return this.dispatchSend({ type: 'text', data: message });
+    return this.dispatchSend(this.splitTextIntoMessages(message));
   }
 
   // ── Text-key-based methods (lookup via TextByUser view) ──────────────────
@@ -202,12 +209,12 @@ export class BaseYemotHandlerService {
     return this.dispatchSend(await this.getMessageByKey(textKey, values));
   }
 
-  private async getMessageByKey(textKey: string, values?: TextParams): Promise<MessageObj> {
+  private async getMessageByKey(textKey: string, values?: TextParams): Promise<MessageObj[]> {
     const textData = await this.getTextDataByUserId(textKey, values);
     if (textData.filepath && textData.filepath.trim()) {
-      return { type: 'file', data: textData.filepath };
+      return [{ type: 'file', data: textData.filepath }];
     }
-    return { type: 'text', data: textData.value };
+    return this.splitTextIntoMessages(textData.value);
   }
 
   // ── Content-object-based methods (pass any { value, filepath } object) ───
