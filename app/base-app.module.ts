@@ -10,6 +10,7 @@ import { DefaultUserInitModule } from '@shared/auth/default-user-init.module';
 import { YemotModule } from '@shared/utils/yemot/v2/yemot.module';
 import { YemotHandlerFactory } from '@shared/utils/yemot/v2/yemot-router.service';
 import { MailSendModule } from '@shared/utils/mail/mail-send.module';
+import { S3Module } from '@shared/utils/s3/s3.module';
 import { getPinoConfig } from '@shared/config/pino.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -37,6 +38,7 @@ export class BaseNraAppModule {
         ThrottlerModule.forRoot({ ttl: 5, limit: throttlerLimit }),
         TypeOrmModule.forRoot(typeOrmModuleConfig),
         MailSendModule,
+        S3Module,
         options.entitiesModule,
         AuthModule.forRoot({ userInitModule }),
         YemotModule.register(options.yemotHandlerService),

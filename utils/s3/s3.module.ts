@@ -1,7 +1,9 @@
-import { Module } from "@nestjs/common";
+import { Global, Module } from "@nestjs/common";
 import { S3Client } from "@aws-sdk/client-s3";
 import { S3_CLIENT, S3Service } from "./s3.service";
+import { S3FileStoreService } from "./s3-file-store.service";
 
+@Global()
 @Module({
     providers: [
         {
@@ -18,7 +20,8 @@ import { S3_CLIENT, S3Service } from "./s3.service";
                 }),
         },
         S3Service,
+        S3FileStoreService,
     ],
-    exports: [S3Service],
+    exports: [S3Service, S3FileStoreService],
 })
 export class S3Module {}

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
 
 export const S3_CLIENT = Symbol("S3_CLIENT");
@@ -76,6 +76,21 @@ export class S3Service {
             }));
         } catch (error) {
             this.logger.error(`Failed to list files in ${bucket} (prefix: ${prefix}): ${error.message}`, error.stack);
+            throw new Error(`S3 error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Delete a file from the given bucket/key
+     */
+    async deleteFile(bucket: string, key: string): Promise<void> {
+        try {
+            await this.s3Client.send(new DeleteObjectCommand({
+                Bucket: bucket,
+                Key: key,
+            }));
+        } catch (error) {
+            this.logger.error(`Failed to delete file ${bucket}/${key}: ${error.message}`, error.stack);
             throw new Error(`S3 error: ${error.message}`);
         }
     }
