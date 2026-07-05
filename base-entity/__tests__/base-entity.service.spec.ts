@@ -190,6 +190,43 @@ describe('BaseEntityService', () => {
     });
   });
 
+  describe('createBuilder', () => {
+    it('should delegate to super.createBuilder for valid filter/or fields', async () => {
+      const mockBuilder = {} as any;
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder').mockResolvedValue(mockBuilder);
+      const parsed = {
+        filter: [{ field: 'name', operator: '$eq', value: 'x' }],
+        or: [{ field: 'id', operator: '$eq', value: 1 }],
+      } as any;
+
+      const result = await service.createBuilder(parsed, {} as any);
+
+      expect(superSpy).toHaveBeenCalledWith(parsed, {}, true, false);
+      expect(result).toBe(mockBuilder);
+    });
+
+    it('should allow dotted join fields not present on entityColumns', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder').mockResolvedValue({} as any);
+      const parsed = { filter: [{ field: 'node.name', operator: '$eq', value: 'x' }], or: [] } as any;
+
+      await service.createBuilder(parsed, {} as any);
+
+      expect(superSpy).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException for a filter field that is not a real column', async () => {
+      const parsed = { filter: [{ field: 'nonExistentField', operator: '$eq', value: 'x' }], or: [] } as any;
+
+      await expect(service.createBuilder(parsed, {} as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for an or field that is not a real column', async () => {
+      const parsed = { filter: [], or: [{ field: 'nonExistentField', operator: '$eq', value: 'x' }] } as any;
+
+      await expect(service.createBuilder(parsed, {} as any)).rejects.toThrow(BadRequestException);
+    });
+  });
+
   describe('CRUD Operations', () => {
     describe('super class interactions', () => {
       it('should call super createOne', async () => {

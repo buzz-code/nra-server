@@ -1,7 +1,7 @@
-import { CreateManyDto, CrudRequest, GetManyDefaultResponse, Override, QueryOptions } from "@dataui/crud";
+import { CreateManyDto, CrudRequest, CrudRequestOptions, GetManyDefaultResponse, Override, QueryOptions } from "@dataui/crud";
 import { ParsedRequestParams } from "@dataui/crud-request";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
-import { DataSource, DeepPartial, EntityManager, ObjectLiteral, Repository } from "typeorm";
+import { DataSource, DeepPartial, EntityManager, ObjectLiteral, Repository, SelectQueryBuilder } from "typeorm";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/utils/exporter/types";
 import { Entity, ExportDefinition, ImportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
@@ -49,14 +49,31 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         return super.createMany(req, dto);
     }
 
+    // A dotted field (e.g. "node.name") addresses a joined relation's column, which isn't
+    // in entityColumns (that only lists this entity's own columns) - those are left to
+    // @dataui/crud's own join-alias validation instead of being checked here.
+    private assertValidFields(fields: string[]): void {
+        const invalidField = fields.find((field) => !field.includes('.') && !this.entityColumns.includes(field));
+        if (invalidField) {
+            throw new BadRequestException(`Invalid field: ${invalidField}`);
+        }
+    }
+
     // Reject sort fields that aren't real columns on this entity before they reach
     // TypeORM, which otherwise crashes with "Cannot read properties of undefined (reading 'databaseName')".
     protected getSort(query: ParsedRequestParams, options: QueryOptions): ObjectLiteral {
-        const invalidField = (query.sort ?? []).find((s) => !s.field.includes('.') && !this.entityColumns.includes(s.field));
-        if (invalidField) {
-            throw new BadRequestException(`Invalid sort field: ${invalidField.field}`);
-        }
+        this.assertValidFields((query.sort ?? []).map((s) => s.field));
         return super.getSort(query, options);
+    }
+
+    // Reject filter/or fields that aren't real columns, before they reach TypeORM as a WHERE
+    // clause on a nonexistent column (a SQL error, surfaced as an unhandled 500). Only validates
+    // the client-supplied parsed.filter/parsed.or - not parsed.search, which by this point also
+    // carries the auth-injected filter (e.g. dotted fields like "teacher.ownUserId") that's
+    // already trusted server-side code, not user input.
+    async createBuilder(parsed: ParsedRequestParams, options: CrudRequestOptions, many = true, withDeleted = false): Promise<SelectQueryBuilder<T>> {
+        this.assertValidFields([...(parsed.filter ?? []), ...(parsed.or ?? [])].map((f) => f.field));
+        return super.createBuilder(parsed, options, many, withDeleted);
     }
 
     async getCount(req: CrudRequest): Promise<{ count: number }> {
