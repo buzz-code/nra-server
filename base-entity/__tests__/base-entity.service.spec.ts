@@ -3,6 +3,7 @@ import { BaseEntityService } from '../base-entity.service';
 import { Repository, DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
 import { MailSendService } from '@shared/utils/mail/mail-send.service';
 import { CrudRequest } from '@dataui/crud';
+import { BadRequestException } from '@nestjs/common';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import { validateNotTrialEnded } from '../base-entity.util';
 import { ENTITY_EXPORTER, ENTITY_REPOSITORY } from '../interface';
@@ -158,6 +159,34 @@ describe('BaseEntityService', () => {
       const result = service.getEntityManager();
       expect(result).toBeDefined();
       expect(result).toBe(repository.manager);
+    });
+  });
+
+  describe('getSort', () => {
+    it('should delegate to super.getSort for a valid column', () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype as any, 'getSort').mockReturnValue({ name: 'ASC' });
+      const query = { sort: [{ field: 'name', order: 'ASC' }] } as any;
+
+      const result = (service as any).getSort(query, {});
+
+      expect(superSpy).toHaveBeenCalledWith(query, {});
+      expect(result).toEqual({ name: 'ASC' });
+    });
+
+    it('should allow dotted join fields not present on entityColumns', () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype as any, 'getSort').mockReturnValue({ 'node.name': 'ASC' });
+      const query = { sort: [{ field: 'node.name', order: 'ASC' }] } as any;
+
+      const result = (service as any).getSort(query, {});
+
+      expect(superSpy).toHaveBeenCalledWith(query, {});
+      expect(result).toEqual({ 'node.name': 'ASC' });
+    });
+
+    it('should throw BadRequestException for a field that is not a real column', () => {
+      const query = { sort: [{ field: 'nonExistentField', order: 'ASC' }] } as any;
+
+      expect(() => (service as any).getSort(query, {})).toThrow(BadRequestException);
     });
   });
 

@@ -1,12 +1,14 @@
-import { CreateManyDto, CrudRequest, GetManyDefaultResponse, Override } from "@dataui/crud";
+import { CreateManyDto, CrudRequest, GetManyDefaultResponse, Override, QueryOptions } from "@dataui/crud";
+import { ParsedRequestParams } from "@dataui/crud-request";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
-import { DataSource, DeepPartial, EntityManager, Repository } from "typeorm";
+import { DataSource, DeepPartial, EntityManager, ObjectLiteral, Repository } from "typeorm";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/utils/exporter/types";
 import { Entity, ExportDefinition, ImportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
 import { ParamsToJsonReportGenerator } from "@shared/utils/report/params-to-json.generator";
 import { CommonReportData } from "@shared/utils/report/types";
 import { InjectDataSource } from "@nestjs/typeorm";
+import { BadRequestException } from "@nestjs/common";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { getUserIdFromUser } from "@shared/auth/auth.util";
 import { validateNotTrialEnded } from "./base-entity.util";
@@ -45,6 +47,16 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         const userId = getUserIdFromUser(req.auth);
         dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, userId));
         return super.createMany(req, dto);
+    }
+
+    // Reject sort fields that aren't real columns on this entity before they reach
+    // TypeORM, which otherwise crashes with "Cannot read properties of undefined (reading 'databaseName')".
+    protected getSort(query: ParsedRequestParams, options: QueryOptions): ObjectLiteral {
+        const invalidField = (query.sort ?? []).find((s) => !s.field.includes('.') && !this.entityColumns.includes(s.field));
+        if (invalidField) {
+            throw new BadRequestException(`Invalid sort field: ${invalidField.field}`);
+        }
+        return super.getSort(query, options);
     }
 
     async getCount(req: CrudRequest): Promise<{ count: number }> {
