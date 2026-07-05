@@ -55,6 +55,17 @@ describe('BaseNraAppModule', () => {
       expect(authImport).toBeDefined();
     });
 
+    it('includes S3Module in imports', () => {
+      const { S3Module } = require('@shared/utils/s3/s3.module');
+      const result = BaseNraAppModule.forRoot({
+        entitiesModule: FakeEntitiesModule,
+        yemotHandlerService: FakeYemotHandlerService as any,
+      });
+
+      const imports = result.imports as any[];
+      expect(imports).toContain(S3Module);
+    });
+
     it('applies custom throttlerLimit when provided', () => {
       const result = BaseNraAppModule.forRoot({
         entitiesModule: FakeEntitiesModule,

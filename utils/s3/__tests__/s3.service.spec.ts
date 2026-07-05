@@ -152,4 +152,26 @@ describe("S3Service", () => {
             );
         });
     });
+
+    describe("deleteFile", () => {
+        it("should send a DeleteObjectCommand with the correct params", async () => {
+            mockS3Client.send.mockResolvedValue({});
+
+            await service.deleteFile("my-bucket", "path/to/file.txt");
+
+            expect(mockS3Client.send).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    input: { Bucket: "my-bucket", Key: "path/to/file.txt" },
+                })
+            );
+        });
+
+        it("should throw a wrapped error when the delete fails", async () => {
+            mockS3Client.send.mockRejectedValue(new Error("Access denied"));
+
+            await expect(service.deleteFile("my-bucket", "path/to/file.txt")).rejects.toThrow(
+                "S3 error: Access denied"
+            );
+        });
+    });
 });
