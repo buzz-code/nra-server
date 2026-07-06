@@ -151,17 +151,20 @@ export class BaseYemotHandlerService {
     return { type: 'text', data: content?.value || '' };
   }
 
+  // Empty text yields an empty `messages` array here - genuinely nothing to say, as opposed to
+  // a single empty-data message (which yemot-router2 would render as a bare "t-" segment).
   private prepareMessages(msgObj: MessageObj): { messages: MessageObj[]; text: string } {
     if (msgObj.type !== 'text') {
       return { messages: [msgObj], text: `[${msgObj.type}: ${msgObj.data}]` };
     }
     const lines = msgObj.data.split(/\r?\n/).filter((line) => line.trim().length > 0);
-    const messages = (lines.length ? lines : ['']).map((data) => ({ type: 'text' as const, data }));
+    const messages = lines.map((data) => ({ type: 'text' as const, data }));
     return { messages, text: msgObj.data };
   }
 
   private async dispatchSend(msgObj: MessageObj) {
     const { messages, text } = this.prepareMessages(msgObj);
+    if (!messages.length) return;
     this.logger.log(`Sending: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'send_message');
     return this.call.id_list_message(messages, { prependToNextAction: true });
@@ -171,7 +174,9 @@ export class BaseYemotHandlerService {
     const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Asking for input from: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'ask_input');
-    const input = await this.call.read(messages, 'tap', options);
+    // call.read() throws on an empty array - unlike send/hangup, it always needs something to
+    // play while it waits for input, so it keeps its own placeholder for genuinely empty prompts.
+    const input = await this.call.read(messages.length ? messages : [{ type: 'text', data: '' }], 'tap', options);
     await this.callTracker.logConversationStep(this.call.callId, text, input, 'user_input');
     return input;
   }
@@ -180,7 +185,9 @@ export class BaseYemotHandlerService {
     const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Hanging up with: ${text}`);
     await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'hangup_message');
-    this.call.id_list_message(messages, { prependToNextAction: true });
+    if (messages.length) {
+      this.call.id_list_message(messages, { prependToNextAction: true });
+    }
     this.call.hangup();
   }
 

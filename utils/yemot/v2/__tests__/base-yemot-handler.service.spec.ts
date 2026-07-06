@@ -361,6 +361,13 @@ describe('BaseYemotHandlerService', () => {
         { prependToNextAction: true },
       );
     });
+
+    it('hangs up without sending an empty id_list_message when there is nothing to say', async () => {
+      await handler.testHangupWithMessage('');
+
+      expect(mockCall.id_list_message).not.toHaveBeenCalled();
+      expect(mockCall.hangup).toHaveBeenCalled();
+    });
   });
 
   describe('askForInput', () => {
@@ -437,6 +444,18 @@ describe('BaseYemotHandlerService', () => {
         undefined,
       );
     });
+
+    it('still calls call.read() with a placeholder message when there is nothing to say (the library rejects an empty array)', async () => {
+      (mockCall.read as jest.Mock).mockResolvedValue('1');
+
+      await handler.testAskForInput('');
+
+      expect(mockCall.read).toHaveBeenCalledWith(
+        [{ type: 'text', data: '' }],
+        'tap',
+        undefined,
+      );
+    });
   });
 
   describe('sendMessage', () => {
@@ -494,13 +513,10 @@ describe('BaseYemotHandlerService', () => {
       );
     });
 
-    it('sends one empty message when every line is blank', async () => {
+    it('sends nothing when every line is blank', async () => {
       await handler.testSendMessage('\n\n   \n');
 
-      expect(mockCall.id_list_message).toHaveBeenCalledWith(
-        [{ type: 'text', data: '' }],
-        { prependToNextAction: true },
-      );
+      expect(mockCall.id_list_message).not.toHaveBeenCalled();
     });
 
     it('logs the original text unmodified even when blank lines are filtered from messages', async () => {
