@@ -146,4 +146,60 @@ describe("YemotApiService", () => {
             );
         });
     });
+
+    describe("uploadFile", () => {
+        it("should post a multipart form with token, path and file, and return response data", async () => {
+            const mockResponse = { responseStatus: "OK" };
+            mockHttpService.post.mockReturnValue(of({ data: mockResponse }));
+
+            const fileBuffer = Buffer.from("audio-bytes");
+            const result = await service.uploadFile("api-key", "ivr/1/5/000.wav", fileBuffer, "000.wav");
+
+            expect(mockHttpService.post).toHaveBeenCalledWith(
+                expect.stringContaining("/UploadFile"),
+                expect.any(Object),
+                expect.objectContaining({
+                    headers: expect.any(Object),
+                })
+            );
+            const postedFormData = mockHttpService.post.mock.calls[0][1];
+            expect(typeof postedFormData.getHeaders).toBe("function");
+            expect(result).toEqual(mockResponse);
+        });
+
+        it("should throw a wrapped error when the HTTP call fails", async () => {
+            mockHttpService.post.mockReturnValue(throwError(() => new Error("Upload failed")));
+
+            await expect(
+                service.uploadFile("api-key", "ivr/1", Buffer.from("x"), "x.wav")
+            ).rejects.toThrow("Yemot API error: Upload failed");
+        });
+    });
+
+    describe("downloadFile", () => {
+        it("should get the file from the correct endpoint and return a Buffer", async () => {
+            const fileBuffer = Buffer.from("audio-bytes");
+            mockHttpService.get.mockReturnValue(of({ data: fileBuffer }));
+
+            const result = await service.downloadFile("api-key", "ivr/1/5/000.wav");
+
+            expect(mockHttpService.get).toHaveBeenCalledWith(
+                expect.stringContaining("/DownloadFile"),
+                expect.objectContaining({
+                    params: { token: "api-key", path: "ivr/1/5/000.wav" },
+                    responseType: "arraybuffer",
+                })
+            );
+            expect(Buffer.isBuffer(result)).toBe(true);
+            expect(result.equals(fileBuffer)).toBe(true);
+        });
+
+        it("should throw a wrapped error when the HTTP call fails", async () => {
+            mockHttpService.get.mockReturnValue(throwError(() => new Error("Not found")));
+
+            await expect(service.downloadFile("api-key", "ivr/1")).rejects.toThrow(
+                "Yemot API error: Not found"
+            );
+        });
+    });
 });

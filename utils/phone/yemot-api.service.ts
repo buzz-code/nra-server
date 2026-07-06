@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { firstValueFrom } from "rxjs";
+import * as FormData from "form-data";
 
 export interface YemotCreateTemplateResponse {
     responseStatus: string;
@@ -124,6 +125,48 @@ export class YemotApiService {
             return response.data;
         } catch (error) {
             this.logger.error(`Failed to get campaign status: ${error.message}`, error.stack);
+            throw new Error(`Yemot API error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Upload a file (e.g. audio) to Yemot; Yemot auto-creates any missing folders in `path`.
+     */
+    async uploadFile(apiKey: string, path: string, fileBuffer: Buffer, fileName: string): Promise<any> {
+        try {
+            this.logger.log(`Uploading file to Yemot path: ${path}`);
+            const formData = new FormData();
+            formData.append("token", apiKey);
+            formData.append("path", path);
+            formData.append("file", fileBuffer, { filename: fileName });
+
+            const response = await firstValueFrom(
+                this.httpService.post(`${this.baseUrl}/UploadFile`, formData, {
+                    headers: formData.getHeaders(),
+                })
+            );
+            return response.data;
+        } catch (error) {
+            this.logger.error(`Failed to upload file: ${error.message}`, error.stack);
+            throw new Error(`Yemot API error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Download a file from Yemot as a Buffer.
+     */
+    async downloadFile(apiKey: string, path: string): Promise<Buffer> {
+        try {
+            this.logger.log(`Downloading file from Yemot path: ${path}`);
+            const response = await firstValueFrom(
+                this.httpService.get(`${this.baseUrl}/DownloadFile`, {
+                    params: { token: apiKey, path },
+                    responseType: "arraybuffer",
+                })
+            );
+            return Buffer.from(response.data);
+        } catch (error) {
+            this.logger.error(`Failed to download file: ${error.message}`, error.stack);
             throw new Error(`Yemot API error: ${error.message}`);
         }
     }
