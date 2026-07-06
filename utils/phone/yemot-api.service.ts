@@ -134,10 +134,11 @@ export class YemotApiService {
      */
     async uploadFile(apiKey: string, path: string, fileBuffer: Buffer, fileName: string): Promise<any> {
         try {
-            this.logger.log(`Uploading file to Yemot path: ${path}`);
+            const ivrPath = this.toIvrPath(path);
+            this.logger.log(`Uploading file to Yemot path: ${ivrPath}`);
             const formData = new FormData();
             formData.append("token", apiKey);
-            formData.append("path", path);
+            formData.append("path", ivrPath);
             formData.append("file", fileBuffer, { filename: fileName });
 
             const response = await firstValueFrom(
@@ -157,10 +158,11 @@ export class YemotApiService {
      */
     async downloadFile(apiKey: string, path: string): Promise<Buffer> {
         try {
-            this.logger.log(`Downloading file from Yemot path: ${path}`);
+            const ivrPath = this.toIvrPath(path);
+            this.logger.log(`Downloading file from Yemot path: ${ivrPath}`);
             const response = await firstValueFrom(
                 this.httpService.get(`${this.baseUrl}/DownloadFile`, {
-                    params: { token: apiKey, path },
+                    params: { token: apiKey, path: ivrPath },
                     responseType: "arraybuffer",
                 })
             );
@@ -169,5 +171,30 @@ export class YemotApiService {
             this.logger.error(`Failed to download file: ${error.message}`, error.stack);
             throw new Error(`Yemot API error: ${error.message}`);
         }
+    }
+
+    /**
+     * Delete a file from Yemot's IVR2 file system.
+     */
+    async deleteFile(apiKey: string, path: string): Promise<any> {
+        try {
+            const ivrPath = this.toIvrPath(path);
+            this.logger.log(`Deleting Yemot file: ${ivrPath}`);
+            const response = await firstValueFrom(
+                this.httpService.get(`${this.baseUrl}/FileAction`, {
+                    params: { token: apiKey, action: "delete", what0: ivrPath },
+                })
+            );
+            return response.data;
+        } catch (error) {
+            this.logger.error(`Failed to delete file: ${error.message}`, error.stack);
+            throw new Error(`Yemot API error: ${error.message}`);
+        }
+    }
+
+    // Yemot's UploadFile/DownloadFile/FileAction reject bare paths ("path is invalid") - they
+    // require the ivr2: scheme prefix, confirmed against the live API.
+    private toIvrPath(path: string): string {
+        return `ivr2:/${path}`;
     }
 }

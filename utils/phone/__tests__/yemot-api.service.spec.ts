@@ -186,7 +186,7 @@ describe("YemotApiService", () => {
             expect(mockHttpService.get).toHaveBeenCalledWith(
                 expect.stringContaining("/DownloadFile"),
                 expect.objectContaining({
-                    params: { token: "api-key", path: "ivr/1/5/000.wav" },
+                    params: { token: "api-key", path: "ivr2:/ivr/1/5/000.wav" },
                     responseType: "arraybuffer",
                 })
             );
@@ -198,6 +198,36 @@ describe("YemotApiService", () => {
             mockHttpService.get.mockReturnValue(throwError(() => new Error("Not found")));
 
             await expect(service.downloadFile("api-key", "ivr/1")).rejects.toThrow(
+                "Yemot API error: Not found"
+            );
+        });
+    });
+
+    describe("deleteFile", () => {
+        it("should call FileAction with action=delete and the ivr2-prefixed path", async () => {
+            const mockResponse = {
+                responseStatus: "OK",
+                action: "delete",
+                success: true,
+                reports: [{ what: "ivr2:/1/test.wav", target: null, success: true }],
+            };
+            mockHttpService.get.mockReturnValue(of({ data: mockResponse }));
+
+            const result = await service.deleteFile("api-key", "1/test.wav");
+
+            expect(mockHttpService.get).toHaveBeenCalledWith(
+                expect.stringContaining("/FileAction"),
+                expect.objectContaining({
+                    params: { token: "api-key", action: "delete", what0: "ivr2:/1/test.wav" },
+                })
+            );
+            expect(result).toEqual(mockResponse);
+        });
+
+        it("should throw a wrapped error when the HTTP call fails", async () => {
+            mockHttpService.get.mockReturnValue(throwError(() => new Error("Not found")));
+
+            await expect(service.deleteFile("api-key", "1/test.wav")).rejects.toThrow(
                 "Yemot API error: Not found"
             );
         });
