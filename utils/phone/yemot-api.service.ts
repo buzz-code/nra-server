@@ -154,16 +154,13 @@ export class YemotApiService {
 
     /**
      * Download a file from Yemot as a Buffer.
-     * NOTE: endpoint name/params are unverified against Yemot's official docs (not reachable
-     * from this environment) — confirm against a real account before relying on this in production.
      */
     async downloadFile(apiKey: string, path: string): Promise<Buffer> {
         try {
             this.logger.log(`Downloading file from Yemot path: ${path}`);
             const response = await firstValueFrom(
-                this.httpService.get(`${this.baseUrl}/GetFile`, {
-                    headers: { authorization: apiKey },
-                    params: { path },
+                this.httpService.get(`${this.baseUrl}/DownloadFile`, {
+                    params: { token: apiKey, path },
                     responseType: "arraybuffer",
                 })
             );

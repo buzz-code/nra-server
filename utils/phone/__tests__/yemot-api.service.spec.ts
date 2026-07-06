@@ -184,10 +184,9 @@ describe("YemotApiService", () => {
             const result = await service.downloadFile("api-key", "ivr/1/5/000.wav");
 
             expect(mockHttpService.get).toHaveBeenCalledWith(
-                expect.stringContaining("/GetFile"),
+                expect.stringContaining("/DownloadFile"),
                 expect.objectContaining({
-                    headers: { authorization: "api-key" },
-                    params: { path: "ivr/1/5/000.wav" },
+                    params: { token: "api-key", path: "ivr/1/5/000.wav" },
                     responseType: "arraybuffer",
                 })
             );
