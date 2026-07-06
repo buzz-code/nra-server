@@ -130,4 +130,14 @@ export class AuthService {
     await this.userRepository.update(user.id, { additionalData: user.additionalData });
     return { success: true };
   }
+
+  async updateProfile(userId: number, data: { phoneNumber?: string }) {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    await this.userRepository.update(user.id, { phoneNumber: data.phoneNumber });
+    return { success: true };
+  }
 }
