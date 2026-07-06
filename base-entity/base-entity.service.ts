@@ -1,12 +1,14 @@
-import { CreateManyDto, CrudRequest, GetManyDefaultResponse, Override } from "@dataui/crud";
+import { CreateManyDto, CrudRequest, CrudRequestOptions, GetManyDefaultResponse, JoinOptions, Override, QueryOptions } from "@dataui/crud";
+import { ParsedRequestParams } from "@dataui/crud-request";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
-import { DataSource, DeepPartial, EntityManager, Repository } from "typeorm";
+import { DataSource, DeepPartial, EntityManager, ObjectLiteral, Repository, SelectQueryBuilder } from "typeorm";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/utils/exporter/types";
 import { Entity, ExportDefinition, ImportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
 import { ParamsToJsonReportGenerator } from "@shared/utils/report/params-to-json.generator";
 import { CommonReportData } from "@shared/utils/report/types";
 import { InjectDataSource } from "@nestjs/typeorm";
+import { BadRequestException } from "@nestjs/common";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { getUserIdFromUser } from "@shared/auth/auth.util";
 import { validateNotTrialEnded } from "./base-entity.util";
@@ -45,6 +47,36 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         const userId = getUserIdFromUser(req.auth);
         dto.bulk.forEach(item => this.insertUserDataBeforeCreate(item, userId));
         return super.createMany(req, dto);
+    }
+
+    private isValidField(field: string, joinOptions: JoinOptions): boolean {
+        if (this.entityColumns.includes(field)) {
+            return true;
+        }
+        const lastDot = field.lastIndexOf('.');
+        if (lastDot === -1) {
+            return false;
+        }
+        const relationPath = field.slice(0, lastDot);
+        const column = field.slice(lastDot + 1);
+        return !!this.getRelationMetadata(relationPath, joinOptions[relationPath])?.allowedColumns.includes(column);
+    }
+
+    private assertValidFields(fields: string[], joinOptions: JoinOptions = {}): void {
+        const invalidField = fields.find((field) => !this.isValidField(field, joinOptions));
+        if (invalidField) {
+            throw new BadRequestException(`Invalid field: ${invalidField}`);
+        }
+    }
+
+    protected getSort(query: ParsedRequestParams, options: QueryOptions): ObjectLiteral {
+        this.assertValidFields((query.sort ?? []).map((s) => s.field), options.join);
+        return super.getSort(query, options);
+    }
+
+    async createBuilder(parsed: ParsedRequestParams, options: CrudRequestOptions, many = true, withDeleted = false): Promise<SelectQueryBuilder<T>> {
+        this.assertValidFields([...(parsed.filter ?? []), ...(parsed.or ?? [])].map((f) => f.field), options.query.join);
+        return super.createBuilder(parsed, options, many, withDeleted);
     }
 
     async getCount(req: CrudRequest): Promise<{ count: number }> {
