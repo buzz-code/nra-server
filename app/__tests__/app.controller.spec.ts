@@ -30,6 +30,7 @@ describe('AppController', () => {
             registerUser: jest.fn().mockRejectedValue(new UnauthorizedException()),
             getProfile: jest.fn().mockResolvedValue({}),
             updateSettings: jest.fn().mockResolvedValue({}),
+            updateProfile: jest.fn().mockResolvedValue({}),
           },
         },
       ],
@@ -165,5 +166,20 @@ describe('AppController', () => {
     const req = { user: { permissions: { admin: true } } } as unknown as AuthenticatedRequest;
 
     await expect(appController.updateSettings(req, { key: 'value' })).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('should update user profile', async () => {
+    const req = { user: { id: 1 } } as unknown as AuthenticatedRequest;
+    const data = { phoneNumber: '0501234567' };
+
+    await appController.updateProfile(req, data);
+
+    expect(authService.updateProfile).toHaveBeenCalledWith(1, data);
+  });
+
+  it('should reject update profile when user id is missing', async () => {
+    const req = { user: { permissions: { admin: true } } } as unknown as AuthenticatedRequest;
+
+    await expect(appController.updateProfile(req, { phoneNumber: '0501234567' })).rejects.toThrow(UnauthorizedException);
   });
 });

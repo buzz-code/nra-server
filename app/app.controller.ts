@@ -5,6 +5,7 @@ import {
   HttpCode,
   UnauthorizedException,
   Post,
+  Patch,
   Request,
   Res,
   UseGuards,
@@ -95,6 +96,16 @@ export class AppController {
       throw new UnauthorizedException();
     }
     return this.authService.updateSettings(userId, data);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  async updateProfile(@Request() req: AuthenticatedRequest, @Body() data: { phoneNumber?: string }) {
+    const userId = getUserIdFromUser(req.user);
+    if (!userId) {
+      throw new UnauthorizedException();
+    }
+    return this.authService.updateProfile(userId, data);
   }
 
   @Get()

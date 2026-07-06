@@ -424,4 +424,34 @@ describe('AuthService', () => {
             await expect(service.updateSettings(userId, { name: 'new name' })).rejects.toThrowError('User not found');
         });
     });
+
+    describe('updateProfile', () => {
+        it('should update the user phone number', async () => {
+            const userId = 1;
+            const userStub = {
+                id: userId,
+                email: 'test@example.com',
+                name: 'test',
+                permissions: {},
+                phoneNumber: '0500000000',
+            } as any as User;
+
+            const findOneByMock = jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(userStub);
+            const updateMock = jest.spyOn(userRepository, 'update').mockResolvedValue(null);
+
+            const result = await service.updateProfile(userId, { phoneNumber: '0501234567' });
+
+            expect(findOneByMock).toHaveBeenCalledWith({ id: userId });
+            expect(updateMock).toHaveBeenCalledWith(userId, { phoneNumber: '0501234567' });
+            expect(result).toEqual({ success: true });
+        });
+
+        it('should throw an error if the user is not found', async () => {
+            const userId = 1;
+
+            jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
+
+            await expect(service.updateProfile(userId, { phoneNumber: '0501234567' })).rejects.toThrowError('User not found');
+        });
+    });
 });
