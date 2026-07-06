@@ -76,7 +76,8 @@ describe('BaseEntityService', () => {
           { propertyName: 'userId' }
         ],
         connection: { options: { type: 'mysql' } },
-        targetName: 'TestEntity'
+        targetName: 'TestEntity',
+        findRelationWithPropertyPath: jest.fn(),
       },
       createQueryBuilder: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
@@ -173,13 +174,17 @@ describe('BaseEntityService', () => {
       expect(result).toEqual({ name: 'ASC' });
     });
 
-    it('should allow dotted join fields not present on entityColumns', () => {
+    it('should allow a dotted field for an allowed relation with a real column', () => {
+      (repository.metadata as any).findRelationWithPropertyPath.mockReturnValue({
+        inverseEntityMetadata: { columns: [{ propertyPath: 'name' }] },
+      });
       const superSpy = jest.spyOn(TypeOrmCrudService.prototype as any, 'getSort').mockReturnValue({ 'node.name': 'ASC' });
       const query = { sort: [{ field: 'node.name', order: 'ASC' }] } as any;
+      const options = { join: { node: {} } } as any;
 
-      const result = (service as any).getSort(query, {});
+      const result = (service as any).getSort(query, options);
 
-      expect(superSpy).toHaveBeenCalledWith(query, {});
+      expect(superSpy).toHaveBeenCalledWith(query, options);
       expect(result).toEqual({ 'node.name': 'ASC' });
     });
 
@@ -187,6 +192,22 @@ describe('BaseEntityService', () => {
       const query = { sort: [{ field: 'nonExistentField', order: 'ASC' }] } as any;
 
       expect(() => (service as any).getSort(query, {})).toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for a dotted field whose relation is not allowed', () => {
+      const query = { sort: [{ field: 'node.name', order: 'ASC' }] } as any;
+
+      expect(() => (service as any).getSort(query, {})).toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for a dotted field whose column does not exist on the related entity', () => {
+      (repository.metadata as any).findRelationWithPropertyPath.mockReturnValue({
+        inverseEntityMetadata: { columns: [{ propertyPath: 'name' }] },
+      });
+      const query = { sort: [{ field: 'node.nonExistentColumn', order: 'ASC' }] } as any;
+      const options = { join: { node: {} } } as any;
+
+      expect(() => (service as any).getSort(query, options)).toThrow(BadRequestException);
     });
   });
 
@@ -198,18 +219,23 @@ describe('BaseEntityService', () => {
         filter: [{ field: 'name', operator: '$eq', value: 'x' }],
         or: [{ field: 'id', operator: '$eq', value: 1 }],
       } as any;
+      const options = { query: {} } as any;
 
-      const result = await service.createBuilder(parsed, {} as any);
+      const result = await service.createBuilder(parsed, options);
 
-      expect(superSpy).toHaveBeenCalledWith(parsed, {}, true, false);
+      expect(superSpy).toHaveBeenCalledWith(parsed, options, true, false);
       expect(result).toBe(mockBuilder);
     });
 
-    it('should allow dotted join fields not present on entityColumns', async () => {
+    it('should allow a dotted field for an allowed relation with a real column', async () => {
+      (repository.metadata as any).findRelationWithPropertyPath.mockReturnValue({
+        inverseEntityMetadata: { columns: [{ propertyPath: 'name' }] },
+      });
       const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder').mockResolvedValue({} as any);
       const parsed = { filter: [{ field: 'node.name', operator: '$eq', value: 'x' }], or: [] } as any;
+      const options = { query: { join: { node: {} } } } as any;
 
-      await service.createBuilder(parsed, {} as any);
+      await service.createBuilder(parsed, options);
 
       expect(superSpy).toHaveBeenCalled();
     });
@@ -217,13 +243,19 @@ describe('BaseEntityService', () => {
     it('should throw BadRequestException for a filter field that is not a real column', async () => {
       const parsed = { filter: [{ field: 'nonExistentField', operator: '$eq', value: 'x' }], or: [] } as any;
 
-      await expect(service.createBuilder(parsed, {} as any)).rejects.toThrow(BadRequestException);
+      await expect(service.createBuilder(parsed, { query: {} } as any)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException for an or field that is not a real column', async () => {
       const parsed = { filter: [], or: [{ field: 'nonExistentField', operator: '$eq', value: 'x' }] } as any;
 
-      await expect(service.createBuilder(parsed, {} as any)).rejects.toThrow(BadRequestException);
+      await expect(service.createBuilder(parsed, { query: {} } as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for a dotted filter field whose relation is not allowed', async () => {
+      const parsed = { filter: [{ field: 'node.name', operator: '$eq', value: 'x' }], or: [] } as any;
+
+      await expect(service.createBuilder(parsed, { query: {} } as any)).rejects.toThrow(BadRequestException);
     });
   });
 
