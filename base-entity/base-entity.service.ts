@@ -50,17 +50,13 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
     }
 
     private isValidField(field: string, joinOptions: JoinOptions): boolean {
-        const dotIndex = field.indexOf('.');
-        if (dotIndex === -1) {
+        const lastDot = field.lastIndexOf('.');
+        if (lastDot === -1) {
             return this.entityColumns.includes(field);
         }
-        const relationName = field.slice(0, dotIndex);
-        const column = field.slice(dotIndex + 1);
-        if (!joinOptions[relationName]) {
-            return false;
-        }
-        const relation = this.repo.metadata.findRelationWithPropertyPath(relationName);
-        return !!relation?.inverseEntityMetadata.columns.some((c) => c.propertyPath === column);
+        const relationPath = field.slice(0, lastDot);
+        const column = field.slice(lastDot + 1);
+        return !!this.getRelationMetadata(relationPath, joinOptions[relationPath])?.allowedColumns.includes(column);
     }
 
     private assertValidFields(fields: string[], joinOptions: JoinOptions = {}): void {
