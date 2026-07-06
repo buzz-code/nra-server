@@ -50,9 +50,12 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
     }
 
     private isValidField(field: string, joinOptions: JoinOptions): boolean {
+        if (this.entityColumns.includes(field)) {
+            return true;
+        }
         const lastDot = field.lastIndexOf('.');
         if (lastDot === -1) {
-            return this.entityColumns.includes(field);
+            return false;
         }
         const relationPath = field.slice(0, lastDot);
         const column = field.slice(lastDot + 1);

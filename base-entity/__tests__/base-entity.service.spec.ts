@@ -186,6 +186,19 @@ describe('BaseEntityService', () => {
       expect(result).toEqual({ 'node.name': 'ASC' });
     });
 
+    it('should allow a dotted field that is itself a real column, e.g. an embedded column, without consulting relations', () => {
+      entityColumns = ['id', 'name', 'file.src'];
+      const relationSpy = jest.spyOn(service as any, 'getRelationMetadata');
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype as any, 'getSort').mockReturnValue({ 'file.src': 'ASC' });
+      const query = { sort: [{ field: 'file.src', order: 'ASC' }] } as any;
+
+      const result = (service as any).getSort(query, {});
+
+      expect(relationSpy).not.toHaveBeenCalled();
+      expect(superSpy).toHaveBeenCalledWith(query, {});
+      expect(result).toEqual({ 'file.src': 'ASC' });
+    });
+
     it('should throw BadRequestException for a field that is not a real column', () => {
       const query = { sort: [{ field: 'nonExistentField', order: 'ASC' }] } as any;
 
