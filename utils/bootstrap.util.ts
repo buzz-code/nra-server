@@ -69,11 +69,20 @@ export function setupYemotRouter(app: INestApplication) {
   app.use('/yemot/handle-call', yemotRouterSvc.getRouter());
 }
 
+async function gracefulShutdown(app: INestApplication) {
+  await new Promise((resolve) => setTimeout(resolve, 5000)); // let the proxy deregister us first
+  await app.close(); // stops accepting new connections, drains in-flight ones, runs lifecycle hooks
+  process.exit(0);
+}
+
 export async function bootstrapNraApplication(
   module: any,
   options?: Partial<BootstrapOptions>,
 ): Promise<void> {
   const app = await NestFactory.create(module);
+
+  process.on('SIGTERM', () => gracefulShutdown(app));
+  process.on('SIGINT', () => gracefulShutdown(app));
 
   setupApplication(app, {
     swaggerTitle: readPackageJsonName(),
