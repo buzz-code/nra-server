@@ -35,6 +35,8 @@ export function getFileType(format: CommonFileFormat): string {
             return 'text/html';
         case CommonFileFormat.Mp3:
             return 'audio/mpeg';
+        case CommonFileFormat.Wav:
+            return 'audio/wav';
     }
 }
 
@@ -58,6 +60,8 @@ export function getFileExtension(format: CommonFileFormat) {
             return 'html';
         case CommonFileFormat.Mp3:
             return 'mp3';
+        case CommonFileFormat.Wav:
+            return 'wav';
     }
 
 }

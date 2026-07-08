@@ -13,6 +13,7 @@ export enum CommonFileFormat {
     Zip,
     Html,
     Mp3,
+    Wav,
 };
 
 export interface CommonReportData<T = any> {
