@@ -91,5 +91,12 @@ export async function bootstrapNraApplication(
   }
 
   const port = options?.port ?? Number(process.env.PORT || 3000);
+
+  // Must exceed Caddy's reverse_proxy transport.keepalive (30s) to avoid a
+  // race where Caddy reuses a keep-alive connection Node already closed.
+  const httpServer = app.getHttpServer();
+  httpServer.keepAliveTimeout = 35_000;
+  httpServer.headersTimeout = 36_000;
+
   await app.listen(port);
 }
