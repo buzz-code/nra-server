@@ -47,6 +47,7 @@ describe('readPackageJsonName', () => {
 describe('bootstrapNraApplication', () => {
   it('should create app, setup, and listen on port 3000', async () => {
     const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()) };
+    const mockHttpServer: any = {};
     const mockApp = {
       useLogger: jest.fn(),
       useGlobalInterceptors: jest.fn(),
@@ -55,6 +56,7 @@ describe('bootstrapNraApplication', () => {
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
       get: jest.fn().mockReturnValue(mockYemotRouter),
+      getHttpServer: jest.fn().mockReturnValue(mockHttpServer),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -63,6 +65,28 @@ describe('bootstrapNraApplication', () => {
 
     expect(NestFactory.create).toHaveBeenCalledWith(MockModule);
     expect(mockApp.listen).toHaveBeenCalledWith(3000);
+  });
+
+  it('should set keepAliveTimeout and headersTimeout above Caddy\'s upstream keepalive', async () => {
+    const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()) };
+    const mockHttpServer: any = {};
+    const mockApp = {
+      useLogger: jest.fn(),
+      useGlobalInterceptors: jest.fn(),
+      useGlobalGuards: jest.fn(),
+      enableCors: jest.fn(),
+      use: jest.fn(),
+      listen: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn().mockReturnValue(mockYemotRouter),
+      getHttpServer: jest.fn().mockReturnValue(mockHttpServer),
+    };
+    (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
+
+    class MockModule { }
+    await bootstrapNraApplication(MockModule);
+
+    expect(mockHttpServer.keepAliveTimeout).toBe(35_000);
+    expect(mockHttpServer.headersTimeout).toBe(36_000);
   });
 
   it('should listen on the explicit options port when provided', async () => {
@@ -75,6 +99,7 @@ describe('bootstrapNraApplication', () => {
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
       get: jest.fn().mockReturnValue(mockYemotRouter),
+      getHttpServer: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -99,6 +124,7 @@ describe('bootstrapNraApplication', () => {
         }
         return logger;
       }),
+      getHttpServer: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
