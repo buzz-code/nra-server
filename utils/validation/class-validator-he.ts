@@ -10,6 +10,7 @@ import {
     IsNumberOptions,
     ValidationArguments,
     Min as _Min,
+    Max as _Max,
 } from "class-validator";
 import { IsUniqueCombination as _IsUniqueCombination } from "./is-unique-combination";
 import { GetMaxLimitType, MaxCountByUserLimit as _MaxCountByUserLimit } from "./max-count-by-user-limit";
@@ -27,6 +28,8 @@ export const IsPositive = (validationOptions?: ValidationOptions): PropertyDecor
     _IsPositive({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות גדול מאפס $value') });
 export const Min = (min: number, validationOptions?: ValidationOptions): PropertyDecorator =>
     _Min(min, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות לפחות $constraint1') });
+export const Max = (max: number, validationOptions?: ValidationOptions): PropertyDecorator =>
+    _Max(max, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות לכל היותר $constraint1') });
 export const IsDate = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsDate({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות תאריך $value') });
 export const IsBoolean = (validationOptions?: ValidationOptions): PropertyDecorator =>
@@ -122,6 +125,10 @@ const translationDict = {
     absCount: 'מספר היעדרויות',
     approvedAbsCount: 'מספר היעדרויות מאושרות',
     grade: 'ציון',
+    percents: 'אחוז נוכחות',
+    count: 'מספר חיסורים',
+    effect: 'השפעה',
+    effectPercent: 'השפעה באחוזים',
 };
 
 function getTranslatedProperty(property: string) {
