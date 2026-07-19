@@ -1,5 +1,4 @@
 import { CSSProperties } from 'react';
-import { LOCAL_FONTS } from './localFonts';
 
 export interface ReportElementStyle {
     type: string;
@@ -49,21 +48,9 @@ export function convertToReactStyle(elementStyle: ReportElementStyle): CSSProper
     return reactStyle;
 }
 
-// Self-hosted @font-face CSS for whichever style fonts we have bundled locally
-// (see localFonts.ts). No network request involved - fonts.googleapis.com is
-// unreachable from the prod container and was hanging PDF generation for the
-// full 30s Puppeteer navigation timeout. Fonts we haven't bundled are simply
-// skipped: the browser falls back to sans-serif, same as it already silently
-// does today whenever the Google Fonts fetch fails.
-//
-// A font can have multiple subset entries (e.g. hebrew + latin) - each needs
-// its own @font-face with the matching unicode-range so the browser picks the
-// right glyphs per character instead of only ever using the first subset.
-export function getFontFaceCss(styles: ReportElementStyle[]): string {
+export function getFontLinks(styles: ReportElementStyle[]): string[] {
     const uniqueFonts = [...new Set(styles.map(style => style.fontFamily).filter(font => font))];
-    return uniqueFonts
-        .flatMap(font => (LOCAL_FONTS[font] ?? []).map(face =>
-            `@font-face { font-family: '${font}'; src: url(data:font/${face.format};base64,${face.base64}) format('${face.format}'); font-weight: 400; font-style: normal; font-display: swap;${face.unicodeRange ? ` unicode-range: ${face.unicodeRange};` : ''} }`
-        ))
-        .join('\n');
+    return uniqueFonts.map(font => 
+        `https://fonts.googleapis.com/css2?family=${font.split(' ').join('+')}&display=swap`
+    );
 }

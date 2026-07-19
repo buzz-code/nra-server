@@ -1,4 +1,4 @@
-import { mergeStyles, getElementStyle, convertToReactStyle, getFontFaceCss, ReportElementStyle } from '../reportStyles';
+import { mergeStyles, getElementStyle, convertToReactStyle, getFontLinks, ReportElementStyle } from '../reportStyles';
 
 describe('reportStyles', () => {
   describe('mergeStyles', () => {
@@ -100,36 +100,18 @@ describe('reportStyles', () => {
     });
   });
 
-  describe('getFontFaceCss', () => {
-    it('should emit an inline @font-face for a locally bundled font, no network URL', () => {
+  describe('getFontLinks', () => {
+    it('should generate Google Fonts links for unique fonts', () => {
       const styles: ReportElementStyle[] = [
         { type: 'header', fontFamily: 'Roboto' },
+        { type: 'body', fontFamily: 'Open Sans' },
         { type: 'footer', fontFamily: 'Roboto' }
       ];
-      const css = getFontFaceCss(styles);
-      expect(css).toContain("@font-face");
-      expect(css).toContain("font-family: 'Roboto'");
-      expect(css).toContain('data:font/woff2;base64,');
-      expect(css).not.toContain('fonts.googleapis.com');
-      expect(css).not.toContain('http');
-      // deduped: only one @font-face block even though Roboto appears twice
-      expect(css.match(/@font-face/g)).toHaveLength(1);
-    });
-
-    it('should silently skip fonts with no local bundle instead of hitting the network', () => {
-      const styles: ReportElementStyle[] = [
-        { type: 'header', fontFamily: 'Arial' }
+      const expected = [
+        'https://fonts.googleapis.com/css2?family=Roboto&display=swap',
+        'https://fonts.googleapis.com/css2?family=Open+Sans&display=swap'
       ];
-      expect(getFontFaceCss(styles)).toBe('');
-    });
-
-    it('should emit one @font-face per subset for a font with hebrew + latin, each with its own unicode-range', () => {
-      const styles: ReportElementStyle[] = [
-        { type: 'header', fontFamily: 'Assistant' }
-      ];
-      const css = getFontFaceCss(styles);
-      expect(css.match(/@font-face/g)).toHaveLength(2);
-      expect(css.match(/unicode-range:/g)).toHaveLength(2);
+      expect(getFontLinks(styles)).toEqual(expected);
     });
 
     it('should handle styles without font family', () => {
@@ -137,16 +119,32 @@ describe('reportStyles', () => {
         { type: 'header', fontSize: 16 },
         { type: 'body', fontFamily: 'Roboto' }
       ];
-      const css = getFontFaceCss(styles);
-      expect(css.match(/@font-face/g)).toHaveLength(1);
+      const expected = [
+        'https://fonts.googleapis.com/css2?family=Roboto&display=swap'
+      ];
+      expect(getFontLinks(styles)).toEqual(expected);
     });
 
-    it('should return empty string when no fonts are specified', () => {
+    it('should handle fonts with spaces', () => {
+      const styles: ReportElementStyle[] = [
+        { type: 'header', fontFamily: 'Source Sans Pro' }
+      ];
+      const expected = [
+        'https://fonts.googleapis.com/css2?family=Source+Sans+Pro&display=swap'
+      ];
+      const result = getFontLinks(styles);
+      // Check that spaces are properly replaced with plus signs
+      expect(result[0]).not.toContain(' ');
+      expect(result[0]).toContain('+');
+      expect(result).toEqual(expected);
+    });
+
+    it('should return empty array when no fonts are specified', () => {
       const styles: ReportElementStyle[] = [
         { type: 'header', fontSize: 16 },
         { type: 'body', fontSize: 14 }
       ];
-      expect(getFontFaceCss(styles)).toBe('');
+      expect(getFontLinks(styles)).toEqual([]);
     });
   });
 });
