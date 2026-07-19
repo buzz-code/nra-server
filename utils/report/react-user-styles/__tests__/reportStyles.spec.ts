@@ -118,9 +118,18 @@ describe('reportStyles', () => {
 
     it('should silently skip fonts with no local bundle instead of hitting the network', () => {
       const styles: ReportElementStyle[] = [
-        { type: 'header', fontFamily: 'Open Sans' }
+        { type: 'header', fontFamily: 'Arial' }
       ];
       expect(getFontFaceCss(styles)).toBe('');
+    });
+
+    it('should emit one @font-face per subset for a font with hebrew + latin, each with its own unicode-range', () => {
+      const styles: ReportElementStyle[] = [
+        { type: 'header', fontFamily: 'Assistant' }
+      ];
+      const css = getFontFaceCss(styles);
+      expect(css.match(/@font-face/g)).toHaveLength(2);
+      expect(css.match(/unicode-range:/g)).toHaveLength(2);
     });
 
     it('should handle styles without font family', () => {

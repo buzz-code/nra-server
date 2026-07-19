@@ -55,10 +55,15 @@ export function convertToReactStyle(elementStyle: ReportElementStyle): CSSProper
 // full 30s Puppeteer navigation timeout. Fonts we haven't bundled are simply
 // skipped: the browser falls back to sans-serif, same as it already silently
 // does today whenever the Google Fonts fetch fails.
+//
+// A font can have multiple subset entries (e.g. hebrew + latin) - each needs
+// its own @font-face with the matching unicode-range so the browser picks the
+// right glyphs per character instead of only ever using the first subset.
 export function getFontFaceCss(styles: ReportElementStyle[]): string {
     const uniqueFonts = [...new Set(styles.map(style => style.fontFamily).filter(font => font))];
     return uniqueFonts
-        .map(font => LOCAL_FONTS[font] && `@font-face { font-family: '${font}'; src: url(data:font/${LOCAL_FONTS[font].format};base64,${LOCAL_FONTS[font].base64}) format('${LOCAL_FONTS[font].format}'); font-weight: 400; font-style: normal; font-display: swap; }`)
-        .filter(Boolean)
+        .flatMap(font => (LOCAL_FONTS[font] ?? []).map(face =>
+            `@font-face { font-family: '${font}'; src: url(data:font/${face.format};base64,${face.base64}) format('${face.format}'); font-weight: 400; font-style: normal; font-display: swap;${face.unicodeRange ? ` unicode-range: ${face.unicodeRange};` : ''} }`
+        ))
         .join('\n');
 }
