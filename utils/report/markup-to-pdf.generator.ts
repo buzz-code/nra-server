@@ -21,7 +21,14 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
             });
             const page = await browser.newPage();
 
-            await page.setContent(markup, { waitUntil: 'networkidle0' });
+            try {
+                await page.setContent(markup, { waitUntil: 'networkidle0', timeout: 10000 });
+            } catch (e) {
+                // A stray external reference in report markup shouldn't be able to
+                // hang the whole request for the full default 30s - fall back to a
+                // render that doesn't wait on network at all.
+                await page.setContent(markup, { waitUntil: 'domcontentloaded' });
+            }
 
             const pdf = await page.pdf({
                 format: 'A4',
