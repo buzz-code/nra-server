@@ -11,6 +11,8 @@ import { YemotModule } from '@shared/utils/yemot/v2/yemot.module';
 import { YemotHandlerFactory } from '@shared/utils/yemot/v2/yemot-router.service';
 import { MailSendModule } from '@shared/utils/mail/mail-send.module';
 import { S3Module } from '@shared/utils/s3/s3.module';
+import { JobsModule } from '@shared/utils/jobs/jobs.module';
+import { JobHandler } from '@shared/utils/jobs/job.types';
 import { getPinoConfig } from '@shared/config/pino.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -22,6 +24,8 @@ export interface BaseNraAppModuleOptions {
   yemotHandlerService: YemotHandlerFactory;
   userInitModule?: Type<any> | DynamicModule;
   throttlerLimit?: number;
+  /** Project-specific async job handlers, registered alongside the shared ones. */
+  jobHandlers?: Type<JobHandler>[];
 }
 
 @Module({})
@@ -39,6 +43,7 @@ export class BaseNraAppModule {
         TypeOrmModule.forRoot(typeOrmModuleConfig),
         MailSendModule,
         S3Module,
+        JobsModule.forRoot({ handlers: options.jobHandlers }),
         options.entitiesModule,
         AuthModule.forRoot({ userInitModule }),
         YemotModule.register(options.yemotHandlerService),
