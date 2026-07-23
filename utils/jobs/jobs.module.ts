@@ -27,11 +27,11 @@ export interface JobsModuleOptions {
 export class JobsModule {
   static forRoot(options: JobsModuleOptions = {}): DynamicModule {
     const handlerClasses = [...SHARED_HANDLERS, ...(options.handlers ?? [])];
-    const handlerProviders: Provider[] = handlerClasses.map((cls) => ({
+    const handlerAggregator: Provider = {
       provide: JOB_HANDLER,
-      useExisting: cls,
-      multi: true,
-    }));
+      useFactory: (...handlers: JobHandler[]) => handlers,
+      inject: handlerClasses,
+    };
 
     return {
       module: JobsModule,
@@ -41,7 +41,7 @@ export class JobsModule {
         JobWorkerService,
         ScheduleHeartbeatService,
         ...handlerClasses,
-        ...handlerProviders,
+        handlerAggregator,
       ],
       exports: [JobService],
     };
