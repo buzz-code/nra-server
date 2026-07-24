@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
+import { DynamicModule, Global, Module, Provider, Type } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Job } from '@shared/entities/Job.entity';
@@ -23,6 +23,7 @@ export interface JobsModuleOptions {
  * schedule heartbeat. Import once via `JobsModule.forRoot()` in the app module.
  * MailSendService and S3FileStoreService come from their global modules.
  */
+@Global()
 @Module({})
 export class JobsModule {
   static forRoot(options: JobsModuleOptions = {}): DynamicModule {
