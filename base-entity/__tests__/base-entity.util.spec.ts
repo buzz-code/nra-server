@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
-import { validateBulk, validateUserHasPaid, validateNotTrialEnded, getUserMailAddressFrom } from '../base-entity.util';
+import { validateBulk, validateUserHasPaid, validateNotTrialEnded, getUserAdditionalData, getUserMailAddressFrom } from '../base-entity.util';
 import { User } from '@shared/entities/User.entity';
 import { IsString, IsNumber, IsNotEmpty } from 'class-validator';
 import { CrudValidationGroups } from '@dataui/crud';
@@ -151,6 +151,28 @@ describe('base-entity.util', () => {
     it('should return early if no userId', async () => {
       await expect(validateNotTrialEnded({}, mockDataSource as DataSource))
         .resolves.not.toThrow();
+      expect(mockUserRepository.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getUserAdditionalData', () => {
+    it('returns the user\'s additionalData', async () => {
+      mockUserRepository.findOne = jest.fn().mockResolvedValue({ additionalData: { someKey: 'someValue' } });
+
+      await expect(getUserAdditionalData(1, mockDataSource as DataSource))
+        .resolves.toEqual({ someKey: 'someValue' });
+    });
+
+    it('returns an empty object when additionalData is null', async () => {
+      mockUserRepository.findOne = jest.fn().mockResolvedValue({ additionalData: null });
+
+      await expect(getUserAdditionalData(1, mockDataSource as DataSource))
+        .resolves.toEqual({});
+    });
+
+    it('returns an empty object without a userId, and skips the query', async () => {
+      await expect(getUserAdditionalData(undefined, mockDataSource as DataSource))
+        .resolves.toEqual({});
       expect(mockUserRepository.findOne).not.toHaveBeenCalled();
     });
   });

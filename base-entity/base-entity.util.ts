@@ -74,6 +74,14 @@ export async function validateNotTrialEnded(auth: any, dataSource: DataSource, m
     }
 }
 
+export async function getUserAdditionalData(userId: number, dataSource: DataSource): Promise<Record<string, any>> {
+    if (!userId) return {};
+
+    const userInfo = await dataSource.getRepository(User)
+        .findOne({ where: { id: userId }, select: { additionalData: true } });
+    return userInfo?.additionalData ?? {};
+}
+
 export async function getUserMailAddressFrom(auth: any, dataSource: DataSource, domain = 'mail.yoman.online'): Promise<Address> {
     if (isAdmin(auth)) {
         return {
