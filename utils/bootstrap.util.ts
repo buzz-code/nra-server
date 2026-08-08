@@ -45,8 +45,10 @@ export function setupApplication(app: INestApplication, options: BootstrapOption
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  const domainNames = (process.env.DOMAIN_NAME || '').split(',').map((d) => d.trim()).filter(Boolean);
+
   const allowedOrigins = [
-    new RegExp('http(s?)://' + process.env.DOMAIN_NAME),
+    ...domainNames.map((domainName) => new RegExp('http(s?)://' + domainName)),
     process.env.IP_ADDRESS && new RegExp('http(s?)://' + process.env.IP_ADDRESS + ':[\\d]*'),
   ];
 

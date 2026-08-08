@@ -1,4 +1,4 @@
-import { bootstrapNraApplication, readPackageJsonName } from '../bootstrap.util';
+import { bootstrapNraApplication, readPackageJsonName, setupApplication } from '../bootstrap.util';
 import { NestFactory } from '@nestjs/core';
 import * as fs from 'fs';
 
@@ -41,6 +41,38 @@ describe('readPackageJsonName', () => {
     });
     expect(readPackageJsonName()).toBe('nra-app');
     jest.restoreAllMocks();
+  });
+});
+
+describe('setupApplication CORS', () => {
+  const OLD_ENV = process.env;
+
+  beforeEach(() => {
+    process.env = { ...OLD_ENV };
+    delete process.env.IP_ADDRESS;
+  });
+
+  afterEach(() => {
+    process.env = OLD_ENV;
+  });
+
+  it('builds an allowed-origin regex per comma-separated domain', () => {
+    process.env.DOMAIN_NAME = 'dnd.yoman.online, kolmasa.com';
+    const mockApp: any = {
+      useLogger: jest.fn(),
+      useGlobalInterceptors: jest.fn(),
+      useGlobalGuards: jest.fn(),
+      enableCors: jest.fn(),
+      use: jest.fn(),
+      get: jest.fn().mockReturnValue({}),
+    };
+
+    setupApplication(mockApp, { swaggerTitle: 'test' });
+
+    const { origin } = mockApp.enableCors.mock.calls[0][0];
+    expect(origin).toHaveLength(2);
+    expect(origin[0].test('https://dnd.yoman.online')).toBe(true);
+    expect(origin[1].test('https://kolmasa.com')).toBe(true);
   });
 });
 
