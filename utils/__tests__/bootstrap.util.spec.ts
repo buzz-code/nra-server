@@ -57,7 +57,7 @@ describe('setupApplication CORS', () => {
   });
 
   it('builds an allowed-origin regex per comma-separated domain', () => {
-    process.env.DOMAIN_NAME = 'dnd.yoman.online, kolmasa.com';
+    process.env.DOMAIN_NAME = 'example.com, example.org';
     const mockApp: any = {
       useLogger: jest.fn(),
       useGlobalInterceptors: jest.fn(),
@@ -71,8 +71,8 @@ describe('setupApplication CORS', () => {
 
     const { origin } = mockApp.enableCors.mock.calls[0][0];
     expect(origin).toHaveLength(2);
-    expect(origin[0].test('https://dnd.yoman.online')).toBe(true);
-    expect(origin[1].test('https://kolmasa.com')).toBe(true);
+    expect(origin[0].test('https://example.com')).toBe(true);
+    expect(origin[1].test('https://example.org')).toBe(true);
   });
 });
 
