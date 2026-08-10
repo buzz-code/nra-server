@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Headers,
   HttpCode,
   UnauthorizedException,
   Post,
@@ -21,12 +22,24 @@ import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { isAdmin } from '@shared/utils/permissionsUtil';
 import { AuthenticatedRequest } from '@shared/auth/auth.types';
 import { SkipMaintenance } from '@shared/decorators/skip-maintenance.decorator';
+import { MailSendService } from '@shared/utils/mail/mail-send.service';
+
+const CONTACT_MAIL_TO = 'yomanet.office@gmail.com';
+
+interface ContactFormBody {
+  name?: string;
+  email?: string;
+  phone?: string;
+  message?: string;
+  files?: { name: string; src: string }[];
+}
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
     private authService: AuthService,
+    private mailSendService: MailSendService,
   ) { }
 
   @UseGuards(LocalAuthGuard)
@@ -106,6 +119,30 @@ export class AppController {
       throw new UnauthorizedException();
     }
     return this.authService.updateProfile(userId, data);
+  }
+
+  @Post('contact')
+  @HttpCode(200)
+  async submitContact(@Body() body: ContactFormBody, @Headers('origin') origin?: string) {
+    if (!body?.name || !body?.email || !body?.message) {
+      throw new BadRequestException('נא למלא שם, אימייל והודעה');
+    }
+    const html = `
+      <p><b>שם:</b> ${body.name}</p>
+      <p><b>אימייל:</b> ${body.email}</p>
+      ${body.phone ? `<p><b>טלפון:</b> ${body.phone}</p>` : ''}
+      <p><b>הודעה:</b></p>
+      <p>${body.message}</p>
+      ${origin ? `<p><b>מקור:</b> ${origin}</p>` : ''}
+    `;
+    await this.mailSendService.sendMail({
+      to: CONTACT_MAIL_TO,
+      replyTo: body.email,
+      subject: `פנייה חדשה מטופס צור קשר: ${body.name}`,
+      html,
+      attachments: (body.files || []).map((file) => ({ filename: file.name, path: file.src })),
+    });
+    return { success: true };
   }
 
   @Get()
