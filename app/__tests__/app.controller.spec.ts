@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from '../app.controller';
 import { AppService } from '../app.service';
 import { AuthService } from '@shared/auth/auth.service';
+import { MailSendService } from '@shared/utils/mail/mail-send.service';
 import { Response } from 'express';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AuthenticatedRequest } from '@shared/auth/auth.types';
@@ -9,6 +10,7 @@ import { AuthenticatedRequest } from '@shared/auth/auth.types';
 describe('AppController', () => {
   let appController: AppController;
   let authService: AuthService;
+  let mailSendService: MailSendService;
 
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
@@ -33,11 +35,18 @@ describe('AppController', () => {
             updateProfile: jest.fn().mockResolvedValue({}),
           },
         },
+        {
+          provide: MailSendService,
+          useValue: {
+            sendMail: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
     appController = app.get<AppController>(AppController);
     authService = app.get<AuthService>(AuthService);
+    mailSendService = app.get<MailSendService>(MailSendService);
   });
 
   it('should return hello message with startup timestamp', () => {
@@ -181,5 +190,32 @@ describe('AppController', () => {
     const req = { user: { permissions: { admin: true } } } as unknown as AuthenticatedRequest;
 
     await expect(appController.updateProfile(req, { phoneNumber: '0501234567' })).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('should send a contact form submission by mail', async () => {
+    const body = {
+      name: 'Test User',
+      email: 'test@example.com',
+      phone: '0501234567',
+      message: 'Hello there',
+      files: [{ name: 'file.txt', src: 'data:text/plain;base64,aGVsbG8=' }],
+    };
+
+    const result = await appController.submitContact(body, 'https://example.com');
+
+    expect(mailSendService.sendMail).toHaveBeenCalledWith({
+      to: 'yomanet.office@gmail.com',
+      replyTo: body.email,
+      subject: expect.stringContaining(body.name),
+      html: expect.stringContaining(body.message),
+      attachments: [{ filename: 'file.txt', path: body.files[0].src }],
+    });
+    expect(result).toEqual({ success: true });
+  });
+
+  it('should reject a contact form submission missing required fields', async () => {
+    await expect(
+      appController.submitContact({ name: 'Test User' }, undefined),
+    ).rejects.toThrow(BadRequestException);
   });
 });
