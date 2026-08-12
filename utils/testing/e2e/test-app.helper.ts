@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import * as cookieParser from 'cookie-parser';
 
 /**
  * Helper class for setting up and tearing down the NestJS application in e2e tests
@@ -19,6 +20,7 @@ export class TestAppHelper {
     }).compile();
 
     this.app = this.moduleFixture.createNestApplication();
+    this.app.use(cookieParser());
     await this.app.init();
 
     this.dataSource = this.moduleFixture.get<DataSource>(DataSource);
