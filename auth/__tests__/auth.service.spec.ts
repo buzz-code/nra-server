@@ -376,6 +376,7 @@ describe('AuthService', () => {
                 email: 'test@example.com',
                 name: 'test',
                 permissions: {},
+                additionalData: { yemotWebhookToken: 'existing-token' },
             } as any as User;
 
             const findOneByMock = jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(userStub);
@@ -392,6 +393,25 @@ describe('AuthService', () => {
             jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
 
             await expect(service.getProfile(userId)).rejects.toThrowError('User not found');
+        });
+
+        it('should generate and persist a yemotWebhookToken when the user does not have one yet', async () => {
+            const userId = 1;
+            const userStub = {
+                id: userId,
+                email: 'test@example.com',
+                name: 'test',
+                permissions: {},
+            } as any as User;
+
+            jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(userStub);
+            const updateMock = jest.spyOn(userRepository, 'update').mockResolvedValue(undefined as any);
+
+            const result = await service.getProfile(userId);
+
+            expect(result.additionalData?.yemotWebhookToken).toEqual(expect.any(String));
+            expect(result.additionalData.yemotWebhookToken).toHaveLength(32);
+            expect(updateMock).toHaveBeenCalledWith(userId, { additionalData: result.additionalData });
         });
     });
 

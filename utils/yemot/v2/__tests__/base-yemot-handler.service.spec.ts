@@ -104,6 +104,7 @@ describe('BaseYemotHandlerService', () => {
 
     const mockUserRepo = {
       findOne: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined),
     };
 
     const mockTextByUserRepo = {
@@ -183,6 +184,60 @@ describe('BaseYemotHandlerService', () => {
 
       // The logger is called internally, we just verify no errors
       expect(userRepo.findOne).toHaveBeenCalled();
+    });
+  });
+
+  describe('getUserByDidPhone - yemotUrlMigrated syncing', () => {
+    it('marks the user migrated on a secured call whose token matches', async () => {
+      const secured = new TestYemotHandler(dataSource, mockCall as Call, mockCallTracker, 'the-token');
+      jest.spyOn(userRepo, 'findOne').mockResolvedValue({
+        ...mockUser,
+        additionalData: { yemotWebhookToken: 'the-token' },
+      } as unknown as User);
+
+      await secured.testGetUserByDidPhone();
+
+      expect(userRepo.update).toHaveBeenCalledWith(1, {
+        additionalData: { yemotWebhookToken: 'the-token', yemotUrlMigrated: true },
+      });
+    });
+
+    it('does not mark migrated when the secret does not match the stored token', async () => {
+      const secured = new TestYemotHandler(dataSource, mockCall as Call, mockCallTracker, 'wrong-token');
+      jest.spyOn(userRepo, 'findOne').mockResolvedValue({
+        ...mockUser,
+        additionalData: { yemotWebhookToken: 'the-token' },
+      } as unknown as User);
+
+      await secured.testGetUserByDidPhone();
+
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('flips a previously-migrated user back to false when a call still lands on the legacy path', async () => {
+      const legacy = new TestYemotHandler(dataSource, mockCall as Call, mockCallTracker);
+      jest.spyOn(userRepo, 'findOne').mockResolvedValue({
+        ...mockUser,
+        additionalData: { yemotWebhookToken: 'the-token', yemotUrlMigrated: true },
+      } as unknown as User);
+
+      await legacy.testGetUserByDidPhone();
+
+      expect(userRepo.update).toHaveBeenCalledWith(1, {
+        additionalData: { yemotWebhookToken: 'the-token', yemotUrlMigrated: false },
+      });
+    });
+
+    it('does not write when the migration status already matches', async () => {
+      const legacy = new TestYemotHandler(dataSource, mockCall as Call, mockCallTracker);
+      jest.spyOn(userRepo, 'findOne').mockResolvedValue({
+        ...mockUser,
+        additionalData: { yemotUrlMigrated: false },
+      } as unknown as User);
+
+      await legacy.testGetUserByDidPhone();
+
+      expect(userRepo.update).not.toHaveBeenCalled();
     });
   });
 

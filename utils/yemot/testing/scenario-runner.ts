@@ -11,6 +11,7 @@ export type YemotHandlerConstructor = new (
   dataSource: DataSource,
   call: any,
   callTracker: any,
+  webhookSecret?: string,
 ) => BaseYemotHandlerService;
 
 /**

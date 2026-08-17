@@ -11,7 +11,7 @@ import { YemotCallTrackingService } from './yemot-call-tracking.service';
 const logger = new Logger('YemotRouterService');
 
 export const YEMOT_HANDLER_FACTORY = 'YemotHandlerFactory';
-export type YemotHandlerFactory = new (dataSource: DataSource, call: Call, callTracker: YemotCallTrackingService) => BaseYemotHandlerService;
+export type YemotHandlerFactory = new (dataSource: DataSource, call: Call, callTracker: YemotCallTrackingService, webhookSecret?: string) => BaseYemotHandlerService;
 type TextParams = Record<string, string | number>;
 type MessageObj = { type: 'text' | 'file'; data: string };
 export type ContentData = { value?: string | null; filepath?: string | null };
@@ -19,6 +19,11 @@ export type ContentData = { value?: string | null; filepath?: string | null };
 @Injectable()
 export class YemotRouterService {
   protected readonly logger = logger;
+
+  // Correlates the `:secret` path segment (present only on the new,
+  // per-user-token mount) to the call it belongs to, so the handler factory
+  // can see which mount a given call came in on. See setupYemotRouter().
+  private webhookSecretsByCallId = new Map<string, string | undefined>();
 
   constructor(
     @InjectDataSource() private dataSource: DataSource,
@@ -29,10 +34,19 @@ export class YemotRouterService {
   getRouter(): express.Router {
     const router = this.getExpressRouter();
     const yemotRouter = this.getYemotRouter();
+
+    router.use('/', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const callId = req.body?.ApiCallId;
+      if (callId) {
+        this.webhookSecretsByCallId.set(callId, (req.params as Record<string, string>)?.secret);
+      }
+      next();
+    });
     router.use('/', yemotRouter);
 
     yemotRouter.all('/', async (call: Call) => {
-      const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call, this.callTrackingService);
+      const webhookSecret = this.webhookSecretsByCallId.get(call.callId);
+      const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call, this.callTrackingService, webhookSecret);
       await yemotHandlerService.processCall();
     });
 
@@ -79,6 +93,7 @@ export class YemotRouterService {
     yemotRouter.events.on('call_hangup', async (call) => {
       this.logger.log(`Call ${call.callId} was hungup - Phone: ${call.phone}`);
       await this.callTrackingService.finalizeCall(call.callId);
+      this.webhookSecretsByCallId.delete(call.callId);
     });
     yemotRouter.events.on('call_continue', (call) => {
       this.logger.log(`Call ${call.callId} continues - Phone: ${call.phone}`);
@@ -100,6 +115,10 @@ export class BaseYemotHandlerService {
     @InjectDataSource() protected dataSource: DataSource,
     protected call: Call,
     protected callTracker: YemotCallTrackingService,
+    // Present only when the call arrived on the /yemot/handle-call/:secret
+    // mount - the literal secret value from the URL, not yet verified
+    // against the resolved user. See syncYemotUrlMigrationStatus().
+    protected webhookSecret?: string,
   ) { }
 
   async processCall(): Promise<void> {
@@ -115,6 +134,23 @@ export class BaseYemotHandlerService {
       return this.hangupWithMessage('המערכת לא מחוברת, אנא פני למזכירות');
     }
     this.user = user;
+    await this.syncYemotUrlMigrationStatus();
+  }
+
+  /**
+   * Tracks, per user, whether their Yemot ext.ini is pointed at the new
+   * token-secured URL yet. Driven by real traffic rather than trusting a
+   * one-time confirmation: every call re-derives it, so a user who claims
+   * to have migrated but hasn't gets flipped back the next time a call
+   * still lands on the legacy (no-token) path.
+   */
+  private async syncYemotUrlMigrationStatus() {
+    const isSecuredCall = Boolean(this.webhookSecret) && this.webhookSecret === this.user.additionalData?.yemotWebhookToken;
+    const wasMarkedMigrated = Boolean(this.user.additionalData?.yemotUrlMigrated);
+    if (isSecuredCall === wasMarkedMigrated) return;
+
+    this.user.additionalData = { ...this.user.additionalData, yemotUrlMigrated: isSecuredCall };
+    await this.dataSource.getRepository(User).update(this.user.id, { additionalData: this.user.additionalData });
   }
 
   protected async getTextDataByUserId(textKey: string, values?: TextParams): Promise<{ value: string; filepath: string | null }> {

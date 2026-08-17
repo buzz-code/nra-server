@@ -68,7 +68,12 @@ export function setupApplication(app: INestApplication, options: BootstrapOption
 
 export function setupYemotRouter(app: INestApplication) {
   const yemotRouterSvc = app.get(YemotRouterService);
-  app.use('/yemot/handle-call', yemotRouterSvc.getRouter());
+  const router = yemotRouterSvc.getRouter();
+  // New, per-user-token-secured path. Users still need to update their
+  // ext.ini to point here - see YemotMigrationBanner / Tutorial.jsx in the
+  // client. The legacy path below is kept open during that migration.
+  app.use('/yemot/handle-call/:secret', router);
+  app.use('/yemot/handle-call', router);
 }
 
 async function gracefulShutdown(app: INestApplication) {

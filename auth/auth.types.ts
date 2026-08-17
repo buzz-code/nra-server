@@ -7,6 +7,7 @@ export interface IAuthenticatedUser {
     permissions: Record<string, boolean>;
     effective_id?: number;
     impersonated?: boolean;
+    additionalData?: any;
 }
 
 export interface AuthenticatedRequest extends Request {
