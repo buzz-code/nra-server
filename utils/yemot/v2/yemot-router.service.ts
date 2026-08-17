@@ -7,6 +7,7 @@ import { User } from '@shared/entities/User.entity';
 import { TextByUser, getTextByUserCacheId } from '@shared/view-entities/TextByUser.entity';
 import { cacheTTL } from '@shared/config/database.config';
 import { YemotCallTrackingService } from './yemot-call-tracking.service';
+import { YEMOT_LEGACY_ROUTE_EXPIRED_MESSAGE, isPastYemotLegacyRouteDeadline } from '../yemot-legacy-route.util';
 
 const logger = new Logger('YemotRouterService');
 
@@ -15,6 +16,13 @@ export type YemotHandlerFactory = new (dataSource: DataSource, call: Call, callT
 type TextParams = Record<string, string | number>;
 type MessageObj = { type: 'text' | 'file'; data: string };
 export type ContentData = { value?: string | null; filepath?: string | null };
+
+// The `:secret` path segment is only present on the /yemot/handle-call/:secret
+// mount (see setupYemotRouter) - yemot-router2 keeps call.req pointed at the
+// current request, so this is available with no extra bookkeeping.
+function getWebhookSecret(call: Call): string | undefined {
+  return (call.req?.params as Record<string, string>)?.secret;
+}
 
 @Injectable()
 export class YemotRouterService {
@@ -32,6 +40,12 @@ export class YemotRouterService {
     router.use('/', yemotRouter);
 
     yemotRouter.all('/', async (call: Call) => {
+      if (!getWebhookSecret(call) && isPastYemotLegacyRouteDeadline()) {
+        call.id_list_message([{ type: 'text', data: YEMOT_LEGACY_ROUTE_EXPIRED_MESSAGE }]);
+        call.hangup();
+        return;
+      }
+
       const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call, this.callTrackingService);
       await yemotHandlerService.processCall();
     });
@@ -40,7 +54,9 @@ export class YemotRouterService {
   }
 
   private getExpressRouter(): express.Router {
-    const router = express.Router();
+    // mergeParams: nested routers reset req.params by default, which would
+    // drop the :secret from the /yemot/handle-call/:secret mount.
+    const router = express.Router({ mergeParams: true });
     router.use(express.urlencoded({ extended: true }));
     router.use((err, req, res, next) => {
       if (err) {
@@ -53,6 +69,7 @@ export class YemotRouterService {
 
   private getYemotRouter(): express.Router {
     const yemotRouter = YemotRouter({
+      mergeParams: true,
       printLog: true,
       timeout: 5 * 60 * 1000,
       uncaughtErrorHandler: (error, call) => {
@@ -115,6 +132,19 @@ export class BaseYemotHandlerService {
       return this.hangupWithMessage('המערכת לא מחוברת, אנא פני למזכירות');
     }
     this.user = user;
+    await this.syncYemotUrlMigrationStatus();
+  }
+
+  // Re-derives yemotUrlMigrated from the actual request each call, so a
+  // stale/false client confirmation self-corrects on the next real call.
+  private async syncYemotUrlMigrationStatus() {
+    const secret = getWebhookSecret(this.call);
+    const isSecuredCall = Boolean(secret) && secret === this.user.additionalData?.yemotWebhookToken;
+    const wasMarkedMigrated = Boolean(this.user.additionalData?.yemotUrlMigrated);
+    if (isSecuredCall === wasMarkedMigrated) return;
+
+    this.user.additionalData = { ...this.user.additionalData, yemotUrlMigrated: isSecuredCall };
+    await this.dataSource.getRepository(User).update(this.user.id, { additionalData: this.user.additionalData });
   }
 
   protected async getTextDataByUserId(textKey: string, values?: TextParams): Promise<{ value: string; filepath: string | null }> {

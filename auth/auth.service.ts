@@ -4,9 +4,11 @@ import { User } from '@shared/entities/User.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { jwtConstants } from './constants';
 import * as cookie from 'cookie';
 import { IAuthenticatedUser } from './auth.types';
+import { getYemotLegacyRouteDeadline } from '@shared/utils/yemot/yemot-legacy-route.util';
 import { IUserInitializationService, USER_INITIALIZATION_SERVICE } from './user-initialization.interface';
 
 const adminUser: IAuthenticatedUser = {
@@ -113,7 +115,21 @@ export class AuthService {
     if (!user) {
       throw new Error('User not found');
     }
-    return this.getSafeUserDetails(user);
+
+    if (!user.additionalData?.yemotWebhookToken) {
+      user.additionalData = {
+        ...user.additionalData,
+        yemotWebhookToken: randomBytes(16).toString('hex'),
+      };
+      await this.userRepository.update(user.id, { additionalData: user.additionalData });
+    }
+
+    // Computed, not persisted - keeps it out of additionalData so a client
+    // updateSettings call can't accidentally echo a stale value back.
+    return {
+      ...this.getSafeUserDetails(user),
+      yemotLegacyRouteDeadline: getYemotLegacyRouteDeadline()?.toISOString() ?? null,
+    };
   }
 
   async updateSettings(userId: number, data: any) {

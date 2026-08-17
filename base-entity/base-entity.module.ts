@@ -8,6 +8,7 @@ import { BaseEntityController } from './base-entity.controller';
 import { BaseEntityService } from './base-entity.service';
 import { BaseEntityModuleOptions, Entity, ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE, InjectEntityService } from './interface';
 import { Public } from '@shared/auth/public.decorator';
+import { MailWebhookGuard } from '@shared/guards/mail-webhook.guard';
 import { HttpModule } from '@nestjs/axios';
 import { HandleEmailBody } from '@shared/utils/mail/interface';
 import { ImportFileSource } from '@shared/entities/ImportFile.entity';
@@ -77,6 +78,7 @@ export class BaseEntityModule {
 
             @Post('/handle-email')
             @Public()
+            @UseGuards(MailWebhookGuard)
             async handleEmail(@Body() body: HandleEmailBody) {
                 const userId = await this.getUserIdFromMailAddress(body.mail_data.rcpt_to ?? body.mail_data.to);
                 const importedFiles = [];
