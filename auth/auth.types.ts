@@ -8,6 +8,7 @@ export interface IAuthenticatedUser {
     effective_id?: number;
     impersonated?: boolean;
     additionalData?: any;
+    yemotLegacyRouteDeadline?: string | null;
 }
 
 export interface AuthenticatedRequest extends Request {

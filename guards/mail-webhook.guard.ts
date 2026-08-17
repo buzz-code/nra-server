@@ -1,14 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 
-/**
- * Protects the inbound-mail webhook (`POST /:entity/handle-email`).
- * That route is called by our n8n mail-routing workflow, not a logged-in
- * user, so it stays outside JwtAuthGuard (@Public()) and is secured with a
- * shared secret instead.
- *
- * If MAIL_WEBHOOK_SECRET isn't configured on a deployment yet, the guard
- * passes everything through rather than locking the route before it's set up.
- */
+// Secures the n8n-called handle-email webhook via a shared secret header.
+// No-op if MAIL_WEBHOOK_SECRET isn't set yet on a deployment.
 @Injectable()
 export class MailWebhookGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {

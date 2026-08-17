@@ -384,7 +384,29 @@ describe('AuthService', () => {
             const result = await service.getProfile(userId);
 
             expect(findOneByMock).toHaveBeenCalledWith({ id: userId });
-            expect(result).toEqual(userStub);
+            expect(result).toEqual({ ...userStub, yemotLegacyRouteDeadline: null });
+        });
+
+        it('includes yemotLegacyRouteDeadline from YEMOT_LEGACY_ROUTE_DEADLINE when set', async () => {
+            const userId = 1;
+            const userStub = {
+                id: userId,
+                email: 'test@example.com',
+                name: 'test',
+                permissions: {},
+                additionalData: { yemotWebhookToken: 'existing-token' },
+            } as any as User;
+            const original = process.env.YEMOT_LEGACY_ROUTE_DEADLINE;
+            process.env.YEMOT_LEGACY_ROUTE_DEADLINE = '2030-01-01';
+
+            jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(userStub);
+
+            try {
+                const result = await service.getProfile(userId);
+                expect(result.yemotLegacyRouteDeadline).toBe(new Date('2030-01-01').toISOString());
+            } finally {
+                process.env.YEMOT_LEGACY_ROUTE_DEADLINE = original;
+            }
         });
 
         it('should throw an error if the user is not found', async () => {

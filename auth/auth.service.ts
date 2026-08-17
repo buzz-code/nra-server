@@ -8,6 +8,7 @@ import { randomBytes } from 'crypto';
 import { jwtConstants } from './constants';
 import * as cookie from 'cookie';
 import { IAuthenticatedUser } from './auth.types';
+import { getYemotLegacyRouteDeadline } from '@shared/utils/yemot/yemot-legacy-route.util';
 import { IUserInitializationService, USER_INITIALIZATION_SERVICE } from './user-initialization.interface';
 
 const adminUser: IAuthenticatedUser = {
@@ -123,7 +124,12 @@ export class AuthService {
       await this.userRepository.update(user.id, { additionalData: user.additionalData });
     }
 
-    return this.getSafeUserDetails(user);
+    // Computed, not persisted - keeps it out of additionalData so a client
+    // updateSettings call can't accidentally echo a stale value back.
+    return {
+      ...this.getSafeUserDetails(user),
+      yemotLegacyRouteDeadline: getYemotLegacyRouteDeadline()?.toISOString() ?? null,
+    };
   }
 
   async updateSettings(userId: number, data: any) {

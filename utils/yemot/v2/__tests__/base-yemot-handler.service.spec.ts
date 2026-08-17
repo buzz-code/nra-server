@@ -96,6 +96,7 @@ describe('BaseYemotHandlerService', () => {
     read: jest.fn(),
     id_list_message: jest.fn(),
     hangup: jest.fn(),
+    req: { params: {} } as any,
     ...overrides,
   });
 
@@ -189,7 +190,8 @@ describe('BaseYemotHandlerService', () => {
 
   describe('getUserByDidPhone - yemotUrlMigrated syncing', () => {
     it('marks the user migrated on a secured call whose token matches', async () => {
-      const secured = new TestYemotHandler(dataSource, mockCall as Call, mockCallTracker, 'the-token');
+      const securedCall = createMockCall({ req: { params: { secret: 'the-token' } } });
+      const secured = new TestYemotHandler(dataSource, securedCall as Call, mockCallTracker);
       jest.spyOn(userRepo, 'findOne').mockResolvedValue({
         ...mockUser,
         additionalData: { yemotWebhookToken: 'the-token' },
@@ -203,7 +205,8 @@ describe('BaseYemotHandlerService', () => {
     });
 
     it('does not mark migrated when the secret does not match the stored token', async () => {
-      const secured = new TestYemotHandler(dataSource, mockCall as Call, mockCallTracker, 'wrong-token');
+      const securedCall = createMockCall({ req: { params: { secret: 'wrong-token' } } });
+      const secured = new TestYemotHandler(dataSource, securedCall as Call, mockCallTracker);
       jest.spyOn(userRepo, 'findOne').mockResolvedValue({
         ...mockUser,
         additionalData: { yemotWebhookToken: 'the-token' },
