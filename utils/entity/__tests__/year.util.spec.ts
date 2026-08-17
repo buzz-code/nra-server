@@ -57,9 +57,9 @@ describe('yearUtil', () => {
             }
         });
 
-        it('should start with september', () => {
+        it('should start with august', () => {
             const months = getCurrentYearMonths();
-            expect(months[0].getMonth()).toBe(8);
+            expect(months[0].getMonth()).toBe(7);
         });
 
         it('should have different years for the first and last month', () => {
@@ -106,15 +106,28 @@ describe('yearUtil', () => {
             expect(actualYear).toBe(5786);
         });
 
-        it('should behave the same for both modes before September', () => {
-            // 15 August 2025 - before academic year and before Rosh Hashana
+        it('should differ between modes after academic year start but before Rosh Hashana', () => {
+            // 15 August 2025 - after academic year start, before Rosh Hashana
             jest.spyOn(global.Date, 'now').mockImplementation(() =>
                 new Date('2025-08-15T12:00:00Z').valueOf()
             );
 
             const academicYear = getCurrentHebrewYear(true);
             const actualYear = getCurrentHebrewYear(false);
-            
+
+            expect(academicYear).toBe(5786);
+            expect(actualYear).toBe(5785);
+        });
+
+        it('should behave the same for both modes before August', () => {
+            // 15 July 2025 - before academic year and before Rosh Hashana
+            jest.spyOn(global.Date, 'now').mockImplementation(() =>
+                new Date('2025-07-15T12:00:00Z').valueOf()
+            );
+
+            const academicYear = getCurrentHebrewYear(true);
+            const actualYear = getCurrentHebrewYear(false);
+
             expect(academicYear).toBe(5785);
             expect(actualYear).toBe(5785);
         });
