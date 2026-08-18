@@ -80,6 +80,9 @@ export class BaseEntityModule {
             @Public()
             @UseGuards(MailWebhookGuard)
             async handleEmail(@Body() body: HandleEmailBody) {
+                if (!body?.mail_data) {
+                    throw new HttpException({ message: 'mail_data is required' }, HttpStatus.BAD_REQUEST);
+                }
                 const userId = await this.getUserIdFromMailAddress(body.mail_data.rcpt_to ?? body.mail_data.to);
                 const importedFiles = [];
                 for (const attachment of body.mail_data.attachments) {

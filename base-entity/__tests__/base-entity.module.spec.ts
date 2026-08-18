@@ -6,7 +6,7 @@ import { HttpModule } from '@nestjs/axios';
 import { BaseEntityController } from '../base-entity.controller';
 import { Entity as TypeOrmEntity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, Repository, EntityManager, SelectQueryBuilder, QueryRunner } from 'typeorm';
 import { ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE, IHasUserId, Entity } from '../interface';
-import { HttpException, Module, ValidationPipeOptions } from '@nestjs/common';
+import { HttpException, HttpStatus, Module, ValidationPipeOptions } from '@nestjs/common';
 import { BaseRouteName, CrudOptions } from '@dataui/crud';
 import { MailSendService } from '@shared/utils/mail/mail-send.service';
 import { MailerService } from '@nestjs-modules/mailer';
@@ -396,6 +396,12 @@ describe('BaseEntityModule', () => {
       expect(mockMailerService.sendMail).toHaveBeenCalledWith(expect.objectContaining({
         bcc: 'test', html: expect.any(String), subject: 'Re:', text: expect.any(String),
       }));
+    });
+
+    it('should return 400 when mail_data is missing', async () => {
+      await expect(controller['handleEmail']({} as any)).rejects.toMatchObject({
+        status: HttpStatus.BAD_REQUEST,
+      });
     });
   });
 });
