@@ -1,6 +1,6 @@
 import { toJewishDate, toGregorianDate, JewishMonth } from 'jewish-date';
 
-const startOfYear = new Date('2000-09-01');
+const startOfYear = new Date('2000-08-01');
 
 const getGregorianYearByStartDate = (yearStartDate: Date, now: Date) => {
     const year = now.getFullYear();
