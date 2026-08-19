@@ -1,5 +1,5 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { CreatedAtColumn, JsonColumn, UpdatedAtColumn } from '@shared/utils/entity/column-types.util';
+import { CreatedAtColumn, LongJsonColumn, UpdatedAtColumn } from '@shared/utils/entity/column-types.util';
 import { IHasUserId } from '@shared/base-entity/interface';
 import { User } from './User.entity';
 
@@ -32,10 +32,10 @@ export class Job implements IHasUserId {
   @Index('job_status_idx')
   status: JobStatus;
 
-  @JsonColumn({ nullable: true })
+  @LongJsonColumn({ nullable: true })
   payload: Record<string, any>;
 
-  @JsonColumn({ nullable: true })
+  @LongJsonColumn({ nullable: true })
   result: Record<string, any>;
 
   @Column('int', { default: 0 })
