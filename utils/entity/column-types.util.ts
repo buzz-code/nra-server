@@ -149,6 +149,24 @@ export function JsonColumn(options?: ColumnOptions) {
 }
 
 /**
+ * JSON column with no MySQL size limit. TypeORM's `simple-json` (used by
+ * JsonColumn) always maps to `text` (64KB) in MySQL regardless of any type
+ * override, so it's unsuitable for JSON payloads that can exceed that (e.g.
+ * a base64-encoded file). Backed by LongTextColumn with a manual transformer
+ * instead.
+ */
+export function LongJsonColumn(options?: ColumnOptions) {
+  const { transformer, ...rest } = options ?? {};
+  return LongTextColumn({
+    ...rest,
+    transformer: transformer ?? {
+      to: (value: any) => (value == null ? value : JSON.stringify(value)),
+      from: (value: string) => (value == null || value === '' ? null : JSON.parse(value)),
+    },
+  });
+}
+
+/**
  * Varchar column with explicit length - works consistently across databases
  */
 export function VarcharColumn(length: number, options?: ColumnOptions) {
