@@ -2,9 +2,9 @@ import { createSharedEntitiesImports } from '../createSharedEntitiesImports';
 import userConfig from '../configs/user.config';
 
 describe('createSharedEntitiesImports', () => {
-  it('returns an array of exactly 12 items', () => {
+  it('returns an array of exactly 14 items', () => {
     const imports = createSharedEntitiesImports(userConfig);
-    expect(imports).toHaveLength(12);
+    expect(imports).toHaveLength(14);
   });
 
   it('each item is a DynamicModule (has a module property)', () => {
