@@ -100,6 +100,69 @@ describe('foreignKeyUtil', () => {
         });
     });
 
+    describe('findOneAndAssignKey', () => {
+        let dataSource: DataSource;
+
+        beforeEach(async () => {
+            dataSource = new DataSource(databaseConfig);
+            dataSource.getRepository = jest.fn().mockReturnValue({
+                findOne: jest.fn()
+            });
+            await dataSource.initialize();
+        });
+
+        afterEach(() => {
+            dataSource?.destroy();
+        });
+
+        it('should return keyValue if referenceIdValue is not defined', async () => {
+            const keyValue = 1;
+            const repository = {} as any;
+            const result = await foreignKeyUtil
+                .findOneAndAssignKey(
+                    dataSource, repository, 1, undefined, keyValue
+                );
+            expect(result).toEqual(keyValue);
+        });
+
+        it('should return the found item\'s key field when referenceIdValue is defined', async () => {
+            const repository = {} as any;
+            const findSpy = jest
+                .spyOn(dataSource.getRepository(repository), 'findOne')
+                .mockResolvedValue({ id: 5, key: 42 });
+            const result = await foreignKeyUtil
+                .findOneAndAssignKey(
+                    dataSource, repository, 1, 5, undefined
+                );
+            expect(result).toEqual(42);
+            expect(findSpy).toHaveBeenCalledWith({ where: { id: 5, userId: 1 } });
+        });
+
+        it('should use a custom keyField when provided', async () => {
+            const repository = {} as any;
+            jest
+                .spyOn(dataSource.getRepository(repository), 'findOne')
+                .mockResolvedValue({ id: 5, code: 'ABC' });
+            const result = await foreignKeyUtil
+                .findOneAndAssignKey(
+                    dataSource, repository, 1, 5, undefined, 'code'
+                );
+            expect(result).toEqual('ABC');
+        });
+
+        it('should fall back to the existing keyValue if the row no longer resolves', async () => {
+            const repository = {} as any;
+            jest
+                .spyOn(dataSource.getRepository(repository), 'findOne')
+                .mockResolvedValue(null);
+            const result = await foreignKeyUtil
+                .findOneAndAssignKey(
+                    dataSource, repository, 1, 5, 9
+                );
+            expect(result).toEqual(9);
+        });
+    });
+
     describe('findManyAndAssignReferenceIds', () => {
         let dataSource: DataSource;
 
