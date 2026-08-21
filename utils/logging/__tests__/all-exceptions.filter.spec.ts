@@ -27,17 +27,6 @@ describe('AllExceptionsFilter', () => {
     );
   });
 
-  it('does not overwrite response.err already set by LoggerErrorInterceptor', () => {
-    const httpAdapter = { reply: jest.fn() };
-    const filter = new AllExceptionsFilter(httpAdapter as any);
-    const originalError = new Error('original');
-    const response: any = { err: originalError };
-
-    filter.catch(new Error('later'), buildHost(response));
-
-    expect(response.err).toBe(originalError);
-  });
-
   it('does not attach err for a 4xx HttpException, and passes its response body through', () => {
     const httpAdapter = { reply: jest.fn() };
     const filter = new AllExceptionsFilter(httpAdapter as any);

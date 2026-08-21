@@ -3,7 +3,7 @@ import * as path from 'path';
 import { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
+import { Logger } from 'nestjs-pino';
 import { Reflector } from '@nestjs/core';
 import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
@@ -32,7 +32,6 @@ export interface BootstrapOptions {
 
 export function setupApplication(app: INestApplication, options: BootstrapOptions) {
   app.useLogger(app.get(Logger));
-  app.useGlobalInterceptors(new LoggerErrorInterceptor());
   app.use(requestIdMiddleware);
   app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter()));
 

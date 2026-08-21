@@ -22,7 +22,6 @@ jest.mock('@nestjs/swagger', () => ({
 }));
 jest.mock('nestjs-pino', () => ({
   Logger: jest.fn(),
-  LoggerErrorInterceptor: jest.fn().mockImplementation(() => ({})),
 }));
 jest.mock('body-parser', () => ({ json: jest.fn(() => jest.fn()), urlencoded: jest.fn(() => jest.fn()) }));
 jest.mock('cookie-parser', () => jest.fn(() => jest.fn()));
@@ -60,7 +59,6 @@ describe('setupApplication CORS', () => {
     process.env.DOMAIN_NAME = 'example.com, example.org';
     const mockApp: any = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
       useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
@@ -84,7 +82,6 @@ describe('bootstrapNraApplication', () => {
     const mockHttpServer: any = {};
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
       useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
@@ -108,7 +105,6 @@ describe('bootstrapNraApplication', () => {
     const mockHttpServer: any = {};
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
       useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
@@ -131,7 +127,6 @@ describe('bootstrapNraApplication', () => {
     const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()) };
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
       useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
@@ -153,7 +148,6 @@ describe('bootstrapNraApplication', () => {
     const logger = { info: jest.fn(), error: jest.fn(), warn: jest.fn() };
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
       useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
@@ -181,7 +175,6 @@ describe('bootstrapNraApplication', () => {
     const unexpectedError = new Error('getRouter failed unexpectedly');
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
       useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),

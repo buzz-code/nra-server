@@ -1,19 +1,12 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpServer, HttpStatus } from '@nestjs/common';
 
 /**
- * Backstop exception filter: guarantees every unhandled exception - not just
- * the ones LoggerErrorInterceptor sees - has its real error attached to the
- * response before pino-http logs it.
- *
- * pino-http already logs its own per-request line at error level whenever
- * res.statusCode >= 500, with req.id and (thanks to LoggerErrorInterceptor
- * setting response.err) the full exception + stack. That covers exceptions
- * thrown in a handler. It does NOT cover exceptions thrown by a guard or
- * middleware, since those never reach the interceptor - pino-http still logs
- * at error level for those, but with a generic synthetic error, losing the
- * real cause. This filter sets response.err itself so that never happens,
- * without adding a second, duplicate log line - no custom tag needed, filter
- * on res.statusCode>=500 same as always.
+ * Catches every unhandled exception (handler, guard, pipe, or middleware) and
+ * attaches it to the response as response.err before replying, so pino-http's
+ * own per-request log line - which already fires at error level whenever
+ * res.statusCode>=500, and reads response.err into it - carries the real
+ * error and stack for every 500, regardless of where it was thrown.
+ * No custom tag/log line needed: filter on res.statusCode>=500.
  *
  * Response body/status for HttpExceptions is passed through unchanged.
  */
@@ -31,7 +24,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ? exception.getResponse()
       : { statusCode: status, message: 'Internal server error' };
 
-    if (status >= 500 && !response.err) {
+    if (status >= 500) {
       response.err = exception;
     }
 
