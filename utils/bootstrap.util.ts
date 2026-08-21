@@ -9,6 +9,8 @@ import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
 import { YemotRouterService } from './yemot/v2/yemot-router.service';
 import { MaintenanceGuard } from '@shared/guards/maintenance.guard';
+import { requestIdMiddleware } from './logging/request-id.middleware';
+import { AllExceptionsFilter } from './logging/all-exceptions.filter';
 
 export function readPackageJsonName(): string {
   try {
@@ -31,6 +33,8 @@ export interface BootstrapOptions {
 export function setupApplication(app: INestApplication, options: BootstrapOptions) {
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
+  app.use(requestIdMiddleware);
+  app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter(), app.get(Logger)));
 
   // Setup maintenance mode guard
   const reflector = new Reflector();

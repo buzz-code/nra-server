@@ -62,9 +62,11 @@ describe('setupApplication CORS', () => {
       useLogger: jest.fn(),
       useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       get: jest.fn().mockReturnValue({}),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
 
     setupApplication(mockApp, { swaggerTitle: 'test' });
@@ -84,11 +86,13 @@ describe('bootstrapNraApplication', () => {
       useLogger: jest.fn(),
       useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
       get: jest.fn().mockReturnValue(mockYemotRouter),
       getHttpServer: jest.fn().mockReturnValue(mockHttpServer),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -106,11 +110,13 @@ describe('bootstrapNraApplication', () => {
       useLogger: jest.fn(),
       useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
       get: jest.fn().mockReturnValue(mockYemotRouter),
       getHttpServer: jest.fn().mockReturnValue(mockHttpServer),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -127,11 +133,13 @@ describe('bootstrapNraApplication', () => {
       useLogger: jest.fn(),
       useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
       get: jest.fn().mockReturnValue(mockYemotRouter),
       getHttpServer: jest.fn().mockReturnValue({}),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -147,6 +155,7 @@ describe('bootstrapNraApplication', () => {
       useLogger: jest.fn(),
       useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
@@ -157,6 +166,7 @@ describe('bootstrapNraApplication', () => {
         return logger;
       }),
       getHttpServer: jest.fn().mockReturnValue({}),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -173,6 +183,7 @@ describe('bootstrapNraApplication', () => {
       useLogger: jest.fn(),
       useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
@@ -182,6 +193,7 @@ describe('bootstrapNraApplication', () => {
         }
         return logger;
       }),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
