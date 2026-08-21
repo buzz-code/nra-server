@@ -1,27 +1,28 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpServer, HttpStatus } from '@nestjs/common';
-import { Logger } from 'nestjs-pino';
-import { Request } from 'express';
 
 /**
- * Backstop exception filter: guarantees every unhandled exception (not just the
- * ones nestjs-pino's LoggerErrorInterceptor sees) is logged, and every 5xx is
- * logged at error level with the full stack, request id and a stable
- * event:"server_error" tag so it can be found/alerted on in one place
- * regardless of which status code it came out as.
+ * Backstop exception filter: guarantees every unhandled exception - not just
+ * the ones LoggerErrorInterceptor sees - has its real error attached to the
+ * response before pino-http logs it.
  *
- * Response body/status for HttpExceptions is passed through unchanged - this
- * only adds logging on top of Nest's normal exception handling.
+ * pino-http already logs its own per-request line at error level whenever
+ * res.statusCode >= 500, with req.id and (thanks to LoggerErrorInterceptor
+ * setting response.err) the full exception + stack. That covers exceptions
+ * thrown in a handler. It does NOT cover exceptions thrown by a guard or
+ * middleware, since those never reach the interceptor - pino-http still logs
+ * at error level for those, but with a generic synthetic error, losing the
+ * real cause. This filter sets response.err itself so that never happens,
+ * without adding a second, duplicate log line - no custom tag needed, filter
+ * on res.statusCode>=500 same as always.
+ *
+ * Response body/status for HttpExceptions is passed through unchanged.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(
-    private readonly httpAdapter: HttpServer,
-    private readonly logger: Logger,
-  ) { }
+  constructor(private readonly httpAdapter: HttpServer) { }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest<Request & { id?: string; user?: { id?: number } }>();
     const response = ctx.getResponse();
 
     const isHttpException = exception instanceof HttpException;
@@ -30,18 +31,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ? exception.getResponse()
       : { statusCode: status, message: 'Internal server error' };
 
-    if (status >= 500) {
-      this.logger.error(
-        {
-          event: 'server_error',
-          requestId: request?.id,
-          method: request?.method,
-          path: request?.originalUrl ?? request?.url,
-          userId: request?.user?.id,
-          err: exception,
-        },
-        exception instanceof Error ? exception.message : 'Unhandled exception',
-      );
+    if (status >= 500 && !response.err) {
+      response.err = exception;
     }
 
     this.httpAdapter.reply(response, body, status);

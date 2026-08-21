@@ -34,7 +34,7 @@ export function setupApplication(app: INestApplication, options: BootstrapOption
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
   app.use(requestIdMiddleware);
-  app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter(), app.get(Logger)));
+  app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter()));
 
   // Setup maintenance mode guard
   const reflector = new Reflector();

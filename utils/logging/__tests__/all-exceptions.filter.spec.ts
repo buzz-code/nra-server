@@ -1,56 +1,54 @@
 import { BadRequestException } from '@nestjs/common';
 import { AllExceptionsFilter } from '../all-exceptions.filter';
 
-function buildHost(request: any) {
-  const response = {};
+function buildHost(response: any) {
   return {
     switchToHttp: () => ({
-      getRequest: () => request,
+      getRequest: () => ({}),
       getResponse: () => response,
     }),
   } as any;
 }
 
 describe('AllExceptionsFilter', () => {
-  it('logs a non-HttpException as a server error and replies 500', () => {
-    const logger = { error: jest.fn() };
+  it('attaches a non-HttpException to response.err (for pino-http to log) and replies 500', () => {
     const httpAdapter = { reply: jest.fn() };
-    const filter = new AllExceptionsFilter(httpAdapter as any, logger as any);
+    const filter = new AllExceptionsFilter(httpAdapter as any);
     const error = new Error('boom');
-    const request = { id: 'req-1', method: 'GET', originalUrl: '/things', user: { id: 7 } };
+    const response: any = {};
 
-    filter.catch(error, buildHost(request));
+    filter.catch(error, buildHost(response));
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({
-        event: 'server_error',
-        requestId: 'req-1',
-        method: 'GET',
-        path: '/things',
-        userId: 7,
-        err: error,
-      }),
-      'boom',
-    );
+    expect(response.err).toBe(error);
     expect(httpAdapter.reply).toHaveBeenCalledWith(
-      {},
+      response,
       { statusCode: 500, message: 'Internal server error' },
       500,
     );
   });
 
-  it('does not log a 4xx HttpException, and passes its response body through', () => {
-    const logger = { error: jest.fn() };
+  it('does not overwrite response.err already set by LoggerErrorInterceptor', () => {
     const httpAdapter = { reply: jest.fn() };
-    const filter = new AllExceptionsFilter(httpAdapter as any, logger as any);
+    const filter = new AllExceptionsFilter(httpAdapter as any);
+    const originalError = new Error('original');
+    const response: any = { err: originalError };
+
+    filter.catch(new Error('later'), buildHost(response));
+
+    expect(response.err).toBe(originalError);
+  });
+
+  it('does not attach err for a 4xx HttpException, and passes its response body through', () => {
+    const httpAdapter = { reply: jest.fn() };
+    const filter = new AllExceptionsFilter(httpAdapter as any);
     const exception = new BadRequestException('bad input');
-    const request = { id: 'req-2', method: 'POST', originalUrl: '/things' };
+    const response: any = {};
 
-    filter.catch(exception, buildHost(request));
+    filter.catch(exception, buildHost(response));
 
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(response.err).toBeUndefined();
     expect(httpAdapter.reply).toHaveBeenCalledWith(
-      {},
+      response,
       exception.getResponse(),
       400,
     );
