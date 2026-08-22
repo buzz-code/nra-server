@@ -22,7 +22,6 @@ jest.mock('@nestjs/swagger', () => ({
 }));
 jest.mock('nestjs-pino', () => ({
   Logger: jest.fn(),
-  LoggerErrorInterceptor: jest.fn().mockImplementation(() => ({})),
 }));
 jest.mock('body-parser', () => ({ json: jest.fn(() => jest.fn()), urlencoded: jest.fn(() => jest.fn()) }));
 jest.mock('cookie-parser', () => jest.fn(() => jest.fn()));
@@ -60,11 +59,12 @@ describe('setupApplication CORS', () => {
     process.env.DOMAIN_NAME = 'example.com, example.org';
     const mockApp: any = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       get: jest.fn().mockReturnValue({}),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
 
     setupApplication(mockApp, { swaggerTitle: 'test' });
@@ -82,13 +82,14 @@ describe('bootstrapNraApplication', () => {
     const mockHttpServer: any = {};
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
       get: jest.fn().mockReturnValue(mockYemotRouter),
       getHttpServer: jest.fn().mockReturnValue(mockHttpServer),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -104,13 +105,14 @@ describe('bootstrapNraApplication', () => {
     const mockHttpServer: any = {};
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
       get: jest.fn().mockReturnValue(mockYemotRouter),
       getHttpServer: jest.fn().mockReturnValue(mockHttpServer),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -125,13 +127,14 @@ describe('bootstrapNraApplication', () => {
     const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()) };
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
       get: jest.fn().mockReturnValue(mockYemotRouter),
       getHttpServer: jest.fn().mockReturnValue({}),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -145,8 +148,8 @@ describe('bootstrapNraApplication', () => {
     const logger = { info: jest.fn(), error: jest.fn(), warn: jest.fn() };
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
@@ -157,6 +160,7 @@ describe('bootstrapNraApplication', () => {
         return logger;
       }),
       getHttpServer: jest.fn().mockReturnValue({}),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
@@ -171,8 +175,8 @@ describe('bootstrapNraApplication', () => {
     const unexpectedError = new Error('getRouter failed unexpectedly');
     const mockApp = {
       useLogger: jest.fn(),
-      useGlobalInterceptors: jest.fn(),
       useGlobalGuards: jest.fn(),
+      useGlobalFilters: jest.fn(),
       enableCors: jest.fn(),
       use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
@@ -182,6 +186,7 @@ describe('bootstrapNraApplication', () => {
         }
         return logger;
       }),
+      getHttpAdapter: jest.fn().mockReturnValue({}),
     };
     (NestFactory.create as jest.Mock).mockResolvedValue(mockApp);
 
