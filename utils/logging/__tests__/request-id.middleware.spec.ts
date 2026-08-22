@@ -1,4 +1,4 @@
-import { requestIdMiddleware } from '../request-id.middleware';
+import { REQUEST_ID_HEADER, requestIdMiddleware } from '../request-id.middleware';
 
 describe('requestIdMiddleware', () => {
   it('reuses an incoming X-Request-Id header', () => {
@@ -9,7 +9,7 @@ describe('requestIdMiddleware', () => {
     requestIdMiddleware(req, res, next);
 
     expect(req.id).toBe('incoming-id');
-    expect(res.setHeader).toHaveBeenCalledWith('X-Request-Id', 'incoming-id');
+    expect(res.setHeader).toHaveBeenCalledWith(REQUEST_ID_HEADER, 'incoming-id');
     expect(next).toHaveBeenCalled();
   });
 
@@ -22,7 +22,7 @@ describe('requestIdMiddleware', () => {
 
     expect(req.id).toEqual(expect.any(String));
     expect(req.id.length).toBeGreaterThan(0);
-    expect(res.setHeader).toHaveBeenCalledWith('X-Request-Id', req.id);
+    expect(res.setHeader).toHaveBeenCalledWith(REQUEST_ID_HEADER, req.id);
     expect(next).toHaveBeenCalled();
   });
 });
