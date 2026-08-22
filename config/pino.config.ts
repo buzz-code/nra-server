@@ -13,8 +13,6 @@ export const getPinoConfig = (isDevelopment: boolean): Params => ({
     pinoHttp: {
         timestamp: pino.stdTimeFunctions.isoTime,
         transport: isDevelopment ? pinoLocalTransport : undefined,
-        // requestIdMiddleware (bootstrap.util.ts) assigns req.id before this runs -
-        // reuse it so every log line for a request shares the same id.
-        genReqId: (req: any) => req.id,
+        genReqId: (req) => req.id,
     },
 });
