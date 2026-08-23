@@ -86,6 +86,26 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         return { count };
     }
 
+    /**
+     * Resolves ids to the entities this caller is actually allowed to see - crudAuth's
+     * filter (already merged into req.parsed.search by CrudRequestInterceptor) still
+     * applies, so an id the caller doesn't own simply isn't returned. For use in custom
+     * doAction handlers, which take ids from the request and would otherwise have to
+     * re-derive and merge the auth filter themselves to avoid trusting caller-supplied
+     * ids across tenants.
+     */
+    async getManyByIds(req: CrudRequest, ids: any[]): Promise<T[]> {
+        if (!ids?.length) {
+            return [];
+        }
+        const idCondition = { id: { $in: ids } };
+        const search = req.parsed.search && Object.keys(req.parsed.search).length
+            ? { $and: [req.parsed.search, idCondition] }
+            : idCondition;
+        const builder = await this.createBuilder({ ...req.parsed, search }, req.options);
+        return builder.getMany();
+    }
+
     insertUserDataBeforeCreate(dto: DeepPartial<T>, userId: number) {
         if (!this.entityColumns.includes('userId')) {
             return;
