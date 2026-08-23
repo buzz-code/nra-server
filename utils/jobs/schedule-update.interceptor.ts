@@ -14,7 +14,7 @@ export class ScheduleUpdateInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const { body } = context.switchToHttp().getRequest<Request>();
 
-    if (body && ('cronExpression' in body || 'timeZone' in body)) {
+    if (body && typeof body === 'object' && ('cronExpression' in body || 'timeZone' in body)) {
       body.nextRunAt = null;
     }
 

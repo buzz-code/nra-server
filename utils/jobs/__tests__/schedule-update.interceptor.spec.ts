@@ -47,4 +47,11 @@ describe('ScheduleUpdateInterceptor', () => {
       done();
     });
   });
+
+  it('handles a non-object request body without throwing', (done) => {
+    interceptor.intercept(makeContext('foo'), mockCallHandler).subscribe((result) => {
+      expect(result).toBe('result');
+      done();
+    });
+  });
 });
