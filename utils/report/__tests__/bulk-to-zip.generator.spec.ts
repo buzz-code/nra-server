@@ -92,6 +92,14 @@ describe('BulkToPdfReportGenerator', () => {
       await expect(bulkGenerator.getFileBuffer(data)).rejects.toThrowError();
     });
 
+    // per-item getReportData returning null (e.g. no data found) should be skipped, not crash
+    it('should skip null items instead of crashing', async () => {
+      const data = [1, null, 3];
+      const result = await bulkGenerator.getFileBuffer(data);
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(Buffer);
+    });
+
     // should handle invalid PDF documents in input data by skipping them and adding a warning to the final PDF document
     it('should handle invalid PDF documents in input data by skipping them and adding a warning to the final PDF document', async () => {
       const data = [1, 2, 3];

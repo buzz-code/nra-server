@@ -34,6 +34,7 @@ export class BulkToZipReportGenerator extends BaseReportGenerator {
         const extension = getFileExtension(this.generator.fileFormat);
         let counter = 1;
         for (const item of data) {
+            if (item == null) continue;
             const buffer = await this.generator.getFileBuffer(item);
             const reportName = this.generator.getReportName(item);
             const filename = `${counter}_${reportName}.${extension}`;
