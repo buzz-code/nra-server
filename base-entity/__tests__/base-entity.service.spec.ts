@@ -268,6 +268,32 @@ describe('BaseEntityService', () => {
     });
   });
 
+  describe('getManyByIds', () => {
+    it('merges an $in id condition into the already auth-filtered search', async () => {
+      const mockBuilder = { getMany: jest.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]) } as any;
+      const builderSpy = jest.spyOn(service, 'createBuilder').mockResolvedValue(mockBuilder);
+      const authFilteredSearch = { $and: [{ userId: 38 }] }; // as CrudRequestInterceptor would set it
+      const req = { ...mockReq, parsed: { ...mockReq.parsed, search: authFilteredSearch } } as unknown as CrudRequest;
+
+      const result = await service.getManyByIds(req, [1, 2]);
+
+      expect(builderSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ search: { $and: [authFilteredSearch, { id: { $in: [1, 2] } }] } }),
+        req.options,
+      );
+      expect(result).toEqual([{ id: 1 }, { id: 2 }]);
+    });
+
+    it('returns [] without querying when given no ids', async () => {
+      const builderSpy = jest.spyOn(service, 'createBuilder');
+
+      const result = await service.getManyByIds(mockReq, []);
+
+      expect(builderSpy).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('CRUD Operations', () => {
     describe('super class interactions', () => {
       it('should call super createOne', async () => {
