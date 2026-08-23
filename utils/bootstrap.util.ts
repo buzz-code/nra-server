@@ -5,12 +5,14 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { Reflector } from '@nestjs/core';
+import { DataSource } from 'typeorm';
 import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
 import { YemotRouterService } from './yemot/v2/yemot-router.service';
 import { MaintenanceGuard } from '@shared/guards/maintenance.guard';
 import { requestIdMiddleware } from './logging/request-id.middleware';
 import { AllExceptionsFilter } from './logging/all-exceptions.filter';
+import { TypeOrmPinoLogger } from './logging/typeorm-pino.logger';
 
 export function readPackageJsonName(): string {
   try {
@@ -34,6 +36,7 @@ export function setupApplication(app: INestApplication, options: BootstrapOption
   app.useLogger(app.get(Logger));
   app.use(requestIdMiddleware);
   app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter()));
+  app.get(DataSource).logger = new TypeOrmPinoLogger(app.get(Logger));
 
   // Setup maintenance mode guard
   const reflector = new Reflector();
