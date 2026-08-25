@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpServer, HttpStatus } from '@nestjs/common';
-import { QueryFailedError } from 'typeorm';
+import { snakeCase } from 'change-case';
+import { DataSource, QueryFailedError } from 'typeorm';
 
 // MySQL: deleting a row that another table still has a foreign key to.
 const FK_VIOLATION_CODE = 'ER_ROW_IS_REFERENCED_2';
@@ -18,19 +19,23 @@ function getReferencingTable(exception: QueryFailedError): string | null {
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(
     private readonly httpAdapter: HttpServer,
-    // DB table name -> API resource name (e.g. 'report_groups' -> 'report_group'), so a
-    // foreign key violation can be traced back to the resource blocking the delete. The
-    // client, which already has Hebrew resource labels, maps this to a friendly message.
-    private readonly tableNameToResourceName: Record<string, string> = {},
+    private readonly dataSource?: DataSource,
   ) { }
+
+  // DB table name (e.g. 'report_groups') -> API resource name (e.g. 'report_group'), the same
+  // snakeCase(entityName) convention BaseEntityModule uses for controller paths - resolved
+  // lazily, only for the one table involved, when a violation actually occurs.
+  private resolveResourceName(table: string | null): string | null {
+    const metadata = table && this.dataSource?.entityMetadatas.find((m) => m.tableName === table);
+    return (metadata && snakeCase(metadata.targetName)) || table;
+  }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
 
     if (isForeignKeyViolation(exception)) {
-      const table = getReferencingTable(exception);
-      const resource = (table && this.tableNameToResourceName[table]) || table;
+      const resource = this.resolveResourceName(getReferencingTable(exception));
       const label = resource?.replace(/_/g, ' ') || 'רשומות אחרות';
       const body = {
         statusCode: HttpStatus.CONFLICT,

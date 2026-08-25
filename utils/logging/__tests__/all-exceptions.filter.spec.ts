@@ -9,6 +9,10 @@ function buildFkViolation(referencingTable: string) {
   return error;
 }
 
+function buildDataSource(entityMetadatas: { tableName: string; targetName: string }[]) {
+  return { entityMetadatas } as any;
+}
+
 function buildHost(response: any) {
   return {
     switchToHttp: () => ({
@@ -53,7 +57,8 @@ describe('AllExceptionsFilter', () => {
 
   it('turns a foreign key violation into a 409 naming the mapped resource', () => {
     const httpAdapter = { reply: jest.fn() };
-    const filter = new AllExceptionsFilter(httpAdapter as any, { report_groups: 'report_group' });
+    const dataSource = buildDataSource([{ tableName: 'report_groups', targetName: 'ReportGroup' }]);
+    const filter = new AllExceptionsFilter(httpAdapter as any, dataSource);
     const exception = buildFkViolation('report_groups');
     const response: any = {};
 

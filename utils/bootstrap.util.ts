@@ -6,7 +6,6 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { Reflector } from '@nestjs/core';
 import { DataSource } from 'typeorm';
-import { snakeCase } from 'change-case';
 import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
 import { YemotRouterService } from './yemot/v2/yemot-router.service';
@@ -33,20 +32,11 @@ export interface BootstrapOptions {
   port?: number;
 }
 
-// DB table name -> API resource name, e.g. 'report_groups' -> 'report_group'. Mirrors the
-// @Controller(snakeCase(entityName)) path BaseEntityModule registers each entity under, so a
-// foreign key violation (all-exceptions.filter.ts) can name the resource blocking a delete.
-function getTableNameToResourceName(dataSource: DataSource): Record<string, string> {
-  return Object.fromEntries(
-    (dataSource.entityMetadatas || []).map((metadata) => [metadata.tableName, snakeCase(metadata.targetName)]),
-  );
-}
-
 export function setupApplication(app: INestApplication, options: BootstrapOptions) {
   app.useLogger(app.get(Logger));
   app.use(requestIdMiddleware);
   const dataSource = app.get(DataSource);
-  app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter(), getTableNameToResourceName(dataSource)));
+  app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter(), dataSource));
   dataSource.logger = new TypeOrmPinoLogger(app.get(Logger));
 
   // Setup maintenance mode guard
