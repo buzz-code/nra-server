@@ -30,12 +30,14 @@ export interface BootstrapOptions {
   swaggerVersion?: string;
   swaggerTag?: string;
   port?: number;
+  // Hebrew labels for tables that block a delete via a foreign key, keyed by table name.
+  foreignKeyTableLabels?: Record<string, string>;
 }
 
 export function setupApplication(app: INestApplication, options: BootstrapOptions) {
   app.useLogger(app.get(Logger));
   app.use(requestIdMiddleware);
-  app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter()));
+  app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter(), options.foreignKeyTableLabels));
   app.get(DataSource).logger = new TypeOrmPinoLogger(app.get(Logger));
 
   // Setup maintenance mode guard

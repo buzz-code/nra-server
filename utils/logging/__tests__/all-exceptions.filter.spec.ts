@@ -1,5 +1,13 @@
 import { BadRequestException } from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
 import { AllExceptionsFilter } from '../all-exceptions.filter';
+
+function buildFkViolation(referencingTable: string) {
+  const sqlMessage = `Cannot delete or update a parent row: a foreign key constraint fails (\`app_db\`.\`${referencingTable}\`, CONSTRAINT \`FK_x\` FOREIGN KEY (\`teacherReferenceId\`) REFERENCES \`teachers\` (\`id\`))`;
+  const error = new QueryFailedError('DELETE FROM `teachers` WHERE `id` = ?', [6848], new Error(sqlMessage));
+  (error as any).driverError = { code: 'ER_ROW_IS_REFERENCED_2', errno: 1451, sqlMessage };
+  return error;
+}
 
 function buildHost(response: any) {
   return {
@@ -40,6 +48,37 @@ describe('AllExceptionsFilter', () => {
       response,
       exception.getResponse(),
       400,
+    );
+  });
+
+  it('turns a foreign key violation into a 409 naming the mapped table label', () => {
+    const httpAdapter = { reply: jest.fn() };
+    const filter = new AllExceptionsFilter(httpAdapter as any, { report_groups: 'קבוצות דוחות' });
+    const exception = buildFkViolation('report_groups');
+    const response: any = {};
+
+    filter.catch(exception, buildHost(response));
+
+    expect(response.err).toBeUndefined();
+    expect(httpAdapter.reply).toHaveBeenCalledWith(
+      response,
+      { statusCode: 409, message: 'לא ניתן למחוק רשומה זו - קיימות רשומות מסוג "קבוצות דוחות" המשויכות אליה. יש למחוק אותן תחילה.' },
+      409,
+    );
+  });
+
+  it('falls back to the raw table name for a foreign key violation with no mapped label', () => {
+    const httpAdapter = { reply: jest.fn() };
+    const filter = new AllExceptionsFilter(httpAdapter as any);
+    const exception = buildFkViolation('some_table');
+    const response: any = {};
+
+    filter.catch(exception, buildHost(response));
+
+    expect(httpAdapter.reply).toHaveBeenCalledWith(
+      response,
+      { statusCode: 409, message: 'לא ניתן למחוק רשומה זו - קיימות רשומות מסוג "some table" המשויכות אליה. יש למחוק אותן תחילה.' },
+      409,
     );
   });
 });
