@@ -51,9 +51,9 @@ describe('AllExceptionsFilter', () => {
     );
   });
 
-  it('turns a foreign key violation into a 409 naming the mapped table label', () => {
+  it('turns a foreign key violation into a 409 naming the mapped resource', () => {
     const httpAdapter = { reply: jest.fn() };
-    const filter = new AllExceptionsFilter(httpAdapter as any, { report_groups: 'קבוצות דוחות' });
+    const filter = new AllExceptionsFilter(httpAdapter as any, { report_groups: 'report_group' });
     const exception = buildFkViolation('report_groups');
     const response: any = {};
 
@@ -62,12 +62,16 @@ describe('AllExceptionsFilter', () => {
     expect(response.err).toBeUndefined();
     expect(httpAdapter.reply).toHaveBeenCalledWith(
       response,
-      { statusCode: 409, message: 'לא ניתן למחוק רשומה זו - קיימות רשומות מסוג "קבוצות דוחות" המשויכות אליה. יש למחוק אותן תחילה.' },
+      {
+        statusCode: 409,
+        message: 'לא ניתן למחוק רשומה זו - קיימות רשומות מסוג "report group" המשויכות אליה. יש למחוק אותן תחילה.',
+        resource: 'report_group',
+      },
       409,
     );
   });
 
-  it('falls back to the raw table name for a foreign key violation with no mapped label', () => {
+  it('falls back to the raw table name for a foreign key violation with no mapped resource', () => {
     const httpAdapter = { reply: jest.fn() };
     const filter = new AllExceptionsFilter(httpAdapter as any);
     const exception = buildFkViolation('some_table');
@@ -77,7 +81,11 @@ describe('AllExceptionsFilter', () => {
 
     expect(httpAdapter.reply).toHaveBeenCalledWith(
       response,
-      { statusCode: 409, message: 'לא ניתן למחוק רשומה זו - קיימות רשומות מסוג "some table" המשויכות אליה. יש למחוק אותן תחילה.' },
+      {
+        statusCode: 409,
+        message: 'לא ניתן למחוק רשומה זו - קיימות רשומות מסוג "some table" המשויכות אליה. יש למחוק אותן תחילה.',
+        resource: 'some_table',
+      },
       409,
     );
   });

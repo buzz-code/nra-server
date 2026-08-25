@@ -14,17 +14,14 @@ function getReferencingTable(exception: QueryFailedError): string | null {
   return match?.[1] || null;
 }
 
-function buildForeignKeyViolationMessage(exception: QueryFailedError, tableLabels: Record<string, string>): string {
-  const table = getReferencingTable(exception);
-  const label = (table && tableLabels[table]) || table?.replace(/_/g, ' ') || 'רשומות אחרות';
-  return `לא ניתן למחוק רשומה זו - קיימות רשומות מסוג "${label}" המשויכות אליה. יש למחוק אותן תחילה.`;
-}
-
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(
     private readonly httpAdapter: HttpServer,
-    private readonly foreignKeyTableLabels: Record<string, string> = {},
+    // DB table name -> API resource name (e.g. 'report_groups' -> 'report_group'), so a
+    // foreign key violation can be traced back to the resource blocking the delete. The
+    // client, which already has Hebrew resource labels, maps this to a friendly message.
+    private readonly tableNameToResourceName: Record<string, string> = {},
   ) { }
 
   catch(exception: unknown, host: ArgumentsHost) {
@@ -32,7 +29,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse();
 
     if (isForeignKeyViolation(exception)) {
-      const body = { statusCode: HttpStatus.CONFLICT, message: buildForeignKeyViolationMessage(exception, this.foreignKeyTableLabels) };
+      const table = getReferencingTable(exception);
+      const resource = (table && this.tableNameToResourceName[table]) || table;
+      const label = resource?.replace(/_/g, ' ') || 'רשומות אחרות';
+      const body = {
+        statusCode: HttpStatus.CONFLICT,
+        message: `לא ניתן למחוק רשומה זו - קיימות רשומות מסוג "${label}" המשויכות אליה. יש למחוק אותן תחילה.`,
+        resource,
+      };
       this.httpAdapter.reply(response, body, HttpStatus.CONFLICT);
       return;
     }
