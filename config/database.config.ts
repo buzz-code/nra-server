@@ -22,6 +22,13 @@ const testDatabaseConfig: DataSourceOptions = {
 // Production configuration for MySQL
 const productionDatabaseConfig: DataSourceOptions = {
     type: 'mysql',
+    // Pin the connection to UTC so Date columns (timestamp/datetime) round-trip
+    // correctly regardless of the server process's local timezone. Without this,
+    // mysql2 defaults to 'local' and serializes/parses Date values using the
+    // Node process's local getters (e.g. getHours() instead of getUTCHours()),
+    // which silently shifts stored timestamps whenever that local timezone
+    // isn't UTC.
+    timezone: 'Z',
     extra: {
         decimalNumbers: true
     },
