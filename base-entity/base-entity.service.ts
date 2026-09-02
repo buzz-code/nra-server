@@ -8,9 +8,12 @@ import { Entity, ExportDefinition, ImportDefinition, IHasUserId, InjectEntityExp
 import { ParamsToJsonReportGenerator } from "@shared/utils/report/params-to-json.generator";
 import { CommonReportData } from "@shared/utils/report/types";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException } from "@nestjs/common";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { getUserIdFromUser } from "@shared/auth/auth.util";
+import { isAdmin } from "@shared/utils/permissionsUtil";
+import { getAsNumberArray } from "@shared/utils/queryParam.util";
+import { fixTimezoneShift } from "@shared/utils/entity/fixTimezoneShift.util";
 import { validateNotTrialEnded } from "./base-entity.util";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
@@ -165,7 +168,29 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
     }
 
     async doAction(req: CrudRequest<any, any>, body: any): Promise<any> {
+        if (req.parsed.extra?.action === 'fixTimezoneShift') {
+            return this.handleFixTimezoneShiftAction(req);
+        }
         return 'done nothing';
+    }
+
+    /**
+     * Admin-only bulk action: corrects createdAt/updatedAt on the selected
+     * rows for entities written before the mysql connection was pinned to
+     * UTC (nra-server#44). See fixTimezoneShift.util.ts for the mechanism.
+     * getManyByIds both resolves the ids to rows the caller can see (crudAuth)
+     * and validates the caller-supplied ids without re-deriving the auth filter.
+     */
+    private async handleFixTimezoneShiftAction(req: CrudRequest<any, any>): Promise<string> {
+        if (!isAdmin(req.auth)) {
+            throw new ForbiddenException();
+        }
+        const ids = getAsNumberArray(req.parsed.extra.ids);
+        if (!ids?.length) {
+            return 'לא נבחרו רשומות';
+        }
+        const entities = await this.getManyByIds(req, ids);
+        return fixTimezoneShift(this.repo, entities.map((entity: any) => entity.id));
     }
 
     async getPivotData(req: CrudRequest<any, any>): Promise<GetManyDefaultResponse<T> | T[]> {

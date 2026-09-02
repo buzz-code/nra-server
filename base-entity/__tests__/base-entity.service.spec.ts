@@ -7,9 +7,14 @@ import { BadRequestException } from '@nestjs/common';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import { validateNotTrialEnded } from '../base-entity.util';
 import { ENTITY_EXPORTER, ENTITY_REPOSITORY } from '../interface';
+import { fixTimezoneShift } from '@shared/utils/entity/fixTimezoneShift.util';
 
 jest.mock('../base-entity.util', () => ({
   validateNotTrialEnded: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@shared/utils/entity/fixTimezoneShift.util', () => ({
+  fixTimezoneShift: jest.fn().mockResolvedValue('תוקנו 2 רשומות'),
 }));
 
 describe('BaseEntityService', () => {
@@ -548,6 +553,42 @@ describe('BaseEntityService', () => {
           it('should return default response', async () => {
             const result = await service.doAction(mockReq, {});
             expect(result).toBe('done nothing');
+          });
+
+          describe('fixTimezoneShift action', () => {
+            const fixTimezoneShiftReq = {
+              ...mockReq,
+              parsed: { ...mockReq.parsed, extra: { action: 'fixTimezoneShift', ids: '1,2' } },
+            } as unknown as CrudRequest;
+
+            it('should reject non-admin callers', async () => {
+              await expect(service.doAction({ ...fixTimezoneShiftReq, auth: { permissions: {} } }, {}))
+                .rejects.toThrow();
+            });
+
+            it('should return a message and skip work when no ids are given', async () => {
+              const adminReq = {
+                ...fixTimezoneShiftReq,
+                auth: { permissions: { admin: true } },
+                parsed: { ...fixTimezoneShiftReq.parsed, extra: { action: 'fixTimezoneShift' } },
+              } as unknown as CrudRequest;
+
+              const result = await service.doAction(adminReq, {});
+
+              expect(result).toBe('לא נבחרו רשומות');
+              expect(fixTimezoneShift).not.toHaveBeenCalled();
+            });
+
+            it('should resolve ids via getManyByIds (respecting crudAuth) and delegate to fixTimezoneShift', async () => {
+              const adminReq = { ...fixTimezoneShiftReq, auth: { permissions: { admin: true } } } as unknown as CrudRequest;
+              jest.spyOn(service, 'getManyByIds').mockResolvedValue([{ id: 1 }, { id: 2 }] as any);
+
+              const result = await service.doAction(adminReq, {});
+
+              expect(service.getManyByIds).toHaveBeenCalledWith(adminReq, [1, 2]);
+              expect(fixTimezoneShift).toHaveBeenCalledWith(repository, [1, 2]);
+              expect(result).toBe('תוקנו 2 רשומות');
+            });
           });
         });
       });
