@@ -38,18 +38,31 @@ export function reinterpretUtcDigitsAsIsraelLocal(wrongDate: Date): Date {
   return new Date(guess);
 }
 
+// Intl.DateTimeFormat construction is comparatively expensive and stateless across
+// the dates it formats, so it's built once per timezone and reused - fixTimezoneShift
+// calls this up to 3 times per date column, per row.
+const timeZoneFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function getTimeZoneFormatter(timeZone: string): Intl.DateTimeFormat {
+  let formatter = timeZoneFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    timeZoneFormatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 function getTimeZoneOffsetMinutes(timeZone: string, at: Date): number {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-  const parts = Object.fromEntries(formatter.formatToParts(at).map((p) => [p.type, p.value]));
+  const parts = Object.fromEntries(getTimeZoneFormatter(timeZone).formatToParts(at).map((p) => [p.type, p.value]));
   const localDigitsAsUtcMillis = Date.UTC(
     Number(parts.year),
     Number(parts.month) - 1,
