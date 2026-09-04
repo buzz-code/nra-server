@@ -190,6 +190,14 @@ export class BaseYemotHandlerService {
     return { messages, text: msgObj.data };
   }
 
+  // Strips a "<digit> - " lead-in (e.g. "הקישי 1 - כן" -> "כן") using the digit we
+  // already know, rather than guessing at the instruction wording around it.
+  private stripDigitPrefix(text: string, digit: string): string {
+    const marker = `${digit} - `;
+    const index = text.indexOf(marker);
+    return index === -1 ? text.trim() : text.slice(index + marker.length).trim();
+  }
+
   private async dispatchSend(msgObj: MessageObj) {
     const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Sending: ${text}`);
@@ -197,12 +205,17 @@ export class BaseYemotHandlerService {
     return this.call.id_list_message(messages, { prependToNextAction: true });
   }
 
-  private async dispatchRead(msgObj: MessageObj, options?: TapOptions): Promise<string> {
+  // skipLogging: askConfirmation/askForMenu already log their own ask/result pair for this exchange.
+  private async dispatchRead(msgObj: MessageObj, options?: TapOptions, skipLogging = false): Promise<string> {
     const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Asking for input from: ${text}`);
-    await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'ask_input');
+    if (!skipLogging) {
+      await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'ask_input');
+    }
     const input = await this.call.read(messages, 'tap', options);
-    await this.callTracker.logConversationStep(this.call.callId, text, input, 'user_input');
+    if (!skipLogging) {
+      await this.callTracker.logConversationStep(this.call.callId, text, input, 'user_input');
+    }
     return input;
   }
 
@@ -234,8 +247,8 @@ export class BaseYemotHandlerService {
     return this.dispatchHangup(await this.getMessageByKey(textKey, values));
   }
 
-  protected async askForInputByKey(textKey: string, values?: TextParams, options?: TapOptions) {
-    return this.dispatchRead(await this.getMessageByKey(textKey, values), options);
+  protected async askForInputByKey(textKey: string, values?: TextParams, options?: TapOptions, skipLogging = false) {
+    return this.dispatchRead(await this.getMessageByKey(textKey, values), options, skipLogging);
   }
 
   protected async sendMessageByKey(textKey: string, values?: TextParams) {
@@ -274,7 +287,7 @@ export class BaseYemotHandlerService {
       min_digits: 1,
       max_digits: Math.max(...options.map((et) => et.key.toString().length)),
       digits_allowed: options.map((et) => et.key.toString()),
-    });
+    }, true);
 
     const selectedOption = options.find((et) => et.key.toString() === menuKey);
 
@@ -295,19 +308,19 @@ export class BaseYemotHandlerService {
     const yes = await this.getTextByUserId(yesTextKey || 'GENERAL.YES', values);
     const no = await this.getTextByUserId(noTextKey || 'GENERAL.NO', values);
     const confirmationPrompt = await this.getTextByUserId(textKey, { ...values, yes, no });
-    await this.callTracker.logConversationStep(this.call.callId, `${confirmationPrompt} [${yesValue}: ${yes}, ${noValue}: ${no}]`, undefined, 'ask_confirmation');
+    await this.callTracker.logConversationStep(this.call.callId, confirmationPrompt, undefined, 'ask_confirmation');
 
     const confirmationKey = await this.askForInputByKey(textKey, { ...values, yes, no }, {
       min_digits: 1,
       max_digits: 1,
       digits_allowed: [yesValue, noValue],
-    });
+    }, true);
 
     const confirmed = confirmationKey === yesValue;
-    const responseText = confirmed ? yes : no;
+    const responseText = this.stripDigitPrefix(confirmed ? yes : no, confirmed ? yesValue : noValue);
     await this.callTracker.logConversationStep(
       this.call.callId,
-      `${confirmationPrompt} [${yesValue}: ${yes}, ${noValue}: ${no}]`,
+      confirmationPrompt,
       `${confirmationKey} (${responseText})`,
       'confirmation_result'
     );
