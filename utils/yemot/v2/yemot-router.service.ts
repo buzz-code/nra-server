@@ -190,6 +190,14 @@ export class BaseYemotHandlerService {
     return { messages, text: msgObj.data };
   }
 
+  // Strips a "<digit> - " lead-in (e.g. "הקישי 1 - כן" -> "כן") using the digit we
+  // already know, rather than guessing at the instruction wording around it.
+  private stripDigitPrefix(text: string, digit: string): string {
+    const marker = `${digit} - `;
+    const index = text.indexOf(marker);
+    return index === -1 ? text.trim() : text.slice(index + marker.length).trim();
+  }
+
   private async dispatchSend(msgObj: MessageObj) {
     const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Sending: ${text}`);
@@ -309,8 +317,7 @@ export class BaseYemotHandlerService {
     }, true);
 
     const confirmed = confirmationKey === yesValue;
-    // strip the "הקישי N - " lead-in - the digit is already shown separately in the logged result
-    const responseText = (confirmed ? yes : no).replace(/^הקישי\s+\S+\s*-\s*/, '').trim();
+    const responseText = this.stripDigitPrefix(confirmed ? yes : no, confirmed ? yesValue : noValue);
     await this.callTracker.logConversationStep(
       this.call.callId,
       confirmationPrompt,
