@@ -1,6 +1,7 @@
 import { join } from "path";
 import { DataSourceOptions } from "typeorm";
 import { KeyvCacheProvider } from "typeorm-cache";
+import { UtcTimestampSubscriber } from "../utils/entity/utc-timestamp.subscriber";
 
 export const cacheTTL = 300_000;
 
@@ -17,6 +18,7 @@ const testDatabaseConfig: DataSourceOptions = {
         join(__dirname, '/../../shared/entities/**/*.entity.{js,ts}'),
         join(__dirname, '/../../shared/view-entities/**/*.{js,ts}'),
     ],
+    subscribers: [UtcTimestampSubscriber],
 };
 
 // Production configuration for MySQL
@@ -53,6 +55,7 @@ const productionDatabaseConfig: DataSourceOptions = {
     migrationsRun: false,
     migrations: [join(__dirname, '/../../src/migrations/*.{js,ts}')],
     migrationsTransactionMode: "all",
+    subscribers: [UtcTimestampSubscriber],
 };
 
 export const databaseConfig: DataSourceOptions =

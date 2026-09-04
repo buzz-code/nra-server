@@ -14,7 +14,6 @@ import { S3Module } from '@shared/utils/s3/s3.module';
 import { JobsModule } from '@shared/utils/jobs/jobs.module';
 import { JobHandler } from '@shared/utils/jobs/job.types';
 import { getPinoConfig } from '@shared/config/pino.config';
-import { UtcTimestampSubscriber } from '@shared/utils/entity/utc-timestamp.subscriber';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -52,7 +51,6 @@ export class BaseNraAppModule {
       controllers: [AppController],
       providers: [
         AppService,
-        UtcTimestampSubscriber,
         {
           provide: APP_GUARD,
           useClass: ThrottlerGuard,
