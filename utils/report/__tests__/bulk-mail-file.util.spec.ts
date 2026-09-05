@@ -131,6 +131,26 @@ let mockAuth: any;
     });
   });
 
+  it('should send email to all addresses when teacher has multiple emails', async () => {
+    const teacherWithMultipleEmails = { ...mockTeacher, email: ['a@example.com', 'b@example.com'] };
+    const filesData = [{ teacher: teacherWithMultipleEmails }];
+    mockGenerator.getReportData.mockResolvedValue(filesData);
+    mockGenerator.getFileBuffer.mockResolvedValue(Buffer.from('test'));
+
+    await sendBulkTeacherMailWithFile(
+      mockGenerator,
+      mockParams,
+      mockAuth,
+      mockDataSource,
+      mockMailSendService,
+      mockGetEmailParamsFromData
+    );
+
+    expect(mockMailSendService.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: ['a@example.com', 'b@example.com'] })
+    );
+  });
+
   it('should handle case when no data is available', async () => {
     mockGenerator.getReportData.mockResolvedValue([{}]);
 

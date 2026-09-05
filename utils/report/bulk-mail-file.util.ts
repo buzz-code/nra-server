@@ -8,7 +8,7 @@ import { BulkToZipReportGenerator } from "@shared/utils/report/bulk-to-zip.gener
 interface ITeacherFileData {
     teacher: {
         name: string;
-        email: string | null;
+        email: string | string[] | null;
     };
 }
 type GetEmailParamsFromData = (params: any, data: ITeacherFileData[]) => Promise<{
@@ -31,7 +31,8 @@ export async function sendBulkTeacherMailWithFile(generator: BulkToZipReportGene
                 continue;
             }
 
-            if (filesData[0]?.teacher?.email) {
+            const to = filesData[0]?.teacher?.email;
+            if (to?.length) {
                 const zipFileBuffer = await generator.getFileBuffer(filesData);
                 const zipContent = await JSZip.loadAsync(zipFileBuffer);
 
@@ -49,7 +50,7 @@ export async function sendBulkTeacherMailWithFile(generator: BulkToZipReportGene
                 const { replyToAddress, mailSubject, mailBody } = await getEmailParamsFromData(p, filesData);
 
                 await mailSendService.sendMail({
-                    to: filesData[0].teacher.email,
+                    to,
                     from: fromAddress,
                     subject: mailSubject,
                     html: mailBody,
