@@ -1,4 +1,3 @@
-import { ISendMailOptions } from "@nestjs-modules/mailer";
 import { DataSource } from "typeorm";
 import { BulkToZipReportGenerator } from "../bulk-to-zip.generator";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";

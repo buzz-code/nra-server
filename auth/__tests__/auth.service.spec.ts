@@ -7,7 +7,6 @@ import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as cookie from 'cookie';
 import { User } from '@shared/entities/User.entity';
-import { getCurrentHebrewYear } from '@shared/utils/entity/year.util';
 import { USER_INITIALIZATION_SERVICE } from '../user-initialization.interface';
 
 describe('AuthService', () => {

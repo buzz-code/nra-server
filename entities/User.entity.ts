@@ -1,4 +1,4 @@
-import { BeforeInsert, BeforeUpdate, Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { BeforeInsert, BeforeUpdate, Column, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
 import * as bcrypt from 'bcrypt';
 import { IsOptional } from "class-validator";
 import { CrudValidationGroups } from "@dataui/crud";
@@ -31,10 +31,6 @@ export abstract class User {
       this.password = await bcrypt.hash(this.password, 10);
     }
   }
-  // @ApiProperty()
-  // @Column()//({select: false})
-  // @Exclude()
-  // password: string;
   @Column("varchar", { name: "password", nullable: true, length: 500 })
   password: string | null;
 

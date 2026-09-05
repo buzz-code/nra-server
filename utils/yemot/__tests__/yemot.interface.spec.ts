@@ -1,10 +1,9 @@
-import { DataSource, In, getRepository } from "typeorm";
+import { DataSource, getRepository } from "typeorm";
 import { FormatString, YEMOT_HANGUP_STEP, YemotProcessor, YemotRequest, YemotResponse } from "../yemot.interface";
 import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { TextByUser } from "@shared/view-entities/TextByUser.entity";
 import { User } from "@shared/entities/User.entity";
 import util from "../yemot.util";
-import { getCurrentHebrewYear } from "../../entity/year.util";
 
 export class MockYemotRequest extends YemotRequest {
   constructor(activeCall: any, dataSource: any) {

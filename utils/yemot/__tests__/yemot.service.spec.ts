@@ -3,7 +3,6 @@
 import { YemotParams } from "@shared/entities/YemotCall.entity";
 import { YemotService } from "../yemot.service";
 import yemotUtil from "../yemot.util";
-import { YemotRequest } from "../yemot.interface";
 import { MockYemotRequest } from "./yemot.interface.spec";
 
 describe('YemotService', () => {
