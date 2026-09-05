@@ -4,7 +4,7 @@ import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
 import { DataSource, Repository } from "typeorm";
 import { User } from "../../entities/User.entity";
 import { Chain } from "./chain.interface";
-import { YemotProcessor, YemotProcessorProvider, YemotRequest, YemotResponse, YEMOT_CHAIN, YEMOT_HANGUP_STEP, YEMOT_PROCCESSOR_PROVIDER, YEMOT_REQUEST, YemotRequestConstructor } from "./yemot.interface";
+import { YemotProcessor, YemotRequest, YemotResponse, YEMOT_CHAIN, YEMOT_HANGUP_STEP, YEMOT_REQUEST, YemotRequestConstructor } from "./yemot.interface";
 import { UnexpectedHangupException, UserNotFoundException } from "./yemot.exception";
 import yemotUtil from "./yemot.util";
 
@@ -23,7 +23,6 @@ export class YemotService {
   ) {
   }
 
-  // todo: delete this {"ApiCallId":"754b9ce7c434ea952f2ed99671c274fee143165a","ApiYFCallId":"9da82d44-c071-4c61-877b-1680d75968e6","ApiDID":"035586526","ApiRealDID":"035586526","ApiPhone":"0527609942","ApiExtension":"","ApiTime":"1669485562","reportDateType":"2","reportDate":"10112022","reportDateConfirm":"1","questionAnswer":"1","howManyLessons":"2","howManyWatchOrIndividual":"1","howManyTeachedOrInterfering":"0","wasKamal":"0","howManyDiscussingLessons":"1"}
   async handleCall(body: YemotParams) {
     this.logger.log('start handleCall', body);
     let activeCall: YemotCall;

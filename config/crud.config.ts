@@ -11,17 +11,6 @@ CrudConfigService.load({
             returnDeleted: true,
         },
     },
-    //   query: {
-    //     limit: 25,
-    //     cache: 2000,
-    //   },
-    // params: {
-    //     id: {
-    //         field: 'id',
-    //         type: 'number',
-    //         primary: true,
-    //     },
-    // },
 });
 
 export const CrudConfig = {};

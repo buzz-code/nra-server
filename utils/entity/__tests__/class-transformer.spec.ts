@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { plainToClass, Type } from "class-transformer";
+import { plainToClass } from "class-transformer";
 import { StringType, NumberType, DateType } from "../class-transformer";
 
 describe('class-transformer', () => {
