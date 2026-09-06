@@ -46,6 +46,10 @@ export class YemotRouterService {
         return;
       }
 
+      // Awaited so the call row exists before processCall() logs anything (was
+      // fire-and-forget via 'new_call' below, which dropped the first ask/response).
+      await this.callTrackingService.initializeCall(call);
+
       const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call, this.callTrackingService);
       await yemotHandlerService.processCall();
     });
@@ -100,9 +104,8 @@ export class YemotRouterService {
     yemotRouter.events.on('call_continue', (call) => {
       this.logger.log(`Call ${call.callId} continues - Phone: ${call.phone}`);
     });
-    yemotRouter.events.on('new_call', async (call) => {
+    yemotRouter.events.on('new_call', (call) => {
       this.logger.log(`New call ${call.callId} from ${call.phone}`);
-      await this.callTrackingService.initializeCall(call);
     });
 
     return yemotRouter.asExpressRouter;
