@@ -11,11 +11,11 @@ import {
     ValidationArguments,
     Min as _Min,
     Max as _Max,
-    ValidateBy as _ValidateBy,
 } from "class-validator";
 import { IsUniqueCombination as _IsUniqueCombination } from "./is-unique-combination";
 import { GetMaxLimitType, MaxCountByUserLimit as _MaxCountByUserLimit } from "./max-count-by-user-limit";
 import { IsUniqueDateRange as _IsUniqueDateRange } from "./is-unique-date-range";
+import { IsDigitsOnly as _IsDigitsOnly } from "./is-digits-only";
 
 export const IsNotEmpty = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsNotEmpty({ ...validationOptions, message: getErrorMessageFunction('הערך של $property לא יכול להיות ריק') });
@@ -41,27 +41,8 @@ export const MaxCountByUserLimit = (entity: Function, getMaxLimit: GetMaxLimitTy
     _MaxCountByUserLimit(entity, getMaxLimit, entities, foreignKey, { ...validationOptions, message: getErrorMessageFunction('לא ניתן ליצור עוד רשומות - הגבלת כמות לטבלת $constraint1') });
 export const IsUniqueDateRange = (startDateField: string = 'start_date', endDateField: string = 'end_date', entities: Function[] = [], validationOptions?: ValidationOptions) =>
     _IsUniqueDateRange(startDateField, endDateField, entities, { ...validationOptions, message: getErrorMessageFunction('קיימת כבר רשומה עם תאריכים חופפים למשתמש בין $constraint1 ל$constraint2') });
-// Validates a varchar identifier (a TZ/ID number, a business "number") holds digits only.
-// Kept as a string column rather than a numeric type so leading zeros survive.
-// Blank (undefined/null/'') always passes - presence is @IsNotEmpty's job. An
-// optional maxLength also covers fields whose @Column length has no matching
-// @MaxLength validator.
 export const IsDigitsOnly = (maxLength?: number, validationOptions?: ValidationOptions): PropertyDecorator =>
-    _ValidateBy(
-        {
-            name: 'isDigitsOnly',
-            constraints: [maxLength],
-            validator: {
-                validate: (value: unknown, args: ValidationArguments) => {
-                    if (value === undefined || value === null || value === '') return true;
-                    if (typeof value !== 'string' || !/^\d+$/.test(value)) return false;
-                    const max = args.constraints[0];
-                    return max === undefined || value.length <= max;
-                },
-            },
-        },
-        { ...validationOptions, message: getErrorMessageFunction('$property חייב להכיל ספרות בלבד $value') },
-    );
+    _IsDigitsOnly(maxLength, { ...validationOptions, message: getErrorMessageFunction('$property חייב להכיל ספרות בלבד $value') });
 
 function getErrorMessageFunction(message: string) {
     return function (validationArguments: ValidationArguments) {
