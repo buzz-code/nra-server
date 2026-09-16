@@ -1,4 +1,5 @@
 import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 import { IsDigitsOnly } from '../is-digits-only';
 
 describe('IsDigitsOnly', () => {
@@ -44,6 +45,16 @@ describe('IsDigitsOnly', () => {
         expect(await validate(test)).not.toEqual([]);
 
         test.key = '12345';
+        expect(await validate(test)).toEqual([]);
+    });
+
+    it('should coerce a numeric value to a string before validating (Excel/CSV bulk upload)', async () => {
+        class Test {
+            @IsDigitsOnly() key: string;
+        }
+
+        const test = plainToInstance(Test, { key: 12345 });
+        expect(test.key).toBe('12345');
         expect(await validate(test)).toEqual([]);
     });
 });
