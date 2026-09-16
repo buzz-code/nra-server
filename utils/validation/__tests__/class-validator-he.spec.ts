@@ -106,6 +106,16 @@ describe('class-validator-he', () => {
             expect(test.key).toBe(12345);
             expect(await validate(test)).toEqual([]);
         });
+
+        it('should not coerce a whitespace-only string (must not become 0)', async () => {
+            class Test {
+                @IsNumber() key: number;
+            }
+
+            const test = plainToInstance(Test, { key: '   ' });
+            expect(test.key).toBe('   ');
+            expect(await validate(test)).not.toEqual([]);
+        });
     });
 
     describe('IsInt', () => {

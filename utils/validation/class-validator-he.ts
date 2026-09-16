@@ -31,7 +31,7 @@ export const IsNumber = (options?: IsNumberOptions, validationOptions?: Validati
         // `NumberType` transform used on individual fields.
         Transform((params: TransformFnParams) => {
             const value = params.value;
-            return typeof value === 'string' && value !== '' && !isNaN(Number(value)) ? Number(value) : value;
+            return typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value)) ? Number(value) : value;
         }),
         _IsNumber(options, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר $value') }),
     );
