@@ -13,6 +13,8 @@ import {
     Max as _Max,
     ValidateBy as _ValidateBy,
 } from "class-validator";
+import { Transform, TransformFnParams } from "class-transformer";
+import { applyDecorators } from "@nestjs/common";
 import { IsUniqueCombination as _IsUniqueCombination } from "./is-unique-combination";
 import { GetMaxLimitType, MaxCountByUserLimit as _MaxCountByUserLimit } from "./max-count-by-user-limit";
 import { IsUniqueDateRange as _IsUniqueDateRange } from "./is-unique-date-range";
@@ -47,20 +49,31 @@ export const IsUniqueDateRange = (startDateField: string = 'start_date', endDate
 // optional maxLength also covers fields whose @Column length has no matching
 // @MaxLength validator.
 export const IsDigitsOnly = (maxLength?: number, validationOptions?: ValidationOptions): PropertyDecorator =>
-    _ValidateBy(
-        {
-            name: 'isDigitsOnly',
-            constraints: [maxLength],
-            validator: {
-                validate: (value: unknown, args: ValidationArguments) => {
-                    if (value === undefined || value === null || value === '') return true;
-                    if (typeof value !== 'string' || !/^\d+$/.test(value)) return false;
-                    const max = args.constraints[0];
-                    return max === undefined || value.length <= max;
+    applyDecorators(
+        Transform((params: TransformFnParams) => {
+            // Coerce a numeric input (e.g. a cell parsed from an Excel/CSV
+            // upload) to its string form so it passes the digits-only check.
+            // Matches the explicit `@StringType` used on existing string-ID
+            // fields; keeping it here means every IsDigitsOnly field gets the
+            // transform for free instead of repeating the decorator per entity.
+            const value = params.value;
+            return typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
+        }),
+        _ValidateBy(
+            {
+                name: 'isDigitsOnly',
+                constraints: [maxLength],
+                validator: {
+                    validate: (value: unknown, args: ValidationArguments) => {
+                        if (value === undefined || value === null || value === '') return true;
+                        if (typeof value !== 'string' || !/^\d+$/.test(value)) return false;
+                        const max = args.constraints[0];
+                        return max === undefined || value.length <= max;
+                    },
                 },
             },
-        },
-        { ...validationOptions, message: getErrorMessageFunction('$property חייב להכיל ספרות בלבד $value') },
+            { ...validationOptions, message: getErrorMessageFunction('$property חייב להכיל ספרות בלבד $value') },
+        ),
     );
 
 function getErrorMessageFunction(message: string) {
