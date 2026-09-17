@@ -12,8 +12,8 @@ import {
     Min as _Min,
     Max as _Max,
 } from "class-validator";
-import { Transform, TransformFnParams } from "class-transformer";
 import { applyDecorators } from "@nestjs/common";
+import { NumberType } from "@shared/utils/entity/class-transformer";
 import { IsUniqueCombination as _IsUniqueCombination } from "./is-unique-combination";
 import { GetMaxLimitType, MaxCountByUserLimit as _MaxCountByUserLimit } from "./max-count-by-user-limit";
 import { IsUniqueDateRange as _IsUniqueDateRange } from "./is-unique-date-range";
@@ -25,14 +25,7 @@ export const MaxLength = (max: number, validationOptions?: ValidationOptions): P
     _MaxLength(max, { ...validationOptions, message: getErrorMessageFunction('$property לא יכול להיות ארוך יותר מ-$constraint1 תווים') });
 export const IsNumber = (options?: IsNumberOptions, validationOptions?: ValidationOptions): PropertyDecorator =>
     applyDecorators(
-        // Coerce a numeric string (e.g. a cell parsed from an Excel/CSV upload)
-        // to an actual number so it passes the number check. Applied centrally
-        // here so every IsNumber field gets it for free, matching the explicit
-        // `NumberType` transform used on individual fields.
-        Transform((params: TransformFnParams) => {
-            const value = params.value;
-            return typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value)) ? Number(value) : value;
-        }),
+        NumberType,
         _IsNumber(options, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר $value') }),
     );
 export const IsInt = (validationOptions?: ValidationOptions): PropertyDecorator =>

@@ -41,4 +41,13 @@ describe('class-transformer', () => {
         const result2 = plainToClass(Test, test2);
         expect(result2.key).toBe('a');
     });
+
+    it('number type does not coerce whitespace-only string', () => {
+        class Test {
+            @NumberType key: any;
+        }
+        const test = { key: '   ' };
+        const result = plainToClass(Test, test);
+        expect(result.key).toBe('   ');
+    });
 });
