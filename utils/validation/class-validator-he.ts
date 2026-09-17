@@ -12,6 +12,8 @@ import {
     Min as _Min,
     Max as _Max,
 } from "class-validator";
+import { applyDecorators } from "@nestjs/common";
+import { NumberType } from "@shared/utils/entity/class-transformer";
 import { IsUniqueCombination as _IsUniqueCombination } from "./is-unique-combination";
 import { GetMaxLimitType, MaxCountByUserLimit as _MaxCountByUserLimit } from "./max-count-by-user-limit";
 import { IsUniqueDateRange as _IsUniqueDateRange } from "./is-unique-date-range";
@@ -22,7 +24,10 @@ export const IsNotEmpty = (validationOptions?: ValidationOptions): PropertyDecor
 export const MaxLength = (max: number, validationOptions?: ValidationOptions): PropertyDecorator =>
     _MaxLength(max, { ...validationOptions, message: getErrorMessageFunction('$property לא יכול להיות ארוך יותר מ-$constraint1 תווים') });
 export const IsNumber = (options?: IsNumberOptions, validationOptions?: ValidationOptions): PropertyDecorator =>
-    _IsNumber(options, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר $value') });
+    applyDecorators(
+        NumberType,
+        _IsNumber(options, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר $value') }),
+    );
 export const IsInt = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsInt({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות מספר שלם $value') });
 export const IsPositive = (validationOptions?: ValidationOptions): PropertyDecorator =>

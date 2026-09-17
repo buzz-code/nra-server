@@ -1,4 +1,5 @@
 import { IsBoolean, validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 
 jest.mock('../max-count-by-user-limit', () => ({
     MaxCountByUserLimit: IsBoolean,
@@ -94,6 +95,16 @@ describe('class-validator-he', () => {
             test.key = 'test' as any;
             const result = await validate(test);
             expect(result).not.toEqual([]);
+        });
+
+        it('should coerce a numeric string to a number before validating (Excel/CSV bulk upload)', async () => {
+            class Test {
+                @IsNumber() key: number;
+            }
+
+            const test = plainToInstance(Test, { key: '12345' });
+            expect(test.key).toBe(12345);
+            expect(await validate(test)).toEqual([]);
         });
     });
 
