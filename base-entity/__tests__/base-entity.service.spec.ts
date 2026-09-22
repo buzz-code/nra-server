@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BaseEntityService } from '../base-entity.service';
-import { Repository, DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
+import { Repository, DataSource, SelectQueryBuilder } from 'typeorm';
 import { MailSendService } from '@shared/utils/mail/mail-send.service';
 import { CrudRequest } from '@dataui/crud';
 import { BadRequestException } from '@nestjs/common';

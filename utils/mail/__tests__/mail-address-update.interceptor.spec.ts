@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { BadRequestException, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MailAddress } from '@shared/entities/MailAddress.entity';
-import { Observable, of, throwError } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { MailAddressUpdateInterceptor } from '../mail-address-update.interceptor';
 import { AxiosResponse } from 'axios';
 import { mailWorkflowUrls } from '@shared/config/mail-workflows';

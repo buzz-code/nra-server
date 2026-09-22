@@ -31,10 +31,6 @@ export abstract class User {
       this.password = await bcrypt.hash(this.password, 10);
     }
   }
-  // @ApiProperty()
-  // @Column()//({select: false})
-  // @Exclude()
-  // password: string;
   @Column("varchar", { name: "password", nullable: true, length: 500 })
   password: string | null;
 

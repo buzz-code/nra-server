@@ -8,7 +8,6 @@ import { MailAddress } from '@shared/entities/MailAddress.entity';
 import * as exporter from '@shared/utils/exporter/exporter.util';
 import * as importer from '@shared/utils/importer/importer.util';
 import { CrudRequest } from '@dataui/crud';
-import { CommonFileFormat } from '@shared/utils/report/types';
 import { ObjectLiteral } from '@dataui/crud-util';
 import { ImportFile } from '@shared/entities/ImportFile.entity';
 import * as addressparser from 'addressparser';

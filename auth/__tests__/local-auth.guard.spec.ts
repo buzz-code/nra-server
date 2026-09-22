@@ -1,6 +1,5 @@
 import { LocalAuthGuard } from '../local-auth.guard';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 
 // Mock implementation of AuthGuard for testing different scenarios
 const mockCanActivate = jest.fn();
