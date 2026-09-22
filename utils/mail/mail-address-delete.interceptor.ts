@@ -1,9 +1,8 @@
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { mailWorkflowUrls } from '@shared/config/mail-workflows';
 import { MailAddress } from '@shared/entities/MailAddress.entity';
-import { Request } from 'express';
-import { firstValueFrom, Observable, switchMap, tap, throwError } from 'rxjs';
+import { firstValueFrom, Observable, tap } from 'rxjs';
 
 @Injectable()
 export class MailAddressDeleteInterceptor implements NestInterceptor {

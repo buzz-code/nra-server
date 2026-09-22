@@ -1,10 +1,8 @@
 import { YemotCall, YemotParams } from "@shared/entities/YemotCall.entity";
-import { Text } from "@shared/entities/Text.entity";
-import { Between, DataSource, In } from "typeorm";
+import { DataSource } from "typeorm";
 import util from "./yemot.util";
 import { TextByUser, getTextByUserCacheId } from "@shared/view-entities/TextByUser.entity";
 import { cacheTTL } from "@shared/config/database.config";
-import { getCurrentHebrewYear } from "../entity/year.util";
 import { User } from "@shared/entities/User.entity";
 
 export const YEMOT_PROCCESSOR_PROVIDER = 'yemot_processor_provider';
@@ -18,11 +16,6 @@ export type YemotRequestConstructor = new (activeCall: YemotCall, dataSource: Da
 export function FormatString(str: string, val: string[]) {
   return str.replace(/{([\d]*)}/g, (_, index) => val[index]);
 }
-
-// export interface YemotResponse {
-//   response: string;
-//   nextStep: string;
-// }
 
 export abstract class YemotProcessor {
   constructor(protected dataSource: DataSource) { }
