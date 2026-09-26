@@ -53,4 +53,25 @@ describe('withTemporaryDataSource', () => {
 
         expect(destroySpy).not.toHaveBeenCalled();
     });
+
+    it('propagates fn\'s error, not the cleanup error, when both fn and destroy fail', async () => {
+        const fnError = new Error('query failed');
+        const destroyError = new Error('destroy failed');
+        destroySpy.mockRejectedValue(destroyError);
+
+        await expect(
+            withTemporaryDataSource([], async () => { throw fnError; })
+        ).rejects.toBe(fnError);
+
+        expect(destroySpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('still surfaces the destroy error when fn succeeds', async () => {
+        const destroyError = new Error('destroy failed');
+        destroySpy.mockRejectedValue(destroyError);
+
+        await expect(
+            withTemporaryDataSource([], async () => 'ok')
+        ).rejects.toBe(destroyError);
+    });
 });

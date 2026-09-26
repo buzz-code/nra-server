@@ -12,9 +12,13 @@ export async function withTemporaryDataSource<T>(
     fn: (dataSource: DataSource) => Promise<T>,
 ): Promise<T> {
     const dataSource = await getDataSource(entities);
+    let result: T;
     try {
-        return await fn(dataSource);
-    } finally {
-        await dataSource.destroy();
+        result = await fn(dataSource);
+    } catch (error) {
+        await dataSource.destroy().catch(() => undefined);
+        throw error;
     }
+    await dataSource.destroy();
+    return result;
 }
