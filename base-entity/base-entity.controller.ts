@@ -1,3 +1,4 @@
+import { BadRequestException } from "@nestjs/common";
 import { CrudController, CrudRequest } from "@dataui/crud";
 import { getExportedFile } from "@shared/utils/exporter/exporter.util";
 import { BaseEntityService } from "./base-entity.service";
@@ -31,8 +32,12 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
 
     protected async exportFile(req: CrudRequest<any, any>): Promise<CommonFileResponse> {
         await validateUserHasPaid(req.auth, this.service.dataSource);
+        const formatKey = req.parsed.extra?.format;
+        if (!Object.prototype.hasOwnProperty.call(exportFormatDict, formatKey ?? '')) {
+            throw new BadRequestException('unknown format ' + formatKey);
+        }
+        const format = exportFormatDict[formatKey];
         const data = await this.service.getDataForExport(req);
-        const format = exportFormatDict[req.parsed.extra.format];
         const headers = this.service.getExportHeaders(req, data);
         const name = this.service.getExportName(req, data);
         return getExportedFile(format, name, data, headers);
