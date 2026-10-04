@@ -282,5 +282,15 @@ describe('BaseEntityController', () => {
 
       await expect(controller['getPivotData'](req)).rejects.toThrow(BadRequestException);
     });
+
+    it('should not throw a TypeError when the pivot export carries no extra.format', async () => {
+      // regression: the previous `[, fmt] = pivot.match(...)` destructure threw
+      // "object null is not iterable" (a 500) when the regex did not match.
+      const req = createMockCrudRequest({ pivot: '/export?foo=bar' });
+
+      const err = await controller['getPivotData'](req).catch(e => e);
+      expect(err).toBeInstanceOf(BadRequestException);
+      expect(err).not.toBeInstanceOf(TypeError);
+    });
   });
 });

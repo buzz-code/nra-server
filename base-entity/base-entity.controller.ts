@@ -135,8 +135,14 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
 
     protected async getPivotData(req: CrudRequest<any, any>) {
         if (req.parsed.extra?.pivot?.includes('/export?')) {
-            [, req.parsed.extra.format] = req.parsed.extra.pivot.match(/extra.format=(.*)/);
-            req.parsed.extra.pivot = req.parsed.extra.pivot.replace(/\/export\?extra.format=(.*)/, '?');
+            const formatMatch = req.parsed.extra.pivot.match(/extra\.format=([^&]*)/);
+            if (formatMatch) {
+                req.parsed.extra.format = formatMatch[1];
+                req.parsed.extra.pivot = req.parsed.extra.pivot
+                    .replace(/\/export\?extra\.format=[^&]*/, '?');
+            } else {
+                req.parsed.extra.pivot = req.parsed.extra.pivot.replace(/\/export\?/, '?');
+            }
             return this.exportFile(req);
         }
         return this.service.getPivotData(req);
