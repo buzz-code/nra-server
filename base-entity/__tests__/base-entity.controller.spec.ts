@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { BaseEntityController } from '../base-entity.controller';
 import { BaseEntityService } from '../base-entity.service';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -159,6 +160,17 @@ describe('BaseEntityController', () => {
       expect(mockExportFile).toHaveBeenCalled();
       expect(result.type).toBe('text/csv');
     });
+
+    it('should reject an unknown export format with BadRequest instead of crashing', async () => {
+      const req = createMockCrudRequest({ format: 'bogus' });
+      await expect(controller['exportFile'](req)).rejects.toThrow(BadRequestException);
+      await expect(controller['exportFile'](req)).rejects.toThrow('unknown format bogus');
+    });
+
+    it('should reject a missing export format with BadRequest instead of crashing', async () => {
+      const req = createMockCrudRequest();
+      await expect(controller['exportFile'](req)).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('getUserIdFromMailAddress', () => {
@@ -243,8 +255,8 @@ describe('BaseEntityController', () => {
 
     it('should handle export format in pivot', async () => {
       const req = createMockCrudRequest({
-        pivot: '/export?extra.format=csv',
-        format: 'csv'
+        pivot: '/export?extra.format=excel',
+        format: 'excel'
       });
 
       const mockExportFile = jest.spyOn(exporter, 'getExportedFile');
@@ -255,11 +267,30 @@ describe('BaseEntityController', () => {
       });
 
       await controller['getPivotData'](req);
-      
+
       // Cast req.parsed.extra to access its properties
       const extra = req.parsed.extra as ExtraParams;
       expect(extra.pivot).toBe('?');
-      expect(extra.format).toBe('csv');
+      expect(extra.format).toBe('excel');
+    });
+
+    it('should reject an unsupported format coming through the pivot export path', async () => {
+      const req = createMockCrudRequest({
+        pivot: '/export?extra.format=csv',
+        format: 'csv'
+      });
+
+      await expect(controller['getPivotData'](req)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should not throw a TypeError when the pivot export carries no extra.format', async () => {
+      // regression: the previous `[, fmt] = pivot.match(...)` destructure threw
+      // "object null is not iterable" (a 500) when the regex did not match.
+      const req = createMockCrudRequest({ pivot: '/export?foo=bar' });
+
+      const err = await controller['getPivotData'](req).catch(e => e);
+      expect(err).toBeInstanceOf(BadRequestException);
+      expect(err).not.toBeInstanceOf(TypeError);
     });
   });
 });

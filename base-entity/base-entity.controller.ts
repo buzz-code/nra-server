@@ -1,3 +1,4 @@
+import { BadRequestException } from "@nestjs/common";
 import { CrudController, CrudRequest } from "@dataui/crud";
 import { getExportedFile } from "@shared/utils/exporter/exporter.util";
 import { BaseEntityService } from "./base-entity.service";
@@ -31,8 +32,12 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
 
     protected async exportFile(req: CrudRequest<any, any>): Promise<CommonFileResponse> {
         await validateUserHasPaid(req.auth, this.service.dataSource);
+        const formatKey = req.parsed.extra?.format;
+        if (!Object.prototype.hasOwnProperty.call(exportFormatDict, formatKey ?? '')) {
+            throw new BadRequestException('unknown format ' + formatKey);
+        }
+        const format = exportFormatDict[formatKey];
         const data = await this.service.getDataForExport(req);
-        const format = exportFormatDict[req.parsed.extra.format];
         const headers = this.service.getExportHeaders(req, data);
         const name = this.service.getExportName(req, data);
         return getExportedFile(format, name, data, headers);
@@ -130,8 +135,14 @@ export class BaseEntityController<T extends Entity> implements CrudController<T>
 
     protected async getPivotData(req: CrudRequest<any, any>) {
         if (req.parsed.extra?.pivot?.includes('/export?')) {
-            [, req.parsed.extra.format] = req.parsed.extra.pivot.match(/extra.format=(.*)/);
-            req.parsed.extra.pivot = req.parsed.extra.pivot.replace(/\/export\?extra.format=(.*)/, '?');
+            const formatMatch = req.parsed.extra.pivot.match(/extra\.format=([^&]*)/);
+            if (formatMatch) {
+                req.parsed.extra.format = formatMatch[1];
+                req.parsed.extra.pivot = req.parsed.extra.pivot
+                    .replace(/\/export\?extra\.format=[^&]*/, '?');
+            } else {
+                req.parsed.extra.pivot = req.parsed.extra.pivot.replace(/\/export\?/, '?');
+            }
             return this.exportFile(req);
         }
         return this.service.getPivotData(req);
