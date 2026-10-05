@@ -1,6 +1,6 @@
 import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
 import { DataSource, Not } from "typeorm";
-import { getDataSource } from '../entity/foreignKey.util';
+import { withTemporaryDataSource } from '../entity/temporaryDataSource.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { getCurrentUser } from './current-user.util';
 import { getCurrentHebrewYear } from "@shared/utils/entity/year.util";
@@ -28,17 +28,15 @@ export function MaxCountByUserLimit(entity: Function, getMaxLimit: GetMaxLimitTy
                     if (fullObject[foreignKey]) {
                         entityFilter.id = Not(fullObject[foreignKey]);
                     }
-                    let dataSource: DataSource;
                     try {
-                        dataSource = await getDataSource([entity, ...entities]);
-                        const maxLimit = await getMaxLimit(entityFilter.userId, dataSource);
-                        const count = await dataSource.getRepository(entity)
-                            .countBy(entityFilter);
-                        return count < maxLimit;
+                        return await withTemporaryDataSource([entity, ...entities], async (dataSource) => {
+                            const maxLimit = await getMaxLimit(entityFilter.userId, dataSource);
+                            const count = await dataSource.getRepository(entity)
+                                .countBy(entityFilter);
+                            return count < maxLimit;
+                        });
                     } catch (error) {
                         return false;
-                    } finally {
-                        dataSource?.destroy();
                     }
                 },
             },

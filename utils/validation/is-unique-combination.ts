@@ -1,6 +1,6 @@
 import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
-import { DataSource, Not } from "typeorm";
-import { getDataSource } from '../entity/foreignKey.util';
+import { Not } from "typeorm";
+import { withTemporaryDataSource } from '../entity/temporaryDataSource.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { getCurrentUser } from './current-user.util';
 import { getCurrentHebrewYear } from '../entity/year.util';
@@ -42,15 +42,10 @@ export function IsUniqueCombination(otherProperties: string[] = [], entities: Fu
                         }
                     }
 
-                    let dataSource: DataSource;
-                    try {
-                        dataSource = await getDataSource(entities);
-                        const count = await dataSource.getRepository(object.constructor)
-                            .countBy(uniqueObject);
-                        return count === 0;
-                    } finally {
-                        dataSource?.destroy();
-                    }
+                    const count = await withTemporaryDataSource(entities, (dataSource) =>
+                        dataSource.getRepository(object.constructor).countBy(uniqueObject)
+                    );
+                    return count === 0;
                 },
             },
         });

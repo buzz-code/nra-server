@@ -1,6 +1,6 @@
 import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
-import { DataSource, LessThanOrEqual, MoreThanOrEqual, Not } from "typeorm";
-import { getDataSource } from '../entity/foreignKey.util';
+import { LessThanOrEqual, MoreThanOrEqual, Not } from "typeorm";
+import { withTemporaryDataSource } from '../entity/temporaryDataSource.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { getCurrentUser } from './current-user.util';
 import { getCurrentId } from '../entity/current-id.util';
@@ -40,15 +40,10 @@ export function IsUniqueDateRange(
                         id: Not(fullObject.id ?? getCurrentId() ?? -1),
                     };
 
-                    let dataSource: DataSource;
-                    try {
-                        dataSource = await getDataSource(entities);
-                        const count = await dataSource.getRepository(object.constructor)
-                            .countBy(whereConditions);
-                        return count === 0;
-                    } finally {
-                        dataSource?.destroy();
-                    }
+                    const count = await withTemporaryDataSource(entities, (dataSource) =>
+                        dataSource.getRepository(object.constructor).countBy(whereConditions)
+                    );
+                    return count === 0;
                 },
             },
         });
