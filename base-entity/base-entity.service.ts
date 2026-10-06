@@ -72,13 +72,128 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         }
     }
 
+    private static readonly DATE_COLUMN_TYPES = new Set(['date', 'datetime', 'timestamp']);
+    private static readonly NUMERIC_COLUMN_TYPES = new Set(['int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint', 'decimal', 'numeric', 'float', 'double', 'real']);
+    private static readonly DATE_VALUE_PATTERN = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}:\d{2})(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})?)?$/;
+    private static readonly NUMERIC_VALUE_PATTERN = /^-?\d+(\.\d+)?$/;
+
+    private assertValidFieldValues(conditions: CrudRequest<any, any>['parsed']['filter'] = [], joinOptions: JoinOptions = {}): void {
+        for (const condition of conditions) {
+            const column = this.findFilterColumn(condition?.field, joinOptions);
+            if (column) {
+                this.assertValidFilterValue(condition, column);
+            }
+        }
+    }
+
+    private assertValidFilterValue(condition: { field: string; operator: string; value?: any }, column: { type?: unknown }): void {
+        const columnType = this.getColumnTypeName(column);
+        const kind = BaseEntityService.DATE_COLUMN_TYPES.has(columnType)
+            ? 'date'
+            : BaseEntityService.NUMERIC_COLUMN_TYPES.has(columnType)
+                ? 'numeric'
+                : undefined;
+        if (!kind) {
+            return;
+        }
+        const { field, operator, value } = condition;
+        if (value === null || value === undefined || ((operator === '$is' || operator === '$not') && typeof value === 'boolean')) {
+            return;
+        }
+        const allowBoolean = kind === 'numeric' && columnType === 'tinyint';
+        const values = Array.isArray(value) ? value : [value];
+        for (const item of values) {
+            if (!this.isValidTypedValue(item, kind, allowBoolean)) {
+                throw new BadRequestException(`Invalid value for ${kind} field ${field}: ${String(item)}`);
+            }
+        }
+    }
+
+    private findFilterColumn(field: string, joinOptions: JoinOptions = {}): { type?: unknown } | undefined {
+        if (!field) {
+            return undefined;
+        }
+        if (this.entityColumns.includes(field)) {
+            return this.repo.metadata.columns.find((col: any) => col.propertyPath === field || col.propertyName === field);
+        }
+        const lastDot = field.lastIndexOf('.');
+        if (lastDot === -1) {
+            return undefined;
+        }
+        const relationPath = field.slice(0, lastDot);
+        const column = field.slice(lastDot + 1);
+        const relation = this.getRelationMetadata(relationPath, joinOptions[relationPath]);
+        if (!relation?.allowedColumns.includes(column)) {
+            return undefined;
+        }
+        return this.getRelationColumnMetadata(relationPath, column);
+    }
+
+    private getRelationColumnMetadata(relationPath: string, propertyName: string): { type?: unknown } | undefined {
+        let metadata: any = this.repo.metadata;
+        for (const relationName of relationPath.split('.')) {
+            const relation = metadata?.relations?.find((one: any) => one.propertyName === relationName);
+            metadata = relation?.inverseEntityMetadata;
+        }
+        return metadata?.columns?.find((col: any) => col.propertyPath === propertyName || col.propertyName === propertyName);
+    }
+
+    private getColumnTypeName(column: { type?: unknown }): string {
+        const type = typeof column?.type === 'function' ? (column.type as () => string).name : column?.type;
+        return String(type ?? '').toLowerCase();
+    }
+
+    private isValidTypedValue(value: any, kind: 'date' | 'numeric', allowBoolean: boolean): boolean {
+        if (value === null || value === undefined) {
+            return true;
+        }
+        if (kind === 'date') {
+            return this.isValidDateValue(value);
+        }
+        return this.isValidNumericValue(value, allowBoolean);
+    }
+
+    private isValidDateValue(value: any): boolean {
+        if (value instanceof Date) {
+            return !Number.isNaN(value.getTime());
+        }
+        const match = typeof value === 'string' ? value.match(BaseEntityService.DATE_VALUE_PATTERN) : undefined;
+        if (!match) {
+            return false;
+        }
+        const [year, month, day] = match[1].split('-').map(Number);
+        const asUtc = new Date(Date.UTC(year, month - 1, day));
+        if (asUtc.getUTCFullYear() !== year || asUtc.getUTCMonth() !== month - 1 || asUtc.getUTCDate() !== day) {
+            return false;
+        }
+        if (match[2]) {
+            const [hour, minute, second] = match[2].split(':').map(Number);
+            if (hour > 23 || minute > 59 || second > 59) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private isValidNumericValue(value: any, allowBoolean: boolean): boolean {
+        if (allowBoolean && typeof value === 'boolean') {
+            return true;
+        }
+        if (typeof value === 'number') {
+            return Number.isFinite(value);
+        }
+        return typeof value === 'string' && BaseEntityService.NUMERIC_VALUE_PATTERN.test(value);
+    }
+
     protected getSort(query: ParsedRequestParams, options: QueryOptions): ObjectLiteral {
         this.assertValidFields((query.sort ?? []).map((s) => s.field), options.join);
         return super.getSort(query, options);
     }
 
     async createBuilder(parsed: ParsedRequestParams, options: CrudRequestOptions, many = true, withDeleted = false): Promise<SelectQueryBuilder<T>> {
-        this.assertValidFields([...(parsed.filter ?? []), ...(parsed.or ?? [])].map((f) => f.field), options.query.join);
+        const filterConditions = [...(parsed.filter ?? []), ...(parsed.or ?? [])];
+        this.assertValidFields(filterConditions.map((f) => f.field), options.query.join);
+        this.assertValidFieldValues(filterConditions, options.query.join);
         return super.createBuilder(parsed, options, many, withDeleted);
     }
 

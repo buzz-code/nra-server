@@ -273,6 +273,140 @@ describe('BaseEntityService', () => {
     });
   });
 
+  describe('createBuilder filter value validation', () => {
+    const options = { query: {} } as any;
+
+    const setPropertyColumns = (columns: Array<{ propertyName: string; propertyPath?: string; type?: string }>) => {
+      entityColumns = columns.map((col) => col.propertyPath ?? col.propertyName);
+      Object.defineProperty(service, 'entityColumns', {
+        get: () => entityColumns,
+        configurable: true
+      });
+      (repository as any).metadata = { ...(repository as any).metadata, columns };
+    };
+
+    const buildParsed = (filter: any[], or: any[] = []) => ({ filter, or } as any);
+
+    it('should reject a malformed date value with BadRequestException before any query builder is created', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder');
+      setPropertyColumns([{ propertyName: 'id', type: 'int' }, { propertyName: 'reportDate', type: 'date' }]);
+      const parsed = buildParsed([{ field: 'reportDate', operator: '$gte', value: '20236-10-03' }]);
+
+      await expect(service.createBuilder(parsed, options)).rejects.toThrow(BadRequestException);
+      await expect(service.createBuilder(parsed, options)).rejects.toThrow('Invalid value for date field reportDate: 20236-10-03');
+      expect(superSpy).not.toHaveBeenCalled();
+    });
+
+    it('should reject an impossible calendar date', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder');
+      setPropertyColumns([{ propertyName: 'id', type: 'int' }, { propertyName: 'reportDate', type: 'date' }]);
+
+      await expect(service.createBuilder(buildParsed([{ field: 'reportDate', operator: '$gte', value: '2026-02-31' }]), options)).rejects.toThrow(BadRequestException);
+      await expect(service.createBuilder(buildParsed([{ field: 'reportDate', operator: '$gte', value: '2026-13-01' }]), options)).rejects.toThrow('Invalid value for date field reportDate: 2026-13-01');
+      expect(superSpy).not.toHaveBeenCalled();
+    });
+
+    it('should let well-formed date values pass through unchanged', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder').mockResolvedValue({} as any);
+      setPropertyColumns([
+        { propertyName: 'id', type: 'int' },
+        { propertyName: 'reportDate', type: 'date' },
+        { propertyName: 'createdAt', type: 'datetime' }
+      ]);
+      const parsed = buildParsed([
+        { field: 'reportDate', operator: '$gte', value: '2026-09-30' },
+        { field: 'reportDate', operator: '$eq', value: '2026-09-30T14:30:00.000Z' },
+        { field: 'createdAt', operator: '$lt', value: '2026-09-30 14:30:00' },
+        { field: 'createdAt', operator: '$lte', value: new Date('2026-09-30T10:00:00.000Z') }
+      ]);
+
+      const result = await service.createBuilder(parsed, options);
+
+      expect(superSpy).toHaveBeenCalledWith(parsed, options, true, false);
+      expect(result).toBeDefined();
+    });
+
+    it('should reject non-numeric values for numeric columns', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder');
+      setPropertyColumns([{ propertyName: 'id', type: 'int' }, { propertyName: 'klassReferenceId', type: 'int' }]);
+
+      await expect(service.createBuilder(buildParsed([{ field: 'klassReferenceId', operator: '$eq', value: 'hj' }]), options)).rejects.toThrow('Invalid value for numeric field klassReferenceId: hj');
+      await expect(service.createBuilder(buildParsed([{ field: 'klassReferenceId', operator: '$eq', value: '12abc' }]), options)).rejects.toThrow(BadRequestException);
+      expect(superSpy).not.toHaveBeenCalled();
+    });
+
+    it('should accept numeric strings and numbers for numeric columns', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder').mockResolvedValue({} as any);
+      setPropertyColumns([
+        { propertyName: 'id', type: 'int' },
+        { propertyName: 'referenceId', type: 'int' },
+        { propertyName: 'amount', type: 'decimal' }
+      ]);
+
+      await expect(service.createBuilder(buildParsed([
+        { field: 'referenceId', operator: '$eq', value: '12' },
+        { field: 'amount', operator: '$gte', value: '12.5' },
+        { field: 'id', operator: '$eq', value: 1 }
+      ]), options)).resolves.toBeDefined();
+      expect(superSpy).toHaveBeenCalled();
+    });
+
+    it('should accept booleans for tinyint columns and reject them for other numeric columns', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder').mockResolvedValue({} as any);
+      setPropertyColumns([
+        { propertyName: 'isActive', type: 'tinyint' },
+        { propertyName: 'count', type: 'int' }
+      ]);
+
+      await expect(service.createBuilder(buildParsed([{ field: 'isActive', operator: '$eq', value: true }]), options)).resolves.toBeDefined();
+      await expect(service.createBuilder(buildParsed([{ field: 'count', operator: '$eq', value: false }]), options)).rejects.toThrow(BadRequestException);
+      expect(superSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reject an $in value containing one bad element', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder');
+      setPropertyColumns([{ propertyName: 'id', type: 'int' }]);
+
+      await expect(service.createBuilder(buildParsed([{ field: 'id', operator: '$in', value: [1, 'hj'] }]), options)).rejects.toThrow(BadRequestException);
+      expect(superSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not validate values for non-date non-numeric columns', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder').mockResolvedValue({} as any);
+      setPropertyColumns([{ propertyName: 'id', type: 'int' }, { propertyName: 'name', type: 'varchar' }]);
+
+      await expect(service.createBuilder(buildParsed([{ field: 'name', operator: '$cont', value: '20236-10-03' }]), options)).resolves.toBeDefined();
+      expect(superSpy).toHaveBeenCalled();
+    });
+
+    it('should reject an invalid or value', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder');
+      setPropertyColumns([{ propertyName: 'id', type: 'int' }, { propertyName: 'reportDate', type: 'date' }]);
+
+      await expect(service.createBuilder(buildParsed([], [{ field: 'reportDate', operator: '$eq', value: '20236-10-03' }]), options)).rejects.toThrow(BadRequestException);
+      expect(superSpy).not.toHaveBeenCalled();
+    });
+
+    it('should validate values for dotted relation columns against the related column type', async () => {
+      const superSpy = jest.spyOn(TypeOrmCrudService.prototype, 'createBuilder');
+      entityColumns = ['id'];
+      Object.defineProperty(service, 'entityColumns', {
+        get: () => entityColumns,
+        configurable: true
+      });
+      (repository as any).metadata = {
+        columns: [{ propertyName: 'id', type: 'int' }],
+        relations: [{
+          propertyName: 'node',
+          inverseEntityMetadata: { columns: [{ propertyName: 'reportDate', propertyPath: 'reportDate', type: 'date' }] },
+        }],
+      };
+
+      await expect(service.createBuilder(buildParsed([{ field: 'node.reportDate', operator: '$gte', value: '20236-10-03' }]), { query: { join: { node: {} } } } as any)).rejects.toThrow(BadRequestException);
+      expect(superSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getManyByIds', () => {
     it('merges an $in id condition into the already auth-filtered search', async () => {
       const mockBuilder = { getMany: jest.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]) } as any;
