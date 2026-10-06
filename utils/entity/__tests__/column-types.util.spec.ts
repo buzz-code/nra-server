@@ -51,8 +51,12 @@ describe('LongJsonColumn', () => {
 });
 
 describe('getAddMinutesExpression', () => {
-  it('uses datetime() modifiers on SQLite (test environment)', () => {
-    expect(getAddMinutesExpression('t.created_at', 15)).toBe("datetime(t.created_at, '+15 minutes')");
+  it('uses strftime() modifiers on SQLite (test environment), keeping milliseconds', () => {
+    expect(getAddMinutesExpression('t.created_at', 15)).toBe("strftime('%Y-%m-%d %H:%M:%f', t.created_at, '+15 minutes')");
+  });
+
+  it('subtracts minutes on SQLite for negative values', () => {
+    expect(getAddMinutesExpression('t.created_at', -15)).toBe("strftime('%Y-%m-%d %H:%M:%f', t.created_at, '-15 minutes')");
   });
 
   it('uses INTERVAL arithmetic on MySQL', () => {
