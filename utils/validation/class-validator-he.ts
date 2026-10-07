@@ -139,6 +139,6 @@ const translationDict = {
     effectPercent: 'השפעה באחוזים',
 };
 
-function getTranslatedProperty(property: string) {
+export function getTranslatedProperty(property: string) {
     return translationDict[property] || property;
 }

@@ -9,6 +9,12 @@ function buildFkViolation(referencingTable: string) {
   return error;
 }
 
+function buildInvalidValue(code: string, errno: number, sqlMessage: string) {
+  const error = new QueryFailedError('SELECT ...', [], new Error(sqlMessage));
+  (error as any).driverError = { code, errno, sqlMessage };
+  return error;
+}
+
 function buildDataSource(entityMetadatas: { tableName: string; targetName: string }[]) {
   return { entityMetadatas } as any;
 }
@@ -93,5 +99,41 @@ describe('AllExceptionsFilter', () => {
       },
       409,
     );
+  });
+
+  it.each([
+    ['ER_TRUNCATED_WRONG_VALUE_FOR_FIELD', 1366, "Incorrect integer value: 'hj' for column 'klass_reference_id' at row 1", 'ערך לא תקין "hj" בשדה מזהה כיתה', 'klassReferenceId'],
+    ['ER_TRUNCATED_WRONG_VALUE', 1292, "Incorrect date value: '20236-10-03' for column 'report_date' at row 1", 'ערך לא תקין "20236-10-03" בשדה תאריך דיווח', 'reportDate'],
+    ['ER_WRONG_VALUE', 1525, "Incorrect DATE value: '20236-10-03'", 'ערך לא תקין "20236-10-03"', null],
+    ['ER_WARN_DATA_OUT_OF_RANGE', 1264, "Out of range value for column 'unmapped_col' at row 1", 'ערך לא תקין בשדה unmapped_col', 'unmapped_col'],
+  ])('turns MySQL %s into a Hebrew 400 naming the field in Hebrew, and logs a warning', (code, errno, sqlMessage, message, field) => {
+    const httpAdapter = { reply: jest.fn() };
+    const dataSource = {
+      entityMetadatas: [{ columns: [
+        { databaseName: 'klass_reference_id', propertyPath: 'klassReferenceId' },
+        { databaseName: 'report_date', propertyPath: 'reportDate' },
+      ] }],
+    } as any;
+    const filter = new AllExceptionsFilter(httpAdapter as any, dataSource);
+    const warn = jest.spyOn((filter as any).logger, 'warn').mockImplementation();
+    const response: any = {};
+
+    filter.catch(buildInvalidValue(code, errno as number, sqlMessage), buildHost(response));
+
+    expect(response.err).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining(sqlMessage));
+    expect(httpAdapter.reply).toHaveBeenCalledWith(response, { statusCode: 400, message, field }, 400);
+  });
+
+  it('still replies 500 for other query failures', () => {
+    const httpAdapter = { reply: jest.fn() };
+    const filter = new AllExceptionsFilter(httpAdapter as any);
+    const exception = buildInvalidValue('ER_LOCK_DEADLOCK', 1213, 'Deadlock found');
+    const response: any = {};
+
+    filter.catch(exception, buildHost(response));
+
+    expect(response.err).toBe(exception);
+    expect(httpAdapter.reply).toHaveBeenCalledWith(response, { statusCode: 500, message: 'Internal server error' }, 500);
   });
 });
