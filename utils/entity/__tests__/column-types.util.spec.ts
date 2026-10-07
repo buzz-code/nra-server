@@ -11,7 +11,7 @@ jest.mock('typeorm', () => {
   };
 });
 
-import { LongJsonColumn } from '../column-types.util';
+import { LongJsonColumn, getAddMinutesExpression } from '../column-types.util';
 
 describe('LongJsonColumn', () => {
   beforeEach(() => {
@@ -47,5 +47,23 @@ describe('LongJsonColumn', () => {
     LongJsonColumn({ transformer: customTransformer });
     const [, options] = columnCalls[0];
     expect(options.transformer).toBe(customTransformer);
+  });
+});
+
+describe('getAddMinutesExpression', () => {
+  it('uses strftime() modifiers on SQLite (test environment), keeping milliseconds', () => {
+    expect(getAddMinutesExpression('t.created_at', 15)).toBe("strftime('%Y-%m-%d %H:%M:%f', t.created_at, '+15 minutes')");
+  });
+
+  it('subtracts minutes on SQLite for negative values', () => {
+    expect(getAddMinutesExpression('t.created_at', -15)).toBe("strftime('%Y-%m-%d %H:%M:%f', t.created_at, '-15 minutes')");
+  });
+
+  it('uses INTERVAL arithmetic on MySQL', () => {
+    jest.isolateModules(() => {
+      jest.doMock('@shared/config/database.config', () => ({ databaseConfig: { type: 'mysql' } }));
+      const { getAddMinutesExpression: mysqlAddMinutes } = require('../column-types.util');
+      expect(mysqlAddMinutes('t.created_at', 15)).toBe('t.created_at + INTERVAL 15 MINUTE');
+    });
   });
 });

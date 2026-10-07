@@ -199,6 +199,23 @@ export function getGroupConcatExpression(column: string, separator: string = ', 
 }
 
 /**
+ * Database-agnostic "datetime plus minutes" expression
+ * MySQL: column + INTERVAL 15 MINUTE
+ * SQLite: strftime('%Y-%m-%d %H:%M:%f', column, '+15 minutes') (keeps milliseconds, unlike datetime())
+ */
+export function getAddMinutesExpression(column: string, minutes: number): string {
+  const dbType = getDatabaseType();
+
+  if (dbType === DatabaseType.MYSQL) {
+    return `${column} + INTERVAL ${minutes} MINUTE`;
+  } else {
+    // SQLite
+    const sign = minutes >= 0 ? '+' : '';
+    return `strftime('%Y-%m-%d %H:%M:%f', ${column}, '${sign}${minutes} minutes')`;
+  }
+}
+
+/**
  * Database-agnostic CONCAT function  
  * MySQL: CONCAT(col1, '_', col2)
  * SQLite: col1 || '_' || col2
