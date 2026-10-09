@@ -173,7 +173,7 @@ describe('BaseYemotHandlerService', () => {
 
       expect(mockCall.hangup).toHaveBeenCalled();
       expect(mockCall.id_list_message).toHaveBeenCalledWith(
-        [{ type: 'text', data: 'המערכת לא מחוברת, אנא פני למזכירות' }],
+        [{ type: 'text', data: 'המערכת לא מחוברת, אנא פני למזכירות. מספר המערכת: 0 3 5 5 8 6 5 2 6' }],
         { prependToNextAction: true },
       );
     });
