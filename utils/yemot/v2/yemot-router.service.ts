@@ -132,7 +132,8 @@ export class BaseYemotHandlerService {
     this.logger.log(`Getting user by phone: ${this.call.did}`);
     const user = await this.dataSource.getRepository(User).findOne({ where: { phoneNumber: this.call.did } });
     if (!user) {
-      return this.hangupWithMessage('המערכת לא מחוברת, אנא פני למזכירות');
+      const spokenDid = (this.call.did || '').split('').join(' ');
+      return this.hangupWithMessage(`המערכת לא מחוברת, אנא פני למזכירות. מספר המערכת: ${spokenDid}`);
     }
     this.user = user;
     await this.syncYemotUrlMigrationStatus();
