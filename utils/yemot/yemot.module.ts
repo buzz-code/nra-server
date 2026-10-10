@@ -1,5 +1,5 @@
 import { YemotCall } from "../../entities/YemotCall.entity";
-import { Controller, UseGuards, Post, Body, Module, DynamicModule } from "@nestjs/common";
+import { Controller, Post, Body, Module, DynamicModule } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { YemotService } from "./yemot.service";
 import { YEMOT_CHAIN, YemotRequestConstructor, YEMOT_REQUEST } from "./yemot.interface";

@@ -17,7 +17,7 @@ export function verify(authService: AuthService, req: Request, username: string,
 
 @Injectable()
 export class LocalRegisterStrategy extends Strategy {
-    constructor(private authService: AuthService) {
+    constructor(authService: AuthService) {
         super({ passReqToCallback: true }, verify.bind(null, authService));
     }
 }
