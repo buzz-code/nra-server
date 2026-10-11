@@ -70,7 +70,7 @@ export class DataToExcelReportGenerator<T = IDataToExcelReportGenerator, D exten
 
         const tableFirstRow = worksheet.rowCount + 1;
         worksheet.views = [
-            { state: 'frozen', xSplit: tableFirstRow, rightToLeft: true }
+            { state: 'frozen', ySplit: tableFirstRow, rightToLeft: true }
         ];
         worksheet.addTable({
             name: 'data',

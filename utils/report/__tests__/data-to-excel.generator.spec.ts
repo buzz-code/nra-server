@@ -1,4 +1,11 @@
+import * as JSZip from 'jszip';
 import { DataToExcelReportGenerator, getDateDataValidation, getIntegerDataValidation } from "../data-to-excel.generator";
+
+const getSheetPane = async (buffer: Buffer) => {
+    const zip = await JSZip.loadAsync(buffer);
+    const xml = await zip.file('xl/worksheets/sheet1.xml').async('string');
+    return xml.match(/<pane [^>]*\/>/)?.[0];
+};
 
 const generator = new DataToExcelReportGenerator(() => 'test');
 
@@ -23,6 +30,32 @@ describe('DataToExcelReportGenerator', () => {
         };
         const buffer = await generator.getFileBuffer(data);
         expect(buffer).toBeInstanceOf(Buffer);
+    });
+
+    // Freezes the header row (not columns) so it stays visible while scrolling.
+    it('should freeze the header row', async () => {
+        const data = {
+            headerRow: ['Name', 'Age'],
+            formattedData: [['John', 25], ['Jane', 30]],
+        };
+        const pane = await getSheetPane(await generator.getFileBuffer(data));
+        expect(pane).toContain('ySplit="1"');
+        expect(pane).toContain('topLeftCell="A2"');
+        expect(pane).toContain('state="frozen"');
+        expect(pane).not.toContain('xSplit');
+    });
+
+    // Freezes everything down to the header row when special fields sit above the table.
+    it('should freeze rows down to the header row when special fields are above it', async () => {
+        const data = {
+            headerRow: ['Name', 'Age'],
+            formattedData: [['John', 25], ['Jane', 30]],
+            specialFields: [{ cell: { r: 1, c: 0 }, value: 'Title' }],
+        };
+        const pane = await getSheetPane(await generator.getFileBuffer(data));
+        expect(pane).toContain('ySplit="3"');
+        expect(pane).toContain('topLeftCell="A4"');
+        expect(pane).not.toContain('xSplit');
     });
 
     // Generates an Excel file buffer from input data with special fields.
