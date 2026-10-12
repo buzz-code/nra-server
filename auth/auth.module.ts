@@ -8,6 +8,7 @@ import { User } from '@shared/entities/User.entity';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
+import { HttpModule } from '@nestjs/axios';
 
 // Interface for AuthModule configuration
 export interface AuthModuleOptions {
@@ -18,6 +19,7 @@ export interface AuthModuleOptions {
   imports: [
     TypeOrmModule.forFeature([User]),
     PassportModule,
+    HttpModule,
     JwtModule.register({
       secret: jwtConstants.secret,
       signOptions: { expiresIn: jwtConstants.maxAge },

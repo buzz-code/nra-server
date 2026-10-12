@@ -13,7 +13,7 @@ import {
   Body,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import { AuthService } from '@shared/auth/auth.service';
+import { AuthService, UpdateProfileData } from '@shared/auth/auth.service';
 import { JwtAuthGuard } from '@shared/auth/jwt-auth.guard';
 import { LocalAuthGuard } from '@shared/auth/local-auth.guard';
 import { Response } from 'express';
@@ -113,7 +113,7 @@ export class AppController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('profile')
-  async updateProfile(@Request() req: AuthenticatedRequest, @Body() data: { phoneNumber?: string }) {
+  async updateProfile(@Request() req: AuthenticatedRequest, @Body() data: UpdateProfileData) {
     const userId = getUserIdFromUser(req.user);
     if (!userId) {
       throw new UnauthorizedException();

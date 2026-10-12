@@ -3,7 +3,10 @@ import { AuthService } from '../auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { of, throwError } from 'rxjs';
+import { mailWorkflowUrls } from '@shared/config/mail-workflows';
 import * as bcrypt from 'bcrypt';
 import * as cookie from 'cookie';
 import { User } from '@shared/entities/User.entity';
@@ -14,10 +17,14 @@ describe('AuthService', () => {
     let userRepository: Repository<User>;
     let jwtService: JwtService;
     let userInitService: any;
+    let httpService: { post: jest.Mock };
 
     beforeEach(async () => {
         userInitService = {
             initializeUserData: jest.fn().mockResolvedValue(undefined)
+        };
+        httpService = {
+            post: jest.fn(() => of({ data: { valid: true } })),
         };
 
         const module: TestingModule = await Test.createTestingModule({
@@ -41,6 +48,10 @@ describe('AuthService', () => {
                             getRepository: jest.fn(() => userRepository),
                         }
                     },
+                },
+                {
+                    provide: HttpService,
+                    useValue: httpService,
                 },
                 {
                     provide: USER_INITIALIZATION_SERVICE,
@@ -337,6 +348,10 @@ describe('AuthService', () => {
                     {
                         provide: getRepositoryToken(User),
                         useValue: localUserRepository,
+                    },
+                    {
+                        provide: HttpService,
+                        useValue: httpService,
                     }
                 ],
             }).compile();
@@ -493,6 +508,79 @@ describe('AuthService', () => {
             jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
 
             await expect(service.updateProfile(userId, { phoneNumber: '0501234567' })).rejects.toThrowError('User not found');
+        });
+
+        describe('mail address', () => {
+            const userId = 1;
+            const userStub = { id: userId, mailAddressAlias: 'old-alias', mailAddressTitle: 'Old' } as any as User;
+
+            beforeEach(() => {
+                jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(userStub);
+                jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+                jest.spyOn(userRepository, 'update').mockResolvedValue(null);
+            });
+
+            it('should update only the title when only title is sent', async () => {
+                await service.updateProfile(userId, { mailAddressTitle: ' My School ' });
+
+                expect(userRepository.update).toHaveBeenCalledWith(userId, { mailAddressTitle: 'My School' });
+                expect(httpService.post).not.toHaveBeenCalled();
+            });
+
+            it('should normalize, validate and save a new alias', async () => {
+                await service.updateProfile(userId, { mailAddressAlias: ' My.School ' });
+
+                expect(userRepository.findOne).toHaveBeenCalledWith({ where: { mailAddressAlias: 'my.school', id: expect.anything() } });
+                expect(httpService.post).toHaveBeenCalledWith(mailWorkflowUrls.validateMailQnique, { alias: 'my.school' });
+                expect(userRepository.update).toHaveBeenCalledWith(userId, { mailAddressAlias: 'my.school' });
+            });
+
+            it('should skip validation when alias is unchanged', async () => {
+                await service.updateProfile(userId, { mailAddressAlias: 'old-alias' });
+
+                expect(httpService.post).not.toHaveBeenCalled();
+                expect(userRepository.update).toHaveBeenCalledWith(userId, { mailAddressAlias: 'old-alias' });
+            });
+
+            it('should clear alias when empty string is sent', async () => {
+                await service.updateProfile(userId, { mailAddressAlias: '' });
+
+                expect(httpService.post).not.toHaveBeenCalled();
+                expect(userRepository.update).toHaveBeenCalledWith(userId, { mailAddressAlias: null });
+            });
+
+            it('should reject an invalid alias format', async () => {
+                await expect(service.updateProfile(userId, { mailAddressAlias: 'בית ספר' })).rejects.toThrow(BadRequestException);
+                expect(userRepository.update).not.toHaveBeenCalled();
+            });
+
+            it('should reject the reserved default alias', async () => {
+                await expect(service.updateProfile(userId, { mailAddressAlias: 'Test' })).rejects.toThrow('כתובת המייל כבר תפוסה');
+                expect(userRepository.update).not.toHaveBeenCalled();
+            });
+
+            it('should reject an alias used by another user', async () => {
+                jest.spyOn(userRepository, 'findOne').mockResolvedValue({ id: 2 } as User);
+
+                await expect(service.updateProfile(userId, { mailAddressAlias: 'taken' })).rejects.toThrow('כתובת המייל כבר תפוסה');
+                expect(httpService.post).not.toHaveBeenCalled();
+                expect(userRepository.update).not.toHaveBeenCalled();
+            });
+
+            it('should reject an alias the shared check marks invalid', async () => {
+                httpService.post.mockReturnValue(of({ data: { valid: false } }));
+
+                await expect(service.updateProfile(userId, { mailAddressAlias: 'taken' })).rejects.toThrow('כתובת המייל כבר תפוסה');
+                expect(userRepository.update).not.toHaveBeenCalled();
+            });
+
+            it('should not save when the shared check fails', async () => {
+                httpService.post.mockReturnValue(throwError(() => new Error('network')));
+                jest.spyOn(console, 'log').mockImplementation(() => undefined);
+
+                await expect(service.updateProfile(userId, { mailAddressAlias: 'new-alias' })).rejects.toThrow(ServiceUnavailableException);
+                expect(userRepository.update).not.toHaveBeenCalled();
+            });
         });
     });
 });
