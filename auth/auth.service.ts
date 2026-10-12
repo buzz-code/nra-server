@@ -1,5 +1,7 @@
-import { Injectable, UnauthorizedException, Inject, Optional, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Injectable, UnauthorizedException, Inject, Optional, NotFoundException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import { Not, Repository } from 'typeorm';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import { User } from '@shared/entities/User.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -10,6 +12,17 @@ import * as cookie from 'cookie';
 import { IAuthenticatedUser } from './auth.types';
 import { getYemotLegacyRouteDeadline } from '@shared/utils/yemot/yemot-legacy-route.util';
 import { IUserInitializationService, USER_INITIALIZATION_SERVICE } from './user-initialization.interface';
+import { mailWorkflowUrls } from '@shared/config/mail-workflows';
+
+const MAIL_ALIAS_REGEX = /^[a-z0-9._-]{3,64}$/;
+// Default sender used when a user has no alias - must never be claimed by a single user
+const RESERVED_MAIL_ALIASES = ['test'];
+
+export interface UpdateProfileData {
+  phoneNumber?: string;
+  mailAddressTitle?: string;
+  mailAddressAlias?: string;
+}
 
 const adminUser: IAuthenticatedUser = {
   id: -1,
@@ -23,6 +36,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
     private jwtService: JwtService,
+    private httpService: HttpService,
     @Optional() @Inject(USER_INITIALIZATION_SERVICE) private userInitService?: IUserInitializationService
   ) { }
 
@@ -147,13 +161,57 @@ export class AuthService {
     return { success: true };
   }
 
-  async updateProfile(userId: number, data: { phoneNumber?: string }) {
+  async updateProfile(userId: number, data: UpdateProfileData) {
     const user = await this.userRepository.findOneBy({ id: userId });
     if (!user) {
       throw new Error('User not found');
     }
 
-    await this.userRepository.update(user.id, { phoneNumber: data.phoneNumber });
+    const update: Partial<User> = {};
+    if (data.phoneNumber !== undefined) {
+      update.phoneNumber = data.phoneNumber;
+    }
+    if (data.mailAddressTitle !== undefined) {
+      update.mailAddressTitle = data.mailAddressTitle?.trim() || null;
+    }
+    if (data.mailAddressAlias !== undefined) {
+      const alias = data.mailAddressAlias?.trim().toLowerCase() || null;
+      if (alias && alias !== user.mailAddressAlias) {
+        await this.validateMailAddressAlias(userId, alias);
+      }
+      update.mailAddressAlias = alias;
+    }
+
+    if (Object.keys(update).length) {
+      await this.userRepository.update(user.id, update);
+    }
     return { success: true };
+  }
+
+  private async validateMailAddressAlias(userId: number, alias: string) {
+    if (!MAIL_ALIAS_REGEX.test(alias)) {
+      throw new BadRequestException('כתובת המייל אינה תקינה - יש להשתמש באותיות באנגלית, מספרים, נקודה, מקף או קו תחתון (3-64 תווים)');
+    }
+
+    if (RESERVED_MAIL_ALIASES.includes(alias)) {
+      throw new BadRequestException('כתובת המייל כבר תפוסה');
+    }
+
+    const existingUser = await this.userRepository.findOne({ where: { mailAddressAlias: alias, id: Not(userId) } });
+    if (existingUser) {
+      throw new BadRequestException('כתובת המייל כבר תפוסה');
+    }
+
+    let isValid: boolean;
+    try {
+      const { data } = await firstValueFrom(this.httpService.post(mailWorkflowUrls.validateMailQnique, { alias }));
+      isValid = Boolean(data?.valid);
+    } catch (e) {
+      console.log('could not validate mail alias uniqueness', e);
+      throw new ServiceUnavailableException('לא ניתן לבדוק את כתובת המייל כרגע, נסו שוב מאוחר יותר');
+    }
+    if (!isValid) {
+      throw new BadRequestException('כתובת המייל כבר תפוסה');
+    }
   }
 }

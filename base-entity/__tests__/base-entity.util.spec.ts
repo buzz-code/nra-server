@@ -212,6 +212,24 @@ describe('base-entity.util', () => {
       });
     });
 
+    it('should use title with default address if user has no alias', async () => {
+      mockUserRepository.findOne = jest.fn().mockResolvedValue({
+        mailAddressAlias: null,
+        mailAddressTitle: 'Test User'
+      });
+
+      const result = await getUserMailAddressFrom(
+        { id: 1, permissions: {} },
+        mockDataSource as DataSource,
+        mockDomain
+      );
+
+      expect(result).toEqual({
+        name: 'Test User',
+        address: 'test@' + mockDomain
+      });
+    });
+
     it('should return user mail address for configured user', async () => {
       mockUserRepository.findOne = jest.fn().mockResolvedValue({
         mailAddressAlias: 'user1',
