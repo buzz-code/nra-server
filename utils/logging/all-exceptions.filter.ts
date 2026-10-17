@@ -3,11 +3,20 @@ import { snakeCase } from 'change-case';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { getTranslatedProperty } from '@shared/utils/validation/class-validator-he';
 
+interface MysqlDriverError {
+  code?: string;
+  sqlMessage?: string;
+}
+
+function getDriverError(exception: QueryFailedError): MysqlDriverError | undefined {
+  return (exception as QueryFailedError & { driverError?: MysqlDriverError }).driverError;
+}
+
 // MySQL: deleting a row that another table still has a foreign key to.
 const FK_VIOLATION_CODE = 'ER_ROW_IS_REFERENCED_2';
 
 function isForeignKeyViolation(exception: unknown): exception is QueryFailedError {
-  return exception instanceof QueryFailedError && (exception as any).driverError?.code === FK_VIOLATION_CODE;
+  return exception instanceof QueryFailedError && getDriverError(exception)?.code === FK_VIOLATION_CODE;
 }
 
 // MySQL: a value that cannot be converted to the column's type, e.g. a filter of
@@ -21,13 +30,13 @@ const INVALID_VALUE_CODES = new Set([
 ]);
 
 function isInvalidValue(exception: unknown): exception is QueryFailedError {
-  return exception instanceof QueryFailedError && INVALID_VALUE_CODES.has((exception as any).driverError?.code);
+  return exception instanceof QueryFailedError && INVALID_VALUE_CODES.has(getDriverError(exception)?.code);
 }
 
 // sqlMessage looks like: "Incorrect integer value: 'hj' for column 'klass_reference_id' at row 1".
 // Either part may be missing ("Out of range value for column 'id'", "Incorrect DATE value: '20236-10-03'").
 function getInvalidValueDetails(exception: QueryFailedError): { value: string | null; column: string | null } {
-  const sqlMessage = (exception as any).driverError?.sqlMessage || '';
+  const sqlMessage = getDriverError(exception)?.sqlMessage || '';
   return {
     value: /value: '([^']*)'/.exec(sqlMessage)?.[1] ?? null,
     column: /for column '([^']+)'/.exec(sqlMessage)?.[1] ?? null,
@@ -36,7 +45,7 @@ function getInvalidValueDetails(exception: QueryFailedError): { value: string | 
 
 function getReferencingTable(exception: QueryFailedError): string | null {
   // sqlMessage looks like: "... foreign key constraint fails (`db`.`report_groups`, CONSTRAINT ...)"
-  const match = /\(`[^`]+`\.`([^`]+)`/.exec((exception as any).driverError?.sqlMessage || '');
+  const match = /\(`[^`]+`\.`([^`]+)`/.exec(getDriverError(exception)?.sqlMessage || '');
   return match?.[1] || null;
 }
 
@@ -85,7 +94,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (isInvalidValue(exception)) {
       const { value, column } = getInvalidValueDetails(exception);
       const field = this.resolveFieldName(column);
-      this.logger.warn(`Invalid value rejected with 400: ${(exception as any).driverError.sqlMessage} | query: ${exception.query}`);
+      this.logger.warn(`Invalid value rejected with 400: ${getDriverError(exception).sqlMessage} | query: ${exception.query}`);
       const body = {
         statusCode: HttpStatus.BAD_REQUEST,
         message: `ערך לא תקין${value !== null ? ` "${value}"` : ''}${field ? ` בשדה ${getTranslatedProperty(field)}` : ''}`,
