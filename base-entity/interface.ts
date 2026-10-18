@@ -23,6 +23,8 @@ export interface BaseEntityModuleOptions {
     service?: typeof BaseEntityService<any> | (new (...args: any[]) => BaseEntityService<any>);
     /** Additional providers to register in the entity module (e.g. custom services). */
     providers?: Provider[];
+    /** Columns the "bulkEdit" action may update; the action is enabled only when set. */
+    bulkEditFields?: string[];
 }
 
 export interface ImportDefinition {
@@ -41,7 +43,9 @@ export interface ExportDefinition<T = IContent> {
 export const ENTITY_REPOSITORY = 'entity_repository';
 export const ENTITY_EXPORTER = 'entity_exporter';
 export const ENTITY_SERVICE = 'entity_service';
+export const ENTITY_BULK_EDIT_FIELDS = 'entity_bulk_edit_fields';
 
 export const InjectEntityRepository = Inject(ENTITY_REPOSITORY);
 export const InjectEntityExporter = Inject(ENTITY_EXPORTER);
 export const InjectEntityService = Inject(ENTITY_SERVICE);
+export const InjectEntityBulkEditFields = Inject(ENTITY_BULK_EDIT_FIELDS);

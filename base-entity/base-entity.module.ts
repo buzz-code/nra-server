@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '@shared/auth/jwt-auth.guard';
 import { snakeCase } from 'change-case';
 import { BaseEntityController } from './base-entity.controller';
 import { BaseEntityService } from './base-entity.service';
-import { BaseEntityModuleOptions, Entity, ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE, InjectEntityService } from './interface';
+import { BaseEntityModuleOptions, Entity, ENTITY_BULK_EDIT_FIELDS, ENTITY_EXPORTER, ENTITY_REPOSITORY, ENTITY_SERVICE, InjectEntityService } from './interface';
 import { Public } from '@shared/auth/public.decorator';
 import { MailWebhookGuard } from '@shared/guards/mail-webhook.guard';
 import { HttpModule } from '@nestjs/axios';
@@ -106,6 +106,7 @@ export class BaseEntityModule {
             providers: [
                 { provide: ENTITY_REPOSITORY, useExisting: getRepositoryToken(options.entity) },
                 { provide: ENTITY_EXPORTER, useValue: options.exporter || null },
+                { provide: ENTITY_BULK_EDIT_FIELDS, useValue: options.bulkEditFields || null },
                 { provide: ENTITY_SERVICE, useClass: options.service ?? BaseEntityService },
                 ...(options.providers ?? []),
             ],

@@ -1,23 +1,25 @@
 import { CreateManyDto, CrudRequest, CrudRequestOptions, GetManyDefaultResponse, JoinOptions, Override, QueryOptions } from "@dataui/crud";
 import { ParsedRequestParams } from "@dataui/crud-request";
 import { TypeOrmCrudService } from "@dataui/crud-typeorm";
-import { DataSource, DeepPartial, EntityManager, ObjectLiteral, Repository, SelectQueryBuilder } from "typeorm";
+import { DataSource, DeepPartial, EntityManager, In, ObjectLiteral, Repository, SelectQueryBuilder } from "typeorm";
 import { snakeCase } from "change-case";
 import { IHeader } from "@shared/utils/exporter/types";
-import { Entity, ExportDefinition, ImportDefinition, IHasUserId, InjectEntityExporter, InjectEntityRepository } from "./interface";
+import { Entity, ExportDefinition, ImportDefinition, IHasUserId, InjectEntityBulkEditFields, InjectEntityExporter, InjectEntityRepository } from "./interface";
 import { ParamsToJsonReportGenerator } from "@shared/utils/report/params-to-json.generator";
 import { CommonReportData } from "@shared/utils/report/types";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { BadRequestException, ForbiddenException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Optional } from "@nestjs/common";
 import { MailSendService } from "@shared/utils/mail/mail-send.service";
 import { getUserIdFromUser } from "@shared/auth/auth.util";
 import { isAdmin } from "@shared/utils/permissionsUtil";
 import { getAsNumberArray } from "@shared/utils/queryParam.util";
 import { fixTimezoneShift } from "@shared/utils/entity/fixTimezoneShift.util";
+import { getBulkEditFieldsByColumnType, getBulkEditUpdate } from "@shared/utils/entity/bulkEdit.util";
 import { validateNotTrialEnded } from "./base-entity.util";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
     @InjectEntityExporter private exportDefinition: ExportDefinition;
+    @Optional() @InjectEntityBulkEditFields protected bulkEditFields: string[] | null;
     @InjectDataSource() public dataSource: DataSource;
 
     constructor(@InjectEntityRepository repo: Repository<T>,
@@ -171,7 +173,30 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         if (req.parsed.extra?.action === 'fixTimezoneShift') {
             return this.handleFixTimezoneShiftAction(req);
         }
+        if (req.parsed.extra?.action === 'bulkEdit' && this.bulkEditFields?.length) {
+            return this.handleBulkEditAction(req, this.repo);
+        }
         return 'done nothing';
+    }
+
+    /**
+     * Sets the filled bulkEditFields on the selected rows the caller can see (crudAuth);
+     * an empty field is left unchanged. `repo` is the table to update, for a service
+     * whose own entity is a view over that table.
+     */
+    protected async handleBulkEditAction(req: CrudRequest<any, any>, repo: Repository<any>): Promise<string> {
+        const ids = getAsNumberArray(req.parsed.extra.ids);
+        const entities = await this.getManyByIds(req, ids);
+        if (!entities.length) {
+            return 'לא נבחרו רשומות';
+        }
+        const fields = getBulkEditFieldsByColumnType(repo.metadata, this.bulkEditFields ?? []);
+        const update = getBulkEditUpdate(req.parsed.extra, fields);
+        if (Object.keys(update).length === 0) {
+            return 'לא נבחרו שדות לעדכון';
+        }
+        const result = await repo.update({ id: In(entities.map((entity: any) => entity.id)) }, update);
+        return `עודכנו ${result.affected} רשומות`;
     }
 
     /**
