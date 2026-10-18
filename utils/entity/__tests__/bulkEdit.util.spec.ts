@@ -1,4 +1,4 @@
-import { getBulkEditUpdate } from '../bulkEdit.util';
+import { getBulkEditFieldsByColumnType, getBulkEditUpdate } from '../bulkEdit.util';
 
 describe('bulkEdit.util', () => {
   describe('getBulkEditUpdate', () => {
@@ -26,6 +26,41 @@ describe('bulkEdit.util', () => {
 
     it('should throw on invalid date', () => {
       expect(() => getBulkEditUpdate({ date: 'abc' }, fields)).toThrow('תאריך לא תקין');
+    });
+
+    it('should parse boolean fields', () => {
+      expect(getBulkEditUpdate({ active: 'false', other: '' }, { booleans: ['active', 'other'] })).toEqual({ active: false });
+    });
+  });
+
+  describe('getBulkEditFieldsByColumnType', () => {
+    const columnTypes: Record<string, any> = {
+      count: 'int',
+      refId: Number,
+      grade: 'float',
+      date: 'date',
+      createdAt: Date,
+      comment: 'varchar',
+      name: String,
+      isActive: 'boolean',
+      isApproved: Boolean,
+    };
+    const metadata = {
+      name: 'TestEntity',
+      findColumnWithPropertyName: (name: string) => (name in columnTypes ? { propertyName: name, type: columnTypes[name] } : undefined),
+    } as any;
+
+    it('should group fields by column type', () => {
+      expect(getBulkEditFieldsByColumnType(metadata, Object.keys(columnTypes))).toEqual({
+        numbers: ['count', 'refId', 'grade'],
+        dates: ['date', 'createdAt'],
+        strings: ['comment', 'name'],
+        booleans: ['isActive', 'isApproved'],
+      });
+    });
+
+    it('should throw on a field that is not a column', () => {
+      expect(() => getBulkEditFieldsByColumnType(metadata, ['missing'])).toThrow('missing');
     });
   });
 });

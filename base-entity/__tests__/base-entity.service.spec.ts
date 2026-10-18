@@ -590,6 +590,61 @@ describe('BaseEntityService', () => {
               expect(result).toBe('תוקנו 2 רשומות');
             });
           });
+
+          describe('bulkEdit action', () => {
+            const bulkEditReq = {
+              ...mockReq,
+              parsed: { ...mockReq.parsed, extra: { action: 'bulkEdit', ids: '1,2,99', count: '3', date: '2026-10-11', comment: '', active: 'false' } },
+            } as unknown as CrudRequest;
+            const columnTypes: Record<string, any> = { count: 'int', date: 'date', comment: 'varchar', active: Boolean, name: String };
+
+            beforeEach(() => {
+              (repository as any).metadata.name = 'TestEntity';
+              (repository as any).metadata.findColumnWithPropertyName = (name: string) =>
+                name in columnTypes ? { propertyName: name, type: columnTypes[name] } : undefined;
+              (repository as any).update = jest.fn().mockResolvedValue({ affected: 2 });
+              jest.spyOn(service, 'getManyByIds').mockResolvedValue([{ id: 1 }, { id: 2 }] as any);
+            });
+
+            it('should do nothing when bulkEditFields is not configured', async () => {
+              const result = await service.doAction(bulkEditReq, {});
+
+              expect(result).toBe('done nothing');
+              expect((repository as any).update).not.toHaveBeenCalled();
+            });
+
+            it('should update only the filled allowed fields on the rows the caller can see', async () => {
+              (service as any).bulkEditFields = ['count', 'date', 'comment', 'active'];
+
+              const result = await service.doAction(bulkEditReq, {});
+
+              expect(service.getManyByIds).toHaveBeenCalledWith(bulkEditReq, [1, 2, 99]);
+              const [where, update] = (repository as any).update.mock.calls[0];
+              expect(where.id.value).toEqual([1, 2]);
+              expect(update).toEqual({ count: 3, date: new Date('2026-10-11'), active: false });
+              expect(result).toBe('עודכנו 2 רשומות');
+            });
+
+            it('should ignore fields that are not in bulkEditFields', async () => {
+              (service as any).bulkEditFields = ['count'];
+              const req = { ...bulkEditReq, parsed: { ...bulkEditReq.parsed, extra: { action: 'bulkEdit', ids: '1', name: 'x' } } } as unknown as CrudRequest;
+
+              const result = await service.doAction(req, {});
+
+              expect((repository as any).update).not.toHaveBeenCalled();
+              expect(result).toBe('לא נבחרו שדות לעדכון');
+            });
+
+            it('should do nothing when no selected row is accessible', async () => {
+              (service as any).bulkEditFields = ['count'];
+              (service.getManyByIds as jest.Mock).mockResolvedValue([]);
+
+              const result = await service.doAction(bulkEditReq, {});
+
+              expect((repository as any).update).not.toHaveBeenCalled();
+              expect(result).toBe('לא נבחרו רשומות');
+            });
+          });
         });
       });
     
