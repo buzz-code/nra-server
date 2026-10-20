@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, Repository } from 'typeorm';
+import { LessThanOrEqual, Like, Repository } from 'typeorm';
 import { Job, JobStatus } from '@shared/entities/Job.entity';
 import { JobResult } from './job.types';
 
@@ -15,7 +15,14 @@ const TERMINAL: JobStatus[] = ['completed', 'failed', 'cancelled'];
 
 @Injectable()
 export class JobService {
+  private enqueueListener: (() => void) | null = null;
+
   constructor(@InjectRepository(Job) public readonly repo: Repository<Job>) {}
+
+  /** Lets the in-process worker wake up as soon as a job is enqueued. */
+  onEnqueue(listener: () => void): void {
+    this.enqueueListener = listener;
+  }
 
   async enqueue(userId: number, type: string, payload?: Record<string, any>, opts: EnqueueOptions = {}): Promise<Job | null> {
     if (opts.dedupeKey) {
@@ -34,7 +41,27 @@ export class JobService {
       availableAt: opts.availableAt ?? new Date(),
       dedupeKey: opts.dedupeKey ?? null,
     });
-    return this.repo.save(job);
+    const saved = await this.repo.save(job);
+    this.enqueueListener?.();
+    return saved;
+  }
+
+  /** Cancel pending jobs whose dedupeKey starts with `prefix`. */
+  async cancelPending(dedupeKeyPrefix: string): Promise<void> {
+    await this.repo.update(
+      { status: 'pending', dedupeKey: Like(`${dedupeKeyPrefix}%`) },
+      { status: 'cancelled', completedAt: new Date() },
+    );
+  }
+
+  /** Earliest availableAt among pending jobs, or null when none are pending. */
+  async nextAvailableAt(): Promise<Date | null> {
+    const next = await this.repo.findOne({
+      where: { status: 'pending' },
+      order: { availableAt: 'ASC' },
+      select: ['id', 'availableAt'],
+    });
+    return next?.availableAt ?? null;
   }
 
   /**

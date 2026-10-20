@@ -4,8 +4,8 @@ import { IHasUserId } from '@shared/base-entity/interface';
 import { User } from './User.entity';
 
 /**
- * A recurring job definition. Edited as data (no redeploy). The
- * ScheduleHeartbeatService scans due rows every minute and enqueues a Job.
+ * A recurring job definition. Edited as data (no redeploy). ScheduleSyncService
+ * keeps one pending Job at nextRunAt; running it enqueues the next one.
  */
 @Entity('schedules')
 export class Schedule implements IHasUserId {
