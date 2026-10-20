@@ -1,5 +1,8 @@
 import * as express from 'express';
 import * as request from 'supertest';
+import * as cookieParser from 'cookie-parser';
+import { JwtService } from '@nestjs/jwt';
+import { jwtConstants } from '@shared/auth/constants';
 import { DataSource } from 'typeorm';
 import { User } from '@shared/entities/User.entity';
 import { createRealDataSource } from '../../testing/real-data-source';
@@ -31,8 +34,12 @@ describe('Yemot router (e2e)', () => {
     ds = await createRealDataSource();
     const tracker = new YemotCallTrackingService(ds as any);
     const routerService = new YemotRouterService(ds, StubHandler as any, tracker);
+    jwtConstants.secret = 'test-jwt-secret';
     app = express();
+    app.use(express.json());
+    app.use(cookieParser());
     const router = routerService.getRouter();
+    app.use('/yemot/simulate', routerService.getSimulatorAuthMiddleware(), router);
     app.use('/yemot/handle-call/:secret', router);
     app.use('/yemot/handle-call', router);
   });
@@ -100,5 +107,81 @@ describe('Yemot router (e2e)', () => {
 
     expect(processCallSpy).toHaveBeenCalled();
     processCallSpy.mockRestore();
+  });
+
+  describe('simulator mount', () => {
+    function authCookie(payload: Record<string, any>) {
+      const token = new JwtService({ secret: jwtConstants.secret }).sign(payload);
+      return `Authentication=${token}`;
+    }
+
+    async function saveUser(additionalData: Record<string, any> = {}) {
+      return ds.getRepository(User).save({
+        name: 'Test', phoneNumber: '035586526',
+        additionalData: { yemotWebhookToken: 'secret-token', ...additionalData },
+      } as any);
+    }
+
+    it('lets an admin simulate any system past YEMOT_LEGACY_ROUTE_DEADLINE', async () => {
+      process.env.YEMOT_LEGACY_ROUTE_DEADLINE = '2000-01-01';
+      await saveUser();
+      const processCallSpy = jest.spyOn(StubHandler.prototype, 'processCall');
+
+      await request(app).post('/yemot/simulate')
+        .set('Cookie', authCookie({ id: 1, permissions: { admin: true } }))
+        .send(requiredYemotFields({})).expect(200);
+
+      expect(processCallSpy).toHaveBeenCalled();
+      processCallSpy.mockRestore();
+    });
+
+    it('lets a user with the simulator permission simulate their own system', async () => {
+      process.env.YEMOT_LEGACY_ROUTE_DEADLINE = '2000-01-01';
+      const user = await saveUser();
+      const processCallSpy = jest.spyOn(StubHandler.prototype, 'processCall');
+
+      await request(app).post('/yemot/simulate')
+        .set('Cookie', authCookie({ id: user.id, permissions: { yemotSimulator: true } }))
+        .send(requiredYemotFields({})).expect(200);
+
+      expect(processCallSpy).toHaveBeenCalled();
+      processCallSpy.mockRestore();
+    });
+
+    it('rejects a user simulating another system number', async () => {
+      const user = await saveUser();
+
+      await request(app).post('/yemot/simulate')
+        .set('Cookie', authCookie({ id: user.id, permissions: { yemotSimulator: true } }))
+        .send(requiredYemotFields({ ApiDID: '039999999' })).expect(403);
+    });
+
+    it('rejects a user without the simulator permission', async () => {
+      const user = await saveUser();
+
+      await request(app).post('/yemot/simulate')
+        .set('Cookie', authCookie({ id: user.id, permissions: {} }))
+        .send(requiredYemotFields({})).expect(403);
+    });
+
+    it('rejects a request without a valid session cookie', async () => {
+      await saveUser();
+
+      await request(app).post('/yemot/simulate').send(requiredYemotFields({})).expect(401);
+      await request(app).post('/yemot/simulate')
+        .set('Cookie', 'Authentication=not-a-jwt')
+        .send(requiredYemotFields({})).expect(401);
+    });
+
+    it('leaves the migration flag alone', async () => {
+      const migrated = await saveUser({ yemotUrlMigrated: true });
+
+      await request(app).post('/yemot/simulate')
+        .set('Cookie', authCookie({ id: 1, permissions: { admin: true } }))
+        .send(requiredYemotFields({})).expect(200);
+
+      const updated = await ds.getRepository(User).findOneBy({ id: migrated.id });
+      expect(updated.additionalData.yemotUrlMigrated).toBe(true);
+    });
   });
 });

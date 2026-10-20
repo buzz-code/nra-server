@@ -2,12 +2,17 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { InjectDataSource } from '@nestjs/typeorm';
 import * as express from 'express';
+import { JwtService } from '@nestjs/jwt';
 import { Call, TapOptions, YemotRouter } from 'yemot-router2';
 import { User } from '@shared/entities/User.entity';
 import { TextByUser, getTextByUserCacheId } from '@shared/view-entities/TextByUser.entity';
 import { cacheTTL } from '@shared/config/database.config';
 import { YemotCallTrackingService } from './yemot-call-tracking.service';
 import { YEMOT_LEGACY_ROUTE_EXPIRED_MESSAGE, isPastYemotLegacyRouteDeadline } from '../yemot-legacy-route.util';
+import { jwtConstants } from '@shared/auth/constants';
+import { jwtFromRequest } from '@shared/auth/jwt.strategy';
+import { getUserIdFromUser } from '@shared/auth/auth.util';
+import { hasPermission, isAdmin, permissionKeys } from '@shared/utils/permissionsUtil';
 
 const logger = new Logger('YemotRouterService');
 
@@ -22,6 +27,13 @@ export type ContentData = { value?: string | null; filepath?: string | null };
 // current request, so this is available with no extra bookkeeping.
 function getWebhookSecret(call: Call): string | undefined {
   return (call.req?.params as Record<string, string>)?.secret;
+}
+
+// Set by getSimulatorAuthMiddleware on every request of the /yemot/simulate mount.
+const SIMULATION_FLAG = 'isYemotSimulation';
+
+function isSimulation(call: Call): boolean {
+  return Boolean((call.req as any)?.[SIMULATION_FLAG]);
 }
 
 @Injectable()
@@ -40,7 +52,7 @@ export class YemotRouterService {
     router.use('/', yemotRouter);
 
     yemotRouter.all('/', async (call: Call) => {
-      if (!getWebhookSecret(call) && isPastYemotLegacyRouteDeadline()) {
+      if (!getWebhookSecret(call) && !isSimulation(call) && isPastYemotLegacyRouteDeadline()) {
         call.id_list_message([{ type: 'text', data: YEMOT_LEGACY_ROUTE_EXPIRED_MESSAGE }]);
         call.hangup();
         return;
@@ -55,6 +67,42 @@ export class YemotRouterService {
     });
 
     return router;
+  }
+
+  // Guards the in-app simulator mount with the site's JWT cookie. Admins may
+  // simulate any system number; other users only their own (ApiDID must match
+  // their phoneNumber). Runs on every request of the call, not just the first.
+  getSimulatorAuthMiddleware(): express.RequestHandler {
+    const jwtService = new JwtService({ secret: jwtConstants.secret });
+    return async (req, res, next) => {
+      let auth: any;
+      try {
+        auth = jwtService.verify(jwtFromRequest(req));
+      } catch {
+        return res.status(401).send('Unauthorized');
+      }
+
+      if (!isAdmin(auth)) {
+        if (!hasPermission(auth, permissionKeys.yemotSimulator)) {
+          return res.status(403).send('Forbidden');
+        }
+        const userId = getUserIdFromUser(auth);
+        if (!userId) {
+          return res.status(403).send('Forbidden');
+        }
+        try {
+          const user = await this.dataSource.getRepository(User).findOneBy({ id: userId });
+          if (!user?.phoneNumber || user.phoneNumber !== req.body?.ApiDID) {
+            return res.status(403).send('Forbidden');
+          }
+        } catch (err) {
+          return next(err);
+        }
+      }
+
+      (req as any)[SIMULATION_FLAG] = true;
+      next();
+    };
   }
 
   private getExpressRouter(): express.Router {
@@ -141,7 +189,9 @@ export class BaseYemotHandlerService {
 
   // Re-derives yemotUrlMigrated from the actual request each call, so a
   // stale/false client confirmation self-corrects on the next real call.
+  // Simulator calls never go through ext.ini, so they say nothing about migration.
   private async syncYemotUrlMigrationStatus() {
+    if (isSimulation(this.call)) return;
     const secret = getWebhookSecret(this.call);
     const isSecuredCall = Boolean(secret) && secret === this.user.additionalData?.yemotWebhookToken;
     const wasMarkedMigrated = Boolean(this.user.additionalData?.yemotUrlMigrated);
