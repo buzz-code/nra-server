@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, Like, Repository } from 'typeorm';
+import { In, LessThanOrEqual, Like, Repository } from 'typeorm';
 import { Job, JobStatus } from '@shared/entities/Job.entity';
 import { JobResult } from './job.types';
 
@@ -11,7 +11,7 @@ export interface EnqueueOptions {
   dedupeKey?: string;
 }
 
-const TERMINAL: JobStatus[] = ['completed', 'failed', 'cancelled'];
+const ACTIVE: JobStatus[] = ['pending', 'running'];
 
 @Injectable()
 export class JobService {
@@ -26,8 +26,8 @@ export class JobService {
 
   async enqueue(userId: number, type: string, payload?: Record<string, any>, opts: EnqueueOptions = {}): Promise<Job | null> {
     if (opts.dedupeKey) {
-      const existing = await this.repo.findOne({ where: { dedupeKey: opts.dedupeKey } });
-      if (existing && !TERMINAL.includes(existing.status)) {
+      const existing = await this.repo.findOne({ where: { dedupeKey: opts.dedupeKey, status: In(ACTIVE) } });
+      if (existing) {
         return null;
       }
     }
@@ -46,10 +46,13 @@ export class JobService {
     return saved;
   }
 
-  /** Cancel pending jobs whose dedupeKey starts with `prefix`. */
+  /**
+   * Cancel not-yet-attempted pending jobs whose dedupeKey starts with
+   * `prefix`. Retries (attempts > 0) are left alone so they still finish.
+   */
   async cancelPending(dedupeKeyPrefix: string): Promise<void> {
     await this.repo.update(
-      { status: 'pending', dedupeKey: Like(`${dedupeKeyPrefix}%`) },
+      { status: 'pending', attempts: 0, dedupeKey: Like(`${dedupeKeyPrefix}%`) },
       { status: 'cancelled', completedAt: new Date() },
     );
   }

@@ -83,6 +83,22 @@ describe('ScheduleSyncService', () => {
     expect(jobService.enqueue).not.toHaveBeenCalled();
   });
 
+  it('isValid rejects bad cron expressions and time zones', () => {
+    const service = new ScheduleSyncService(makeRepo([]), makeJobService());
+    expect(service.isValid({ cronExpression: '0 18 * * 5', timeZone: 'Asia/Jerusalem' })).toBe(true);
+    expect(service.isValid({ cronExpression: '0 18 * *', timeZone: 'Asia/Jerusalem' })).toBe(false);
+    expect(service.isValid({ cronExpression: '', timeZone: 'Asia/Jerusalem' })).toBe(false);
+    expect(service.isValid({ cronExpression: '0 25 * * *', timeZone: 'Asia/Jerusalem' })).toBe(false);
+    expect(service.isValid({ cronExpression: undefined, timeZone: 'Asia/Jerusalem' })).toBe(false);
+    expect(service.isValid({ cronExpression: '0 18 * * 5', timeZone: 'Not/AZone' })).toBe(false);
+  });
+
+  it('reconcile counts only not-yet-attempted pending jobs (retries of past runs do not count)', async () => {
+    const jobService = makeJobService(0);
+    await new ScheduleSyncService(makeRepo([schedule]), jobService).reconcile();
+    expect(jobService.repo.count.mock.calls[0][0].where).toEqual(expect.objectContaining({ status: 'pending', attempts: 0 }));
+  });
+
   it('reconcile enqueues only for schedules without a pending job', async () => {
     const repo = makeRepo([schedule]);
     const withPending = makeJobService(1);

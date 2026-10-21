@@ -166,9 +166,52 @@ describe('JobWorkerService', () => {
       jobService.claimNext.mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve([]); }));
       worker = new JobWorkerService([], jobService, makeScheduleSync());
       const running = worker.poll();
+      await jest.advanceTimersByTimeAsync(0);
       worker.wake();
       release();
       await running;
+      expect(jobService.claimNext).toHaveBeenCalledTimes(2);
+    });
+
+    it('re-runs reconcile only once per safety-net interval', async () => {
+      const jobService = makeJobService();
+      const scheduleSync = makeScheduleSync();
+      worker = new JobWorkerService([], jobService, scheduleSync);
+      await worker.poll();
+      worker.wake();
+      await jest.advanceTimersByTimeAsync(0);
+      expect(scheduleSync.reconcile).toHaveBeenCalledTimes(1);
+      await jest.advanceTimersByTimeAsync(5 * 60_000);
+      expect(scheduleSync.reconcile).toHaveBeenCalledTimes(2);
+    });
+
+    it('still processes jobs when reconcile fails', async () => {
+      const jobService = makeJobService();
+      const scheduleSync = makeScheduleSync();
+      scheduleSync.reconcile.mockRejectedValue(new Error('db down'));
+      worker = new JobWorkerService([], jobService, scheduleSync);
+      await worker.poll();
+      expect(jobService.claimNext).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries after 30s instead of the full idle cap when polling fails', async () => {
+      const jobService = makeJobService();
+      jobService.claimNext.mockRejectedValueOnce(new Error('db down'));
+      worker = new JobWorkerService([], jobService, makeScheduleSync());
+      await worker.poll();
+      await jest.advanceTimersByTimeAsync(30_000);
+      expect(jobService.claimNext).toHaveBeenCalledTimes(2);
+    });
+
+    it('polls again at once when woken while reading the next due time', async () => {
+      const jobService = makeJobService();
+      worker = new JobWorkerService([], jobService, makeScheduleSync());
+      jobService.nextAvailableAt.mockImplementationOnce(async () => {
+        worker.wake();
+        return null;
+      });
+      await worker.poll();
+      await jest.advanceTimersByTimeAsync(0);
       expect(jobService.claimNext).toHaveBeenCalledTimes(2);
     });
 

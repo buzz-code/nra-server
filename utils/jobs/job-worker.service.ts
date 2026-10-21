@@ -7,12 +7,16 @@ import { ScheduleSyncService } from './schedule-sync.service';
 import { JOB_HANDLER, JobHandler, JobResult } from './job.types';
 
 const MAX_IDLE_MS = Number(process.env.JOB_POLL_MS) || 5 * 60_000;
+const ERROR_RETRY_MS = 30_000;
 const BATCH = Number(process.env.JOB_WORKER_BATCH) || 5;
 
 /**
  * Runs due jobs from the jobs table. Instead of polling on a fixed interval it
  * sleeps until the next pending job's availableAt (capped at JOB_POLL_MS as a
- * safety net), and is woken immediately when a job is enqueued in-process.
+ * safety net, which also re-runs schedule reconcile), and is woken immediately
+ * when a job is enqueued in-process. Enqueues from another process (separate
+ * API and worker) are only seen on the next wake, so run a single worker in
+ * the API process, or lower JOB_POLL_MS when they are split.
  * Disabled by default; set WORKER_ENABLED=true on the instance(s) that should
  * process jobs (typically a dedicated worker process, or the single API
  * container for small deployments).
@@ -26,6 +30,7 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
   private rerun = false;
   private stopped = false;
   private timer: NodeJS.Timeout | null = null;
+  private lastReconcileAt = 0;
 
   constructor(
     @Inject(JOB_HANDLER) handlers: JobHandler[],
@@ -47,11 +52,6 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
       return;
     }
     this.jobService.onEnqueue(() => this.wake());
-    try {
-      await this.scheduleSync.reconcile();
-    } catch (err) {
-      this.logger.error(`schedule reconcile failed: ${err?.message}`);
-    }
     this.wake();
   }
 
@@ -85,6 +85,10 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
     this.busy = true;
     let delay = MAX_IDLE_MS;
     try {
+      if (Date.now() - this.lastReconcileAt >= MAX_IDLE_MS) {
+        this.lastReconcileAt = Date.now();
+        await this.scheduleSync.reconcile().catch((err) => this.logger.error(`schedule reconcile failed: ${err?.message}`));
+      }
       let claimed: number;
       do {
         this.rerun = false;
@@ -96,8 +100,13 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
       }
     } catch (err) {
       this.logger.error(`worker poll failed: ${err?.message}`);
+      delay = ERROR_RETRY_MS;
     } finally {
       this.busy = false;
+      if (this.rerun) {
+        // Woken while querying nextAvailableAt: the new job may be earlier.
+        delay = 0;
+      }
       if (!this.stopped) {
         this.timer = setTimeout(() => this.poll(), delay);
       }

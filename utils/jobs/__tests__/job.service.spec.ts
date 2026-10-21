@@ -35,12 +35,15 @@ describe('JobService', () => {
       expect(repo.save).not.toHaveBeenCalled();
     });
 
-    it('enqueues when the dedupeKey job is terminal', async () => {
-      const repo = makeRepo({ findOne: jest.fn().mockResolvedValue({ id: 1, status: 'completed' }) });
+    it('enqueues when no pending/running job has the dedupeKey (terminal rows are ignored)', async () => {
+      const repo = makeRepo({ findOne: jest.fn().mockResolvedValue(null) });
       const service = new JobService(repo);
       const job = await service.enqueue(7, 'x', {}, { dedupeKey: 'k' });
       expect(job).not.toBeNull();
       expect(repo.save).toHaveBeenCalled();
+      const { where } = repo.findOne.mock.calls[0][0];
+      expect(where.dedupeKey).toBe('k');
+      expect(where.status.value).toEqual(['pending', 'running']);
     });
 
     it('notifies the enqueue listener after saving', async () => {
@@ -60,6 +63,7 @@ describe('JobService', () => {
       await service.cancelPending('sched-3-');
       const [where, changes] = repo.update.mock.calls[0];
       expect(where.status).toBe('pending');
+      expect(where.attempts).toBe(0);
       expect(where.dedupeKey.value).toBe('sched-3-%');
       expect(changes.status).toBe('cancelled');
     });
