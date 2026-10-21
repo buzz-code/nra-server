@@ -6,6 +6,7 @@ export const permissionKeys = {
     editPaymentTracksData: 'editPaymentTracksData',
     genericImageUpload: 'genericImageUpload',
     uploadedFiles: 'uploadedFiles',
+    yemotSimulator: 'yemotSimulator',
 };
 
 /**

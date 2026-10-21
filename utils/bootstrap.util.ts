@@ -79,6 +79,9 @@ export function setupYemotRouter(app: INestApplication) {
   // New, per-user-token-secured path. Users still need to update their
   // ext.ini to point here - see YemotMigrationBanner / Tutorial.jsx in the
   // client. The legacy path below is kept open during that migration.
+  // In-app simulator: authenticated by the site's JWT cookie instead of a
+  // token in the URL, so it keeps working after the legacy-path cutoff.
+  app.use('/yemot/simulate', yemotRouterSvc.getSimulatorAuthMiddleware(), router);
   app.use('/yemot/handle-call/:secret', router);
   app.use('/yemot/handle-call', router);
 }

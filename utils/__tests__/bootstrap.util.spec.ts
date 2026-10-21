@@ -78,7 +78,7 @@ describe('setupApplication CORS', () => {
 
 describe('bootstrapNraApplication', () => {
   it('should create app, setup, and listen on port 3000', async () => {
-    const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()) };
+    const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()), getSimulatorAuthMiddleware: jest.fn().mockReturnValue(jest.fn()) };
     const mockHttpServer: any = {};
     const mockApp = {
       useLogger: jest.fn(),
@@ -101,7 +101,7 @@ describe('bootstrapNraApplication', () => {
   });
 
   it('should set keepAliveTimeout and headersTimeout above Caddy\'s upstream keepalive', async () => {
-    const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()) };
+    const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()), getSimulatorAuthMiddleware: jest.fn().mockReturnValue(jest.fn()) };
     const mockHttpServer: any = {};
     const mockApp = {
       useLogger: jest.fn(),
@@ -124,7 +124,7 @@ describe('bootstrapNraApplication', () => {
   });
 
   it('should listen on the explicit options port when provided', async () => {
-    const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()) };
+    const mockYemotRouter = { getRouter: jest.fn().mockReturnValue(jest.fn()), getSimulatorAuthMiddleware: jest.fn().mockReturnValue(jest.fn()) };
     const mockApp = {
       useLogger: jest.fn(),
       useGlobalGuards: jest.fn(),
