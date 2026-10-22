@@ -1,11 +1,10 @@
 import { DynamicModule, Global, Module, Provider, Type } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Job } from '@shared/entities/Job.entity';
 import { Schedule } from '@shared/entities/Schedule.entity';
 import { JobService } from './job.service';
 import { JobWorkerService } from './job-worker.service';
-import { ScheduleHeartbeatService } from './schedule-heartbeat.service';
+import { ScheduleSyncService } from './schedule-sync.service';
 import { JOB_HANDLER, JobHandler } from './job.types';
 import { CleanupOldJobsHandler } from './handlers/cleanup-old-jobs.handler';
 import { UserDataExportHandler } from './handlers/user-data-export.handler';
@@ -19,8 +18,8 @@ export interface JobsModuleOptions {
 }
 
 /**
- * Async worker infrastructure: durable jobs table + poll worker + data-driven
- * schedule heartbeat. Import once via `JobsModule.forRoot()` in the app module.
+ * Async worker infrastructure: durable jobs table + worker + data-driven
+ * self-rescheduling schedules. Import once via `JobsModule.forRoot()` in the app module.
  * MailSendService and S3FileStoreService come from their global modules.
  */
 @Global()
@@ -36,15 +35,15 @@ export class JobsModule {
 
     return {
       module: JobsModule,
-      imports: [ScheduleModule.forRoot(), TypeOrmModule.forFeature([Job, Schedule])],
+      imports: [TypeOrmModule.forFeature([Job, Schedule])],
       providers: [
         JobService,
         JobWorkerService,
-        ScheduleHeartbeatService,
+        ScheduleSyncService,
         ...handlerClasses,
         handlerAggregator,
       ],
-      exports: [JobService],
+      exports: [JobService, ScheduleSyncService],
     };
   }
 }

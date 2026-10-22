@@ -35,12 +35,53 @@ describe('JobService', () => {
       expect(repo.save).not.toHaveBeenCalled();
     });
 
-    it('enqueues when the dedupeKey job is terminal', async () => {
-      const repo = makeRepo({ findOne: jest.fn().mockResolvedValue({ id: 1, status: 'completed' }) });
+    it('enqueues when no pending/running job has the dedupeKey (terminal rows are ignored)', async () => {
+      const repo = makeRepo({ findOne: jest.fn().mockResolvedValue(null) });
       const service = new JobService(repo);
       const job = await service.enqueue(7, 'x', {}, { dedupeKey: 'k' });
       expect(job).not.toBeNull();
       expect(repo.save).toHaveBeenCalled();
+      const { where } = repo.findOne.mock.calls[0][0];
+      expect(where.dedupeKey).toBe('k');
+      expect(where.status.value).toEqual(['pending', 'running']);
+    });
+
+    it('notifies the enqueue listener after saving', async () => {
+      const repo = makeRepo();
+      const service = new JobService(repo);
+      const listener = jest.fn();
+      service.onEnqueue(listener);
+      await service.enqueue(7, 'x');
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('cancelPending', () => {
+    it('cancels pending jobs matching the dedupeKey prefix', async () => {
+      const repo = makeRepo();
+      const service = new JobService(repo);
+      await service.cancelPending('sched-3-');
+      const [where, changes] = repo.update.mock.calls[0];
+      expect(where.status).toBe('pending');
+      expect(where.attempts).toBe(0);
+      expect(where.dedupeKey.value).toBe('sched-3-%');
+      expect(changes.status).toBe('cancelled');
+    });
+  });
+
+  describe('nextAvailableAt', () => {
+    it('returns the earliest pending availableAt', async () => {
+      const at = new Date('2026-10-20T10:00:00Z');
+      const repo = makeRepo({ findOne: jest.fn().mockResolvedValue({ id: 1, availableAt: at }) });
+      const service = new JobService(repo);
+      expect(await service.nextAvailableAt()).toBe(at);
+      expect(repo.findOne).toHaveBeenCalledWith(expect.objectContaining({ where: { status: 'pending' }, order: { availableAt: 'ASC' } }));
+    });
+
+    it('returns null when nothing is pending', async () => {
+      const repo = makeRepo({ findOne: jest.fn().mockResolvedValue(null) });
+      const service = new JobService(repo);
+      expect(await service.nextAvailableAt()).toBeNull();
     });
   });
 

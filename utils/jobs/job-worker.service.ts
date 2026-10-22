@@ -1,29 +1,41 @@
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { Interval } from '@nestjs/schedule';
+import { Inject, Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy, Optional } from '@nestjs/common';
 import { hostname } from 'os';
 import { Job } from '@shared/entities/Job.entity';
 import { MailSendService } from '@shared/utils/mail/mail-send.service';
 import { JobService } from './job.service';
+import { ScheduleSyncService } from './schedule-sync.service';
 import { JOB_HANDLER, JobHandler, JobResult } from './job.types';
 
-const POLL_MS = Number(process.env.JOB_POLL_MS) || 5000;
+const MAX_IDLE_MS = Number(process.env.JOB_POLL_MS) || 5 * 60_000;
+const ERROR_RETRY_MS = 30_000;
 const BATCH = Number(process.env.JOB_WORKER_BATCH) || 5;
 
 /**
- * Polls the jobs table and runs due jobs. Disabled by default; set
- * WORKER_ENABLED=true on the instance(s) that should process jobs (typically a
- * dedicated worker process, or the single API container for small deployments).
+ * Runs due jobs from the jobs table. Instead of polling on a fixed interval it
+ * sleeps until the next pending job's availableAt (capped at JOB_POLL_MS as a
+ * safety net, which also re-runs schedule reconcile), and is woken immediately
+ * when a job is enqueued in-process. Enqueues from another process (separate
+ * API and worker) are only seen on the next wake, so run a single worker in
+ * the API process, or lower JOB_POLL_MS when they are split.
+ * Disabled by default; set WORKER_ENABLED=true on the instance(s) that should
+ * process jobs (typically a dedicated worker process, or the single API
+ * container for small deployments).
  */
 @Injectable()
-export class JobWorkerService {
+export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(JobWorkerService.name);
   private readonly handlers = new Map<string, JobHandler>();
   private readonly workerId = `${hostname()}:${process.pid}`;
   private busy = false;
+  private rerun = false;
+  private stopped = false;
+  private timer: NodeJS.Timeout | null = null;
+  private lastReconcileAt = 0;
 
   constructor(
     @Inject(JOB_HANDLER) handlers: JobHandler[],
     private readonly jobService: JobService,
+    private readonly scheduleSync: ScheduleSyncService,
     @Optional() private readonly mailSendService?: MailSendService,
   ) {
     for (const handler of handlers ?? []) {
@@ -35,26 +47,78 @@ export class JobWorkerService {
     return process.env.WORKER_ENABLED === 'true';
   }
 
-  @Interval('job-worker', POLL_MS)
+  async onApplicationBootstrap(): Promise<void> {
+    if (!JobWorkerService.isEnabled()) {
+      return;
+    }
+    this.jobService.onEnqueue(() => this.wake());
+    this.wake();
+  }
+
+  onModuleDestroy(): void {
+    this.stopped = true;
+    if (this.timer) {
+      clearTimeout(this.timer);
+    }
+  }
+
+  /** Run due jobs now (or right after the current batch) and re-arm the timer. */
+  wake(): void {
+    if (this.stopped) {
+      return;
+    }
+    if (this.busy) {
+      this.rerun = true;
+      return;
+    }
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    void this.poll();
+  }
+
   async poll(): Promise<void> {
     if (!JobWorkerService.isEnabled() || this.busy) {
       return;
     }
     this.busy = true;
+    let delay = MAX_IDLE_MS;
     try {
-      await this.processBatch();
+      if (Date.now() - this.lastReconcileAt >= MAX_IDLE_MS) {
+        this.lastReconcileAt = Date.now();
+        await this.scheduleSync.reconcile().catch((err) => this.logger.error(`schedule reconcile failed: ${err?.message}`));
+      }
+      let claimed: number;
+      do {
+        this.rerun = false;
+        claimed = await this.processBatch();
+      } while (claimed === BATCH || this.rerun);
+      const next = await this.jobService.nextAvailableAt();
+      if (next) {
+        delay = Math.min(Math.max(next.getTime() - Date.now(), 0), MAX_IDLE_MS);
+      }
     } catch (err) {
       this.logger.error(`worker poll failed: ${err?.message}`);
+      delay = ERROR_RETRY_MS;
     } finally {
       this.busy = false;
+      if (this.rerun) {
+        // Woken while querying nextAvailableAt: the new job may be earlier.
+        delay = 0;
+      }
+      if (!this.stopped) {
+        this.timer = setTimeout(() => this.poll(), delay);
+      }
     }
   }
 
-  async processBatch(): Promise<void> {
+  async processBatch(): Promise<number> {
     const jobs = await this.jobService.claimNext(this.workerId, BATCH);
     for (const job of jobs) {
       await this.runJob(job);
     }
+    return jobs.length;
   }
 
   async runJob(job: Job): Promise<void> {
@@ -62,6 +126,16 @@ export class JobWorkerService {
     if (!handler) {
       await this.jobService.markFailed(job, `no handler registered for type "${job.type}"`);
       return;
+    }
+    // Chain the next run before the handler, so a crash or final failure
+    // can't break the schedule. Only on the first attempt: retries reuse it.
+    const scheduleId = ScheduleSyncService.scheduleIdOf(job.dedupeKey);
+    if (scheduleId && job.attempts === 1) {
+      try {
+        await this.scheduleSync.onRun(scheduleId);
+      } catch (err) {
+        this.logger.error(`schedule ${scheduleId} chaining failed: ${err?.message}`);
+      }
     }
     try {
       const result = (await handler.handle(job)) || null;
