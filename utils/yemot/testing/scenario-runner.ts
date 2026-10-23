@@ -7,11 +7,11 @@ import { BaseYemotHandlerService } from '../v2/yemot-router.service';
 /**
  * Constructor type for Yemot handler services.
  */
-export type YemotHandlerConstructor = new (
+export type YemotHandlerConstructor = (new (
   dataSource: DataSource,
   call: any,
   callTracker: any,
-) => BaseYemotHandlerService;
+) => BaseYemotHandlerService) & { stateless?: boolean };
 
 /**
  * YemotScenarioRunner — executes a Scenario against a real TypeORM DataSource.
@@ -48,11 +48,18 @@ export class YemotScenarioRunner {
       // 1. Seed data
       await this.seedData(ds, scenario.seed);
 
-      // 2. Create MockCall and program inputs
-      const call = this.createMockCall(scenario);
-
-      // 3. Create mock call tracker
+      // 2. Create mock call tracker
       const tracker = this.createMockTracker();
+
+      // Stateless handlers re-run the call from the top on every Yemot request: replay
+      // each earlier request first, on the same DB and once() store, so a handler whose
+      // replay takes another path (or repeats a write) fails the scenario below.
+      if (this.HandlerClass.stateless) {
+        await this.runEarlierRequests(ds, scenario, tracker);
+      }
+
+      // 3. Create MockCall and program inputs
+      const call = this.createMockCall(scenario);
 
       // 4. Instantiate handler
       const handler = new this.HandlerClass(ds, call as any, tracker);
@@ -124,6 +131,25 @@ export class YemotScenarioRunner {
   }
 
   /**
+   * Runs the call once per earlier Yemot request: with the first k answers only, each
+   * run stops at its first unanswered read() (like CallSuspended in production).
+   */
+  private async runEarlierRequests(ds: DataSource, scenario: Scenario, tracker: any): Promise<void> {
+    const inputs: (string | false)[] = (this.createMockCall(scenario) as any).inputs;
+    for (let answered = 0; answered < inputs.length; answered++) {
+      const call = this.createMockCall(scenario).setInputs(inputs.slice(0, answered));
+      try {
+        await new this.HandlerClass(ds, call as any, tracker).processCall();
+        return; // finished before using every answer - the full run reports the mismatch
+      } catch (e: any) {
+        if (e instanceof MockInputExhaustedError) continue;
+        if (e instanceof MockExitError || call.wasHungup()) return;
+        throw e;
+      }
+    }
+  }
+
+  /**
    * Create MockCall and program it with user responses from scenario steps.
    */
   private createMockCall(scenario: Scenario): MockCall {
@@ -149,11 +175,21 @@ export class YemotScenarioRunner {
    * Create a mock YemotCallTrackingService.
    */
   private createMockTracker() {
+    const memo = new Map<string, string>();
     return {
       logConversationStep: jest.fn().mockResolvedValue(undefined),
       initializeCall: jest.fn().mockResolvedValue(undefined),
       finalizeCall: jest.fn().mockResolvedValue(undefined),
       markCallError: jest.fn().mockResolvedValue(undefined),
+      // Like the real tracker: the first run's result is stored (as JSON) and returned
+      // to every later request of the call.
+      once: jest.fn(async (callId: string, key: string, fn: () => unknown) => {
+        const memoKey = `${callId}:${key}`;
+        if (memo.has(memoKey)) return JSON.parse(memo.get(memoKey));
+        const value = await fn();
+        memo.set(memoKey, JSON.stringify(value ?? null));
+        return value;
+      }),
     };
   }
 

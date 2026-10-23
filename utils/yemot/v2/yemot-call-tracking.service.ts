@@ -41,13 +41,14 @@ export class YemotCallTrackingService {
   }
 
   /**
-   * Initialize call tracking when a new call starts
+   * Initialize call tracking when a new call starts (or load the existing row on a
+   * later request of the call). Returns the call row, if the call has one.
    */
-  async initializeCall(call: Call): Promise<void> {
+  async initializeCall(call: Call): Promise<YemotCall | null> {
     try {
       if (!call.callId || !call.did) {
         this.logger.warn('Cannot initialize call tracking: missing callId or did');
-        return;
+        return null;
       }
 
       // Check if call already exists
@@ -58,7 +59,7 @@ export class YemotCallTrackingService {
       if (existingCall) {
         this.activeCalls.set(call.callId, existingCall);
         this.logger.log(`Found existing call record: ${existingCall.id}`);
-        return;
+        return existingCall;
       }
 
       // Get user by phone
@@ -68,7 +69,7 @@ export class YemotCallTrackingService {
 
       if (!user) {
         this.logger.warn(`No user found for phone: ${call.did}`);
-        return;
+        return null;
       }
 
       // Create new call record
@@ -93,9 +94,48 @@ export class YemotCallTrackingService {
       await yemotCallRepo.save(yemotCallRecord);
       this.activeCalls.set(call.callId, yemotCallRecord);
       this.logger.log(`Created call record: ${yemotCallRecord.id} for call ${call.callId}`);
+      return yemotCallRecord;
     } catch (error) {
       this.logger.error(`Error initializing call tracking: ${error.message}`, error.stack);
+      return null;
     }
+  }
+
+  /**
+   * Drop the cached row at the end of a request, so the next request of the call
+   * (maybe on another node) reads it fresh from the database.
+   */
+  releaseCall(callId: string): void {
+    this.activeCalls.delete(callId);
+  }
+
+  /**
+   * Whether the call has a row that isn't finalized yet
+   */
+  async isCallOpen(callId: string): Promise<boolean> {
+    const yemotCallRecord = await this.findActiveCall(callId);
+    return Boolean(yemotCallRecord?.isOpen);
+  }
+
+  /**
+   * Runs fn once per call and key, storing its (JSON) result on the call row so later
+   * requests of the same call get the same value. Without a row, fn just runs.
+   */
+  async once<T>(callId: string, key: string, fn: () => T | Promise<T>): Promise<T> {
+    const yemotCallRecord = await this.findActiveCall(callId);
+    if (!yemotCallRecord) {
+      return fn();
+    }
+
+    const memo = (yemotCallRecord.data.memo ??= {});
+    if (key in memo) {
+      return memo[key];
+    }
+
+    const value = await fn();
+    memo[key] = value ?? null;
+    await this.dataSource.getRepository(YemotCall).save(yemotCallRecord);
+    return value;
   }
 
   /**
@@ -106,6 +146,10 @@ export class YemotCallTrackingService {
       const yemotCallRecord = await this.findActiveCall(callId);
       if (!yemotCallRecord) {
         this.logger.warn(`No call record found for finalization: ${callId}`);
+        return;
+      }
+      if (!yemotCallRecord.isOpen) {
+        this.activeCalls.delete(callId);
         return;
       }
 

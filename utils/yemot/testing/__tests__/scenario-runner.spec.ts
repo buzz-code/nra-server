@@ -1,6 +1,7 @@
 import { YemotScenarioBuilder } from '../scenario-builder';
 import { YemotScenarioRunner } from '../scenario-runner';
 import { BaseYemotHandlerService } from '../../v2/yemot-router.service';
+import { User } from '../../../../entities/User.entity';
 
 /**
  * Minimal fake handler for integration testing the runner.
@@ -86,5 +87,53 @@ describe('YemotScenarioRunner', () => {
     const result = await runner.run(scenario);
 
     expect(result.passed).toBe(false);
+  });
+});
+
+/**
+ * Stateless handlers that write mid-call: with and without once().
+ */
+class MidCallWriteHandler extends BaseYemotHandlerService {
+  static stateless = true;
+  static useOnce = true;
+
+  override async processCall(): Promise<void> {
+    await this.getUserByDidPhone();
+    const name = await this.askForInput('What is your name?');
+    const save = () => this.dataSource.getRepository(User).save({ name, phoneNumber: '0500000000' });
+    if (MidCallWriteHandler.useOnce) {
+      await this.once('saveUser', save);
+    } else {
+      await save();
+    }
+    await this.askForInput('What is your age?');
+    await this.hangupWithMessage('Thanks');
+  }
+}
+
+describe('YemotScenarioRunner with a stateless handler', () => {
+  const scenario = () =>
+    new YemotScenarioBuilder('Mid-call write')
+      .seed('User', [{ id: 1, phoneNumber: '099999999', name: 'Test User' }])
+      .systemAsks('What is your name?')
+      .userResponds('John')
+      .systemAsks('What is your age?')
+      .userResponds('25')
+      .systemHangsUp('Thanks')
+      .build();
+
+  it('writes once across the replayed requests when the write goes through once()', async () => {
+    MidCallWriteHandler.useOnce = true;
+    const result = await new YemotScenarioRunner(MidCallWriteHandler as any).run(scenario());
+
+    expect(result.passed).toBe(true);
+    expect(result.saved.User).toHaveLength(1);
+  });
+
+  it('exposes a mid-call write that is repeated by a replayed request', async () => {
+    MidCallWriteHandler.useOnce = false;
+    const result = await new YemotScenarioRunner(MidCallWriteHandler as any).run(scenario());
+
+    expect(result.saved.User).toHaveLength(2);
   });
 });
