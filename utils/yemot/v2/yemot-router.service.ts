@@ -3,11 +3,12 @@ import { DataSource } from 'typeorm';
 import { InjectDataSource } from '@nestjs/typeorm';
 import * as express from 'express';
 import { JwtService } from '@nestjs/jwt';
-import { Call, TapOptions, YemotRouter } from 'yemot-router2';
+import { Call, CallError, TapOptions, YemotRouter } from 'yemot-router2';
 import { User } from '@shared/entities/User.entity';
 import { TextByUser, getTextByUserCacheId } from '@shared/view-entities/TextByUser.entity';
 import { cacheTTL } from '@shared/config/database.config';
 import { YemotCallTrackingService } from './yemot-call-tracking.service';
+import { CallSuspended, enableReplay, getReplayState, isReplaying } from './yemot-replay';
 import { YEMOT_LEGACY_ROUTE_EXPIRED_MESSAGE, isPastYemotLegacyRouteDeadline } from '../yemot-legacy-route.util';
 import { jwtConstants } from '@shared/auth/constants';
 import { jwtFromRequest } from '@shared/auth/jwt.strategy';
@@ -17,7 +18,10 @@ import { hasPermission, isAdmin, permissionKeys } from '@shared/utils/permission
 const logger = new Logger('YemotRouterService');
 
 export const YEMOT_HANDLER_FACTORY = 'YemotHandlerFactory';
-export type YemotHandlerFactory = new (dataSource: DataSource, call: Call, callTracker: YemotCallTrackingService) => BaseYemotHandlerService;
+// A handler class with `static stateless = true` runs in stateless replay mode (see
+// yemot-replay.ts) and is safe behind several server nodes; others keep each call
+// suspended in this process's memory between Yemot requests.
+export type YemotHandlerFactory = (new (dataSource: DataSource, call: Call, callTracker: YemotCallTrackingService) => BaseYemotHandlerService) & { stateless?: boolean };
 type TextParams = Record<string, string | number>;
 type MessageObj = { type: 'text' | 'file'; data: string };
 export type ContentData = { value?: string | null; filepath?: string | null };
@@ -49,7 +53,7 @@ export class YemotRouterService {
   getRouter(): express.Router {
     const router = this.getExpressRouter();
     const yemotRouter = this.getYemotRouter();
-    router.use('/', yemotRouter);
+    router.use('/', yemotRouter.asExpressRouter);
 
     yemotRouter.all('/', async (call: Call) => {
       if (!getWebhookSecret(call) && !isSimulation(call) && isPastYemotLegacyRouteDeadline()) {
@@ -60,13 +64,52 @@ export class YemotRouterService {
 
       // Awaited so the call row exists before processCall() logs anything (was
       // fire-and-forget via 'new_call' below, which dropped the first ask/response).
-      await this.callTrackingService.initializeCall(call);
+      const yemotCallRecord = await this.callTrackingService.initializeCall(call);
+      if (this.yemotHandlerFactory.stateless) {
+        enableReplay(call, yemotRouter.events, yemotCallRecord?.createdAt);
+      }
 
-      const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call, this.callTrackingService);
-      await yemotHandlerService.processCall();
+      let callEnded = true;
+      try {
+        const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call, this.callTrackingService);
+        await yemotHandlerService.processCall();
+      } catch (e) {
+        callEnded = !(e instanceof CallSuspended);
+        throw e;
+      } finally {
+        if (callEnded) {
+          await this.callTrackingService.finalizeCall(call.callId);
+        }
+        this.callTrackingService.releaseCall(call.callId);
+      }
+    });
+
+    yemotRouter.events.on('call_hangup', async (call: Call) => {
+      this.logger.log(`Call ${call.callId} was hungup - Phone: ${call.phone}`);
+      if (this.yemotHandlerFactory.stateless) {
+        await this.replayHangup(call, yemotRouter.events);
+      }
+      await this.callTrackingService.finalizeCall(call.callId);
     });
 
     return router;
+  }
+
+  // Stateless calls aren't held in memory, so a hangup mid-call replays the call up to
+  // the open read(), which throws HangupError - letting the handler's catch/finally run.
+  // Skipped when the handler already finished (Yemot also sends hangup=yes after our hangup).
+  private async replayHangup(call: Call, events: YemotRouterEvents): Promise<void> {
+    try {
+      if (!(await this.callTrackingService.isCallOpen(call.callId))) return;
+      const yemotCallRecord = await this.callTrackingService.initializeCall(call);
+      enableReplay(call, events, yemotCallRecord?.createdAt);
+      const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call, this.callTrackingService);
+      await yemotHandlerService.processCall();
+    } catch (e) {
+      if (!(e instanceof CallError)) {
+        this.logger.error(`Error replaying hungup call ${call.callId}: ${e.stack}`);
+      }
+    }
   }
 
   // Guards the in-app simulator mount with the site's JWT cookie. Admins may
@@ -119,7 +162,7 @@ export class YemotRouterService {
     return router;
   }
 
-  private getYemotRouter(): express.Router {
+  private getYemotRouter() {
     const yemotRouter = YemotRouter({
       mergeParams: true,
       printLog: true,
@@ -145,10 +188,6 @@ export class YemotRouterService {
       },
     });
 
-    yemotRouter.events.on('call_hangup', async (call) => {
-      this.logger.log(`Call ${call.callId} was hungup - Phone: ${call.phone}`);
-      await this.callTrackingService.finalizeCall(call.callId);
-    });
     yemotRouter.events.on('call_continue', (call) => {
       this.logger.log(`Call ${call.callId} continues - Phone: ${call.phone}`);
     });
@@ -156,19 +195,38 @@ export class YemotRouterService {
       this.logger.log(`New call ${call.callId} from ${call.phone}`);
     });
 
-    return yemotRouter.asExpressRouter;
+    return yemotRouter;
   }
 }
+
+type YemotRouterEvents = ReturnType<typeof YemotRouter>['events'];
 
 export class BaseYemotHandlerService {
   protected readonly logger = logger;
   protected user: User;
+  private readonly constructedAt = new Date();
+  private onceCounts: Record<string, number> = {};
 
   constructor(
     @InjectDataSource() protected dataSource: DataSource,
     protected call: Call,
     protected callTracker: YemotCallTrackingService,
   ) { }
+
+  // When the call started - the same value on every request of the call. Use it instead
+  // of new Date() for anything that decides the call's flow. A fresh copy each time, so
+  // callers may mutate it (e.g. setHours).
+  protected get callStartedAt(): Date {
+    return new Date(getReplayState(this.call)?.startedAt ?? this.constructedAt);
+  }
+
+  // Runs fn once per call and returns the same (JSON) result on every later request of
+  // the call - for random values and mid-call DB writes. Keyed by name + call order, so
+  // a loop may reuse the same key. Send messages outside fn: on later requests fn doesn't run.
+  protected once<T>(key: string, fn: () => T | Promise<T>): Promise<T> {
+    this.onceCounts[key] = (this.onceCounts[key] ?? 0) + 1;
+    return this.callTracker.once(this.call.callId, `${key}#${this.onceCounts[key]}`, fn);
+  }
 
   async processCall(): Promise<void> {
     // Default implementation (can be overridden)
@@ -230,6 +288,12 @@ export class BaseYemotHandlerService {
   // ── Private dispatch helpers ─────────────────────────────────────────────
   // Single place that talks to this.call for send / read / hangup operations.
 
+  // Steps re-run by a replayed request were logged by the request that first ran them.
+  private async logStep(prompt: string, userResponse: string | undefined, stepType: string) {
+    if (isReplaying(this.call)) return;
+    await this.callTracker.logConversationStep(this.call.callId, prompt, userResponse, stepType);
+  }
+
   private buildMessageFromContent(content: ContentData): MessageObj {
     if (content?.filepath?.trim()) return { type: 'file', data: content.filepath };
     return { type: 'text', data: content?.value || '' };
@@ -255,7 +319,7 @@ export class BaseYemotHandlerService {
   private async dispatchSend(msgObj: MessageObj) {
     const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Sending: ${text}`);
-    await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'send_message');
+    await this.logStep(text, undefined, 'send_message');
     return this.call.id_list_message(messages, { prependToNextAction: true });
   }
 
@@ -264,11 +328,11 @@ export class BaseYemotHandlerService {
     const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Asking for input from: ${text}`);
     if (!skipLogging) {
-      await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'ask_input');
+      await this.logStep(text, undefined, 'ask_input');
     }
     const input = await this.call.read(messages, 'tap', options);
     if (!skipLogging) {
-      await this.callTracker.logConversationStep(this.call.callId, text, input, 'user_input');
+      await this.logStep(text, input, 'user_input');
     }
     return input;
   }
@@ -276,7 +340,10 @@ export class BaseYemotHandlerService {
   private async dispatchHangup(msgObj: MessageObj): Promise<void> {
     const { messages, text } = this.prepareMessages(msgObj);
     this.logger.log(`Hanging up with: ${text}`);
-    await this.callTracker.logConversationStep(this.call.callId, text, undefined, 'hangup_message');
+    await this.logStep(text, undefined, 'hangup_message');
+    // Closed before the response goes out, so Yemot's hangup=yes request that follows
+    // never replays a finished call (see replayHangup).
+    await this.callTracker.finalizeCall(this.call.callId);
     this.call.id_list_message(messages, { prependToNextAction: true });
     this.call.hangup();
   }
@@ -346,8 +413,7 @@ export class BaseYemotHandlerService {
     const selectedOption = options.find((et) => et.key.toString() === menuKey);
 
     const menuPrompt = await this.getTextByUserId(textKey, { options: menuOptions });
-    await this.callTracker.logConversationStep(
-      this.call.callId,
+    await this.logStep(
       `${menuPrompt} [Options: ${menuOptions}]`,
       `${menuKey} (${selectedOption?.name || 'unknown'})`,
       'menu_selection'
@@ -362,7 +428,7 @@ export class BaseYemotHandlerService {
     const yes = await this.getTextByUserId(yesTextKey || 'GENERAL.YES', values);
     const no = await this.getTextByUserId(noTextKey || 'GENERAL.NO', values);
     const confirmationPrompt = await this.getTextByUserId(textKey, { ...values, yes, no });
-    await this.callTracker.logConversationStep(this.call.callId, confirmationPrompt, undefined, 'ask_confirmation');
+    await this.logStep(confirmationPrompt, undefined, 'ask_confirmation');
 
     const confirmationKey = await this.askForInputByKey(textKey, { ...values, yes, no }, {
       min_digits: 1,
@@ -372,8 +438,7 @@ export class BaseYemotHandlerService {
 
     const confirmed = confirmationKey === yesValue;
     const responseText = this.stripDigitPrefix(confirmed ? yes : no, confirmed ? yesValue : noValue);
-    await this.callTracker.logConversationStep(
-      this.call.callId,
+    await this.logStep(
       confirmationPrompt,
       `${confirmationKey} (${responseText})`,
       'confirmation_result'

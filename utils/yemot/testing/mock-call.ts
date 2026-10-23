@@ -14,6 +14,9 @@
  *   call.getMessages();  // all id_list_message batches sent
  */
 
+import { ExitError } from 'yemot-router2';
+import { CallSuspended } from '../v2/yemot-replay';
+
 export interface MockCallOptions {
   ApiDID?: string;
   ApiPhone?: string;
@@ -31,11 +34,12 @@ export interface YemotMessage {
 
 /**
  * Error thrown when the call is terminated (hangup or final id_list_message).
- * Mirrors yemot-router2's ExitError behavior.
+ * A real yemot-router2 ExitError, so handlers' `instanceof ExitError` checks match.
  */
-export class MockExitError extends Error {
+export class MockExitError extends ExitError {
   constructor(message = 'the call was exited from the extension') {
-    super(message);
+    super(undefined, { caller: 'go_to_folder', target: 'hangup' });
+    this.message = message;
     this.name = 'MockExitError';
   }
 }
@@ -43,15 +47,16 @@ export class MockExitError extends Error {
 /**
  * Error thrown when MockCall runs out of programmed inputs.
  * This prevents infinite hangs in tests when a handler enters a retry loop
- * that the scenario didn't account for.
+ * that the scenario didn't account for. A CallSuspended, since that is what a
+ * read() with no answer yet throws in a stateless call.
  */
-export class MockInputExhaustedError extends Error {
+export class MockInputExhaustedError extends CallSuspended {
   constructor(readCount: number) {
-    super(
+    super(undefined);
+    this.message =
       `MockCall ran out of programmed inputs after ${readCount} read() calls. ` +
       `The handler asked for more input than the scenario provided. ` +
-      `Check that your scenario steps cover all retry loops and branches.`
-    );
+      `Check that your scenario steps cover all retry loops and branches.`;
     this.name = 'MockInputExhaustedError';
   }
 }
