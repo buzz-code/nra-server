@@ -167,6 +167,27 @@ export class YemotCallTrackingService {
   }
 
   /**
+   * Record when Yemot reported the call over (its hangup=yes request). Kept even on a
+   * call our own hangup already finalized: unlike endTime, it's when the caller's audio
+   * really stopped, so it shows whether the last messages were heard to the end.
+   */
+  async recordHangup(callId: string): Promise<void> {
+    try {
+      const yemotCallRecord = await this.findActiveCall(callId);
+      if (!yemotCallRecord) {
+        this.logger.warn(`No call record found for hangup: ${callId}`);
+        return;
+      }
+
+      yemotCallRecord.data.hangupTime = new Date().toISOString();
+      await this.dataSource.getRepository(YemotCall).save(yemotCallRecord);
+      this.activeCalls.delete(callId);
+    } catch (error) {
+      this.logger.error(`Error recording hangup: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
    * Log conversation step - what we prompted and what user responded
    */
   async logConversationStep(callId: string, prompt: string, userResponse?: string, stepType: string = 'interaction'): Promise<void> {

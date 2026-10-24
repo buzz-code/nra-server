@@ -90,6 +90,7 @@ export class YemotRouterService {
         await this.replayHangup(call, yemotRouter.events);
       }
       await this.callTrackingService.finalizeCall(call.callId);
+      await this.callTrackingService.recordHangup(call.callId);
     });
 
     return router;
