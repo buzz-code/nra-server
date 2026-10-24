@@ -152,7 +152,7 @@ describe('AuthService', () => {
                 },
             } as any as User;
 
-            const findOneMock = jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+            jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
             const createMock = jest.spyOn(userRepository, 'create').mockReturnValue(userToCreate);
             const saveMock = jest.spyOn(userRepository, 'save').mockImplementation(() => Promise.resolve(userToCreate));
 
@@ -214,7 +214,7 @@ describe('AuthService', () => {
                 permissions: null,
             }
 
-            const result = await service.getCookieWithJwtToken(user);
+            await service.getCookieWithJwtToken(user);
 
             expect(jwtService.sign).toHaveBeenCalledWith({ username: user.email, id: user.id, name: user.name, permissions: {} });
         });
@@ -229,7 +229,7 @@ describe('AuthService', () => {
                 },
             }
 
-            const result = await service.getCookieWithJwtToken(user);
+            await service.getCookieWithJwtToken(user);
 
             expect(jwtService.sign).toHaveBeenCalledWith({ username: user.email, id: user.id, name: user.name, permissions: user.permissions });
         });

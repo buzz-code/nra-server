@@ -54,7 +54,7 @@ export function getSingleUnique<T, V>(
 ): V | null {
     if (!arr || !arr.length) return null;
     let firstValue: V = null;
-    let firstIdentity: any = null;
+    let firstIdentity: unknown = null;
     let hasValue = false;
     for (const item of arr) {
         const val = getValue(item);
