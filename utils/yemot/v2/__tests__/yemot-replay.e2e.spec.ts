@@ -105,6 +105,11 @@ describe('Yemot stateless replay (e2e, two nodes)', () => {
     await waitForHangupHandling(async () => isCallOpen.mock.results.length > 0 && (await isCallOpen.mock.results[0].value) === false);
     isCallOpen.mockRestore();
     expect(ReplayHandler.endings).toEqual(['ExitError']);
+
+    // ...but its hangup time is kept: when the caller's audio really stopped
+    const hungUp = () => ds.getRepository(YemotCall).findOneBy({ apiCallId: 'call-1' });
+    await waitForHangupHandling(async () => Boolean((await hungUp()).data.hangupTime));
+    expect((await hungUp()).data.hangupTime).toEqual(expect.any(String));
   });
 
   it('runs the handler once more with HangupError when the caller hangs up mid-call', async () => {
