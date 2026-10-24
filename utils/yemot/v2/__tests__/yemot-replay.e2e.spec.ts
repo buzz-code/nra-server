@@ -1,4 +1,5 @@
 import * as express from 'express';
+import { Logger } from '@nestjs/common';
 import * as request from 'supertest';
 import { DataSource } from 'typeorm';
 import { User } from '@shared/entities/User.entity';
@@ -112,15 +113,38 @@ describe('Yemot stateless replay (e2e, two nodes)', () => {
     expect((await hungUp()).data.hangupTime).toEqual(expect.any(String));
   });
 
+  it('logs each step once, not again on every replayed request', async () => {
+    const log = jest.spyOn(Logger.prototype, 'log');
+    await post(nodeA);
+    values.val_1 = '5';
+    await post(nodeB);
+    values.val_2 = '7';
+    await post(nodeA);
+    const messages = log.mock.calls.map(([message]) => String(message));
+    log.mockRestore();
+
+    const count = (text: string) => messages.filter((message) => message === text).length;
+    expect(count('Sending: roll 1')).toBe(1);
+    expect(count('Asking for input from: first')).toBe(1);
+    expect(count('Asking for input from: second')).toBe(1);
+    expect(messages.filter((message) => message.startsWith('New call call-1'))).toHaveLength(1);
+    expect(messages).toContain('Call call-1 continues (2 answers) - Phone: 0501234567');
+  });
+
   it('runs the handler once more with HangupError when the caller hangs up mid-call', async () => {
     await post(nodeA);
     values.val_1 = '5';
     await post(nodeB);
+    const log = jest.spyOn(Logger.prototype, 'log');
 
     await post(nodeA, { hangup: 'yes' });
     await waitForHangupHandling(async () => !(await ds.getRepository(YemotCall).findOneBy({ apiCallId: 'call-1' })).isOpen);
 
     expect(ReplayHandler.endings).toEqual(['HangupError']);
+    const messages = log.mock.calls.map(([message]) => String(message));
+    log.mockRestore();
+    expect(messages).toContain('Call call-1 hung up mid-call (1 answers) - replaying it up to the open prompt');
+    expect(messages).toContain('Call call-1 hangup replay done (HangupError)');
     expect(ReplayHandler.writes).toBe(1);
     const yemotCall = await ds.getRepository(YemotCall).findOneBy({ apiCallId: 'call-1' });
     expect(yemotCall.isOpen).toBe(false);
