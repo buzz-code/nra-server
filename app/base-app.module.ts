@@ -13,6 +13,8 @@ import { MailSendModule } from '@shared/utils/mail/mail-send.module';
 import { S3Module } from '@shared/utils/s3/s3.module';
 import { JobsModule } from '@shared/utils/jobs/jobs.module';
 import { JobHandler } from '@shared/utils/jobs/job.types';
+import { McpModule } from '@shared/mcp/mcp.module';
+import { McpTool } from '@shared/mcp/mcp.types';
 import { getPinoConfig } from '@shared/config/pino.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -26,6 +28,8 @@ export interface BaseNraAppModuleOptions {
   throttlerLimit?: number;
   /** Project-specific async job handlers, registered alongside the shared ones. */
   jobHandlers?: Type<JobHandler>[];
+  /** Read-only MCP tools; when given, the app serves them at `/mcp`. */
+  mcpTools?: Type<McpTool>[];
 }
 
 @Module({})
@@ -47,6 +51,7 @@ export class BaseNraAppModule {
         options.entitiesModule,
         AuthModule.forRoot({ userInitModule }),
         YemotModule.register(options.yemotHandlerService),
+        ...(options.mcpTools?.length ? [McpModule.forRoot({ tools: options.mcpTools })] : []),
       ],
       controllers: [AppController],
       providers: [
