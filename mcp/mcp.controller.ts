@@ -3,7 +3,8 @@ import { Request as ExpressRequest, Response } from 'express';
 import { JwtAuthGuard } from '@shared/auth/jwt-auth.guard';
 import { AuthenticatedRequest } from '@shared/auth/auth.types';
 import { McpTokenService } from './mcp-token.service';
-import { handleMcpMessage } from './mcp-protocol';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { buildMcpServer } from './mcp-server.factory';
 import { MCP_TOOL, McpTool } from './mcp.types';
 
 const methodNotAllowed = (res: Response) => res.status(405).setHeader('Allow', 'POST').json({ error: 'method not allowed' });
@@ -24,7 +25,7 @@ export class McpController {
     return { token: await this.tokenService.issueToken(req.user) };
   }
 
-  /** Streamable HTTP, stateless, JSON responses only (no SSE stream, no sessions). */
+  /** Streamable HTTP, stateless: a fresh server + transport per request, JSON responses, no sessions. */
   @Post()
   async handle(@Request() req: ExpressRequest, @Res() res: Response, @Body() body: any) {
     const userId = await this.tokenService.resolveUserId(bearerToken(req));
@@ -32,13 +33,14 @@ export class McpController {
       res.status(401).setHeader('WWW-Authenticate', 'Bearer').json({ error: 'unauthorized' });
       return;
     }
-    const messages = Array.isArray(body) ? body : [body];
-    const responses = (await Promise.all(messages.map((m) => handleMcpMessage(m, this.tools, { userId })))).filter(Boolean);
-    if (!responses.length) {
-      res.status(202).end();
-      return;
-    }
-    res.status(200).json(Array.isArray(body) ? responses : responses[0]);
+    const server = buildMcpServer(this.tools, { userId });
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    res.on('close', () => {
+      transport.close();
+      server.close();
+    });
+    await server.connect(transport);
+    await transport.handleRequest(req, res, body);
   }
 
   @Get()
