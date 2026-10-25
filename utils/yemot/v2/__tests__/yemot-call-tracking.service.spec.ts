@@ -324,6 +324,38 @@ describe('YemotCallTrackingService', () => {
     });
   });
 
+  describe('recordHangup', () => {
+    it('should add hangupTime to a call that is already finalized', async () => {
+      const closedRecord = {
+        id: 1,
+        apiCallId: 'test-call-123',
+        isOpen: false,
+        data: { endTime: '2025-10-27T10:00:00Z' },
+        history: [],
+      } as unknown as YemotCall;
+
+      jest.spyOn(yemotCallRepo, 'findOne').mockResolvedValue(closedRecord);
+      jest.spyOn(yemotCallRepo, 'save').mockResolvedValue(closedRecord);
+
+      await service.recordHangup('test-call-123');
+
+      expect(yemotCallRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isOpen: false,
+          data: { endTime: '2025-10-27T10:00:00Z', hangupTime: expect.any(String) },
+        }),
+      );
+    });
+
+    it('should handle missing call gracefully', async () => {
+      jest.spyOn(yemotCallRepo, 'findOne').mockResolvedValue(null);
+
+      await expect(service.recordHangup('non-existent')).resolves.not.toThrow();
+
+      expect(yemotCallRepo.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('logConversationStep', () => {
     const existingRecord = {
       id: 1,
