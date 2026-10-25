@@ -1,8 +1,8 @@
-import { Body, Controller, Delete, Get, Inject, Post, Request, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Optional, Post, Request, Res } from '@nestjs/common';
 import { Request as ExpressRequest, Response } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { buildMcpServer } from './mcp-server.factory';
-import { MCP_TOOL, McpTool } from './mcp.types';
+import { MCP_INSTRUCTIONS, MCP_TOOL, McpTool } from './mcp.types';
 import { McpOAuthProvider } from './oauth/mcp-oauth.provider';
 import { mcpBaseUrl, resourceMetadataUrl } from './oauth/mcp-auth.middleware';
 
@@ -15,6 +15,7 @@ export class McpController {
   constructor(
     private readonly oauth: McpOAuthProvider,
     @Inject(MCP_TOOL) private readonly tools: McpTool[],
+    @Optional() @Inject(MCP_INSTRUCTIONS) private readonly instructions?: string | null,
   ) {}
 
   /** Streamable HTTP, stateless: a fresh server + transport per request, JSON responses, no sessions. */
@@ -30,7 +31,7 @@ export class McpController {
         .json({ error: 'unauthorized' });
       return;
     }
-    const server = buildMcpServer(this.tools, { userId: auth.extra.userId as number });
+    const server = buildMcpServer(this.tools, { userId: auth.extra.userId as number }, this.instructions ?? undefined);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on('close', () => {
       transport.close();

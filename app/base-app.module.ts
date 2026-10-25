@@ -28,8 +28,10 @@ export interface BaseNraAppModuleOptions {
   throttlerLimit?: number;
   /** Project-specific async job handlers, registered alongside the shared ones. */
   jobHandlers?: Type<JobHandler>[];
-  /** Read-only MCP tools; when given, the app serves them at `/mcp`. */
+  /** MCP tools; when given, the app serves them at `/mcp`. */
   mcpTools?: Type<McpTool>[];
+  /** MCP server instructions: what the app is and how its tools fit together. */
+  mcpInstructions?: string;
 }
 
 @Module({})
@@ -51,7 +53,7 @@ export class BaseNraAppModule {
         options.entitiesModule,
         AuthModule.forRoot({ userInitModule }),
         YemotModule.register(options.yemotHandlerService),
-        ...(options.mcpTools?.length ? [McpModule.forRoot({ tools: options.mcpTools })] : []),
+        ...(options.mcpTools?.length ? [McpModule.forRoot({ tools: options.mcpTools, instructions: options.mcpInstructions })] : []),
       ],
       controllers: [AppController],
       providers: [
