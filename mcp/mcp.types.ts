@@ -10,6 +10,8 @@ export const MCP_INSTRUCTIONS = 'MCP_INSTRUCTIONS';
 /** Who the call runs as. Always one real, non-admin user — set by shared code, never by a tool. */
 export interface McpToolContext {
   userId: number;
+  /** The server URL the client called (e.g. https://api.example.com), for links a tool returns. */
+  baseUrl?: string;
 }
 
 /**
