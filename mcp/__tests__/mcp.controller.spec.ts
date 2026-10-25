@@ -20,7 +20,7 @@ describe('MCP endpoint with OAuth login', () => {
     name: 'whoami',
     description: 'Returns the user id',
     inputSchema: {},
-    handler: async (_input, ctx) => ({ userId: ctx.userId }),
+    handler: async (_input, ctx) => ({ userId: ctx.userId, baseUrl: ctx.baseUrl }),
   };
 
   beforeAll(async () => {
@@ -110,7 +110,7 @@ describe('MCP endpoint with OAuth login', () => {
       .set('Accept', ACCEPT)
       .send({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'whoami', arguments: {} } });
     expect(call.status).toBe(200);
-    expect(JSON.parse(call.body.result.content[0].text)).toEqual({ userId: 42 });
+    expect(JSON.parse(call.body.result.content[0].text)).toEqual({ userId: 42, baseUrl: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+$/) });
 
     const refreshed = await request(server())
       .post('/token')

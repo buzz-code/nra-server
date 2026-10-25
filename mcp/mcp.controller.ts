@@ -31,7 +31,11 @@ export class McpController {
         .json({ error: 'unauthorized' });
       return;
     }
-    const server = buildMcpServer(this.tools, { userId: auth.extra.userId as number }, this.instructions ?? undefined);
+    const server = buildMcpServer(
+      this.tools,
+      { userId: auth.extra.userId as number, baseUrl: mcpBaseUrl(req) ?? undefined },
+      this.instructions ?? undefined,
+    );
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on('close', () => {
       transport.close();
