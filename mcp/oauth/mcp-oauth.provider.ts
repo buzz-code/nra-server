@@ -143,8 +143,12 @@ export class McpOAuthProvider implements OAuthServerProvider {
 
   async revokeToken(_client: OAuthClientInformationFull, request: OAuthTokenRevocationRequest): Promise<void> {
     const payload = this.verify(request.token, 'access') ?? this.verify(request.token, 'refresh');
-    if (!payload) return;
-    const user = await this.userRepository.findOneBy({ id: payload.userId });
+    if (payload) await this.disconnectAll(payload.userId);
+  }
+
+  /** Invalidates every MCP token the user holds, across all clients. */
+  async disconnectAll(userId: number): Promise<void> {
+    const user = await this.userRepository.findOneBy({ id: userId });
     if (!user) return;
     await this.userRepository.update(user.id, {
       additionalData: { ...user.additionalData, mcpTokenVersion: (user.additionalData?.mcpTokenVersion ?? 0) + 1 },

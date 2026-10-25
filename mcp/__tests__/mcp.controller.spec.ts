@@ -138,6 +138,17 @@ describe('MCP endpoint with OAuth login', () => {
     expect(call.status).toBe(401);
   });
 
+  it('disconnect from the app settings signs all clients out', async () => {
+    const { token } = await connect('user@test', 'secret');
+    await app.get(McpOAuthProvider).disconnectAll(42);
+    const call = await request(server())
+      .post('/mcp')
+      .set('Authorization', `Bearer ${token.body.access_token}`)
+      .set('Accept', ACCEPT)
+      .send({ jsonrpc: '2.0', id: 1, method: 'ping' });
+    expect(call.status).toBe(401);
+  });
+
   it('refuses GET', async () => {
     expect((await request(server()).get('/mcp')).status).toBe(405);
   });

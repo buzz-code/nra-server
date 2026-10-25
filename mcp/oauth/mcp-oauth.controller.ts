@@ -1,5 +1,8 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, Post, Request, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
+import { JwtAuthGuard } from '@shared/auth/jwt-auth.guard';
+import { AuthenticatedRequest } from '@shared/auth/auth.types';
+import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { McpOAuthProvider } from './mcp-oauth.provider';
 import { renderLoginPage } from './mcp-login-page';
 
@@ -22,5 +25,14 @@ export class McpOAuthController {
       return;
     }
     res.redirect(302, this.provider.issueCodeRedirect(request, user.id));
+  }
+
+  /** "Disconnect" in the app settings: signs every connected AI client out. */
+  @UseGuards(JwtAuthGuard)
+  @Post('disconnect')
+  async disconnect(@Request() req: AuthenticatedRequest) {
+    const userId = getUserIdFromUser(req.user, true);
+    if (userId) await this.provider.disconnectAll(userId);
+    return { success: true };
   }
 }
