@@ -5,12 +5,12 @@ import { McpTool, McpToolContext, McpToolError } from './mcp.types';
 const logger = new Logger('Mcp');
 
 /** One server per request (stateless transport); each tool runs as `ctx.userId`. */
-export function buildMcpServer(tools: McpTool[], ctx: McpToolContext): McpServer {
-  const server = new McpServer({ name: 'nra-stats', version: '1.0.0' });
+export function buildMcpServer(tools: McpTool[], ctx: McpToolContext, instructions?: string): McpServer {
+  const server = new McpServer({ name: 'nra-stats', version: '1.0.0' }, instructions ? { instructions } : undefined);
   for (const tool of tools) {
     server.registerTool(
       tool.name,
-      { description: tool.description, inputSchema: tool.inputSchema, annotations: { readOnlyHint: true } },
+      { description: tool.description, inputSchema: tool.inputSchema, annotations: tool.annotations ?? { readOnlyHint: true } },
       async (input: any) => {
         try {
           const output = await tool.handler(input ?? {}, ctx);

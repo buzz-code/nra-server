@@ -13,9 +13,9 @@ describe('buildMcpServer', () => {
   };
   const failing = (error: Error): McpTool => ({ ...echo, name: 'fail', handler: async () => Promise.reject(error) });
 
-  const connect = async (tools: McpTool[]) => {
+  const connect = async (tools: McpTool[], instructions?: string) => {
     const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-    await buildMcpServer(tools, { userId: 7 }).connect(serverSide);
+    await buildMcpServer(tools, { userId: 7 }, instructions).connect(serverSide);
     const client = new Client({ name: 'test', version: '1' });
     await client.connect(clientSide);
     return client;
@@ -28,6 +28,14 @@ describe('buildMcpServer', () => {
 
     const result: any = await client.callTool({ name: 'echo', arguments: { word: 'hi' } });
     expect(JSON.parse(result.content[0].text)).toEqual({ input: { word: 'hi' }, userId: 7 });
+  });
+
+  it('sends the app instructions and a tool\'s own annotations', async () => {
+    const writer: McpTool = { ...echo, name: 'write', annotations: { destructiveHint: true } };
+    const client = await connect([writer], 'Use write carefully');
+    expect(client.getInstructions()).toBe('Use write carefully');
+    const { tools } = await client.listTools();
+    expect(tools[0].annotations).toEqual({ destructiveHint: true });
   });
 
   it('rejects input that does not match the schema', async () => {
