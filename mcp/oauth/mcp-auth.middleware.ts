@@ -50,6 +50,15 @@ export class McpAuthMiddleware implements NestMiddleware {
         }),
       );
     }
-    this.routers.get(baseUrl)(req, res, next);
+    // Nest mounts middleware under a path pattern, which strips the matched part from req.url; the SDK router matches on the full path.
+    // Restore the mounted values before handing back, so the rest of the app routes as usual.
+    const { url, baseUrl: mountPath } = req;
+    req.url = req.originalUrl;
+    req.baseUrl = '';
+    this.routers.get(baseUrl)(req, res, (err?: unknown) => {
+      req.url = url;
+      req.baseUrl = mountPath;
+      next(err);
+    });
   }
 }
