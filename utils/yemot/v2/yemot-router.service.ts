@@ -17,6 +17,18 @@ import { hasPermission, isAdmin, permissionKeys } from '@shared/utils/permission
 
 const logger = new Logger('YemotRouterService');
 
+// A stateless call re-runs its earlier steps on every request: info logs of those
+// replayed steps are dropped, so each step is logged once per call.
+class CallLogger extends Logger {
+  constructor(private readonly getCall: () => Call) {
+    super('YemotRouterService');
+  }
+
+  log(message: any, ...optionalParams: any[]) {
+    if (!isReplaying(this.getCall())) super.log(message, ...optionalParams);
+  }
+}
+
 export const YEMOT_HANDLER_FACTORY = 'YemotHandlerFactory';
 // A handler class with `static stateless = true` runs in stateless replay mode (see
 // yemot-replay.ts) and is safe behind several server nodes; others keep each call
@@ -101,13 +113,21 @@ export class YemotRouterService {
   // Skipped when the handler already finished (Yemot also sends hangup=yes after our hangup).
   private async replayHangup(call: Call, events: YemotRouterEvents): Promise<void> {
     try {
-      if (!(await this.callTrackingService.isCallOpen(call.callId))) return;
+      if (!(await this.callTrackingService.isCallOpen(call.callId))) {
+        this.logger.log(`Call ${call.callId} hangup after the call finished - nothing to replay`);
+        return;
+      }
+      const answeredCount = Object.keys(call.values).filter((key) => /^val_\d+$/.test(key)).length;
+      this.logger.log(`Call ${call.callId} hung up mid-call (${answeredCount} answers) - replaying it up to the open prompt`);
       const yemotCallRecord = await this.callTrackingService.initializeCall(call);
       enableReplay(call, events, yemotCallRecord?.createdAt);
       const yemotHandlerService = new this.yemotHandlerFactory(this.dataSource, call, this.callTrackingService);
       await yemotHandlerService.processCall();
+      this.logger.log(`Call ${call.callId} hangup replay: handler finished without reaching an open prompt`);
     } catch (e) {
-      if (!(e instanceof CallError)) {
+      if (e instanceof CallError) {
+        this.logger.log(`Call ${call.callId} hangup replay done (${e.name})`);
+      } else {
         this.logger.error(`Error replaying hungup call ${call.callId}: ${e.stack}`);
       }
     }
@@ -166,7 +186,9 @@ export class YemotRouterService {
   private getYemotRouter() {
     const yemotRouter = YemotRouter({
       mergeParams: true,
-      printLog: true,
+      // yemot-router2 sees every request of a stateless call as a new call that exits
+      // the extension, so its own log would be misleading there.
+      printLog: !this.yemotHandlerFactory.stateless,
       timeout: 5 * 60 * 1000,
       uncaughtErrorHandler: (error, call) => {
         this.logger.error(`Uncaught error from ${call.phone}. Error: ${error.stack}`);
@@ -193,7 +215,11 @@ export class YemotRouterService {
       this.logger.log(`Call ${call.callId} continues - Phone: ${call.phone}`);
     });
     yemotRouter.events.on('new_call', (call) => {
-      this.logger.log(`New call ${call.callId} from ${call.phone}`);
+      // yemot-router2 reports every request of a stateless call as new; earlier answers tell them apart.
+      const answeredCount = Object.keys(call.values).filter((key) => /^val_\d+$/.test(key)).length;
+      this.logger.log(answeredCount
+        ? `Call ${call.callId} continues (${answeredCount} answers) - Phone: ${call.phone}`
+        : `New call ${call.callId} from ${call.phone}`);
     });
 
     return yemotRouter;
@@ -203,7 +229,7 @@ export class YemotRouterService {
 type YemotRouterEvents = ReturnType<typeof YemotRouter>['events'];
 
 export class BaseYemotHandlerService {
-  protected readonly logger = logger;
+  protected readonly logger: Logger = new CallLogger(() => this.call);
   protected user: User;
   private readonly constructedAt = new Date();
   private onceCounts: Record<string, number> = {};
