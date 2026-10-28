@@ -4,9 +4,10 @@ import * as cookieParser from 'cookie-parser';
 import { JwtService } from '@nestjs/jwt';
 import { jwtConstants } from '@shared/auth/constants';
 import { DataSource } from 'typeorm';
+import { Logger } from '@nestjs/common';
 import { User } from '@shared/entities/User.entity';
 import { createRealDataSource } from '../../testing/real-data-source';
-import { YemotRouterService, BaseYemotHandlerService } from '../yemot-router.service';
+import { YemotRouterService, BaseYemotHandlerService, describeYemotValues } from '../yemot-router.service';
 import { YemotCallTrackingService } from '../yemot-call-tracking.service';
 
 // End-to-end: real Express + yemot-router2 + sqlite, no mocks. Exercises the
@@ -107,6 +108,39 @@ describe('Yemot router (e2e)', () => {
 
     expect(processCallSpy).toHaveBeenCalled();
     processCallSpy.mockRestore();
+  });
+
+  it('logs each Yemot request with its answers and the exact response sent', async () => {
+    await ds.getRepository(User).save({ name: 'Test', phoneNumber: '035586526' } as any);
+    const logSpy = jest.spyOn(Logger.prototype, 'log');
+
+    const res = await request(app).post('/yemot/handle-call').send(requiredYemotFields({ val_2: '7', val_1: '872' })).type('form').expect(200);
+
+    const lines = logSpy.mock.calls.map(([message]) => message);
+    expect(lines).toContain('Yemot request call-1: val_1=872 val_2=7');
+    expect(lines).toContain(`Yemot response call-1: ${res.text}`);
+    logSpy.mockRestore();
+  });
+
+  it('logs the answers Yemot carries on a hangup request', async () => {
+    const logSpy = jest.spyOn(Logger.prototype, 'log');
+
+    await request(app).post('/yemot/handle-call').send(requiredYemotFields({ val_1: '872', hangup: 'yes' })).type('form').expect(200);
+
+    const lines = logSpy.mock.calls.map(([message]) => message);
+    expect(lines).toContain('Yemot request call-1: val_1=872 hangup=yes');
+    expect(lines).toContain('Yemot response call-1: {"message":"hangup"}');
+    logSpy.mockRestore();
+  });
+
+  describe('describeYemotValues', () => {
+    it('orders answers numerically, keeps the last duplicate, and ignores Api fields', () => {
+      expect(describeYemotValues({ ApiPhone: '050', val_10: 'b', val_2: ['x', 'a'], hangup: 'yes' })).toBe('val_2=a val_10=b hangup=yes');
+    });
+
+    it('says when there are no answers', () => {
+      expect(describeYemotValues({ ApiCallId: 'c' })).toBe('(no answers)');
+    });
   });
 
   describe('simulator mount', () => {

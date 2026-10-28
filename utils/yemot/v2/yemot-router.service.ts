@@ -45,6 +45,35 @@ function getWebhookSecret(call: Call): string | undefined {
   return (call.req?.params as Record<string, string>)?.secret;
 }
 
+// The answers Yemot sent (val_N, last value wins like yemot-router2) and the hangup flag.
+export function describeYemotValues(values: Record<string, any>): string {
+  const pick = (value: any) => (Array.isArray(value) ? value[value.length - 1] : value);
+  const parts = Object.keys(values)
+    .filter((key) => /^val_\d+$/.test(key))
+    .sort((a, b) => Number(a.slice(4)) - Number(b.slice(4)))
+    .map((key) => `${key}=${pick(values[key])}`);
+  if (values.hangup) parts.push(`hangup=${pick(values.hangup)}`);
+  return parts.join(' ') || '(no answers)';
+}
+
+// One log line per Yemot request (what Yemot sent) and per response (exactly what we
+// answered), on every mount and in both call modes - so a dropped call shows whether
+// Yemot stopped sending or we sent something it couldn't use. Replay log suppression
+// doesn't apply here.
+function traceYemotRequest(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const values = (req.method === 'POST' ? req.body : req.query) as Record<string, any>;
+  const callId = values?.ApiCallId;
+  if (!callId) return next();
+
+  logger.log(`Yemot request ${callId}: ${describeYemotValues(values)}`);
+  const send = res.send.bind(res);
+  res.send = (body?: any) => {
+    logger.log(`Yemot response ${callId}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
+    return send(body);
+  };
+  next();
+}
+
 // Set by getSimulatorAuthMiddleware on every request of the /yemot/simulate mount.
 const SIMULATION_FLAG = 'isYemotSimulation';
 
@@ -174,6 +203,7 @@ export class YemotRouterService {
     // drop the :secret from the /yemot/handle-call/:secret mount.
     const router = express.Router({ mergeParams: true });
     router.use(express.urlencoded({ extended: true }));
+    router.use(traceYemotRequest);
     router.use((err, req, res, next) => {
       if (err) {
         this.logger.error(`Error in Yemot router: ${err.message}`, err.stack);
