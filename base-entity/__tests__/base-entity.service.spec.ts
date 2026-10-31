@@ -299,6 +299,43 @@ describe('BaseEntityService', () => {
     });
   });
 
+  describe('getSelectedIds', () => {
+    const reqWithIds = (ids: string | undefined, search: any = {}) =>
+      ({ ...mockReq, parsed: { ...mockReq.parsed, search, extra: { ids } } }) as unknown as CrudRequest;
+
+    it('selects only the id column of the auth-filtered, id-restricted rows', async () => {
+      const mockBuilder = { alias: 'TestEntity', select: jest.fn(), getRawMany: jest.fn().mockResolvedValue([{ id: 1 }, { id: '2' }]) } as any;
+      mockBuilder.select.mockReturnValue(mockBuilder);
+      const builderSpy = jest.spyOn(service, 'createBuilder').mockResolvedValue(mockBuilder);
+      const authFilteredSearch = { $and: [{ userId: 38 }] };
+      const req = reqWithIds('1,2,99', authFilteredSearch);
+
+      const result = await service.getSelectedIds(req);
+
+      expect(builderSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ search: { $and: [authFilteredSearch, { id: { $in: [1, 2, 99] } }] } }),
+        req.options,
+      );
+      expect(mockBuilder.select).toHaveBeenCalledWith('TestEntity.id', 'id');
+      expect(result).toEqual([1, 2]);
+    });
+
+    it('dedupes ids repeated by joins', async () => {
+      const mockBuilder = { alias: 'T', select: jest.fn(), getRawMany: jest.fn().mockResolvedValue([{ id: 1 }, { id: 1 }]) } as any;
+      mockBuilder.select.mockReturnValue(mockBuilder);
+      jest.spyOn(service, 'createBuilder').mockResolvedValue(mockBuilder);
+
+      expect(await service.getSelectedIds(reqWithIds('1'))).toEqual([1]);
+    });
+
+    it('returns [] without querying when no ids are given', async () => {
+      const builderSpy = jest.spyOn(service, 'createBuilder');
+
+      expect(await service.getSelectedIds(reqWithIds(undefined))).toEqual([]);
+      expect(builderSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('CRUD Operations', () => {
     describe('super class interactions', () => {
       it('should call super createOne', async () => {
@@ -579,13 +616,13 @@ describe('BaseEntityService', () => {
               expect(fixTimezoneShift).not.toHaveBeenCalled();
             });
 
-            it('should resolve ids via getManyByIds (respecting crudAuth) and delegate to fixTimezoneShift', async () => {
+            it('should resolve ids via getSelectedIds (respecting crudAuth) and delegate to fixTimezoneShift', async () => {
               const adminReq = { ...fixTimezoneShiftReq, auth: { permissions: { admin: true } } } as unknown as CrudRequest;
-              jest.spyOn(service, 'getManyByIds').mockResolvedValue([{ id: 1 }, { id: 2 }] as any);
+              jest.spyOn(service, 'getSelectedIds').mockResolvedValue([1, 2]);
 
               const result = await service.doAction(adminReq, {});
 
-              expect(service.getManyByIds).toHaveBeenCalledWith(adminReq, [1, 2]);
+              expect(service.getSelectedIds).toHaveBeenCalledWith(adminReq);
               expect(fixTimezoneShift).toHaveBeenCalledWith(repository, [1, 2]);
               expect(result).toBe('תוקנו 2 רשומות');
             });
@@ -603,7 +640,7 @@ describe('BaseEntityService', () => {
               (repository as any).metadata.findColumnWithPropertyName = (name: string) =>
                 name in columnTypes ? { propertyName: name, type: columnTypes[name] } : undefined;
               (repository as any).update = jest.fn().mockResolvedValue({ affected: 2 });
-              jest.spyOn(service, 'getManyByIds').mockResolvedValue([{ id: 1 }, { id: 2 }] as any);
+              jest.spyOn(service, 'getSelectedIds').mockResolvedValue([1, 2]);
             });
 
             it('should do nothing when bulkEditFields is not configured', async () => {
@@ -618,7 +655,7 @@ describe('BaseEntityService', () => {
 
               const result = await service.doAction(bulkEditReq, {});
 
-              expect(service.getManyByIds).toHaveBeenCalledWith(bulkEditReq, [1, 2, 99]);
+              expect(service.getSelectedIds).toHaveBeenCalledWith(bulkEditReq);
               const [where, update] = (repository as any).update.mock.calls[0];
               expect(where.id.value).toEqual([1, 2]);
               expect(update).toEqual({ count: 3, date: new Date('2026-10-11'), active: false });
@@ -637,7 +674,7 @@ describe('BaseEntityService', () => {
 
             it('should do nothing when no selected row is accessible', async () => {
               (service as any).bulkEditFields = ['count'];
-              (service.getManyByIds as jest.Mock).mockResolvedValue([]);
+              (service.getSelectedIds as jest.Mock).mockResolvedValue([]);
 
               const result = await service.doAction(bulkEditReq, {});
 
