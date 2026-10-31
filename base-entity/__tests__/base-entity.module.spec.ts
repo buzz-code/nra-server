@@ -16,7 +16,6 @@ import { ValidationError } from 'class-validator';
 import * as bcrypt from 'bcrypt';
 import { Global } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 
 // Create a mock entity for testing that implements required User properties
 @TypeOrmEntity()
@@ -387,7 +386,7 @@ describe('BaseEntityModule', () => {
         }
       };
 
-      const result = await controller['handleEmail'](body);
+      await controller['handleEmail'](body);
       expect(mockGetUserIdFromMailAddress).toHaveBeenCalledWith('test@example.com')
       expect(mockImportExcelFile).toHaveBeenCalledWith(1, 'test', 'test.xlsx', ImportFileSource.Email);
       expect(mockSaveEmailData).toHaveBeenCalledWith(1, body.mail_data, [{}]);

@@ -1,4 +1,3 @@
-import { LocalRegisterAuthGuard } from '../local-register-auth.guard';
 
 // Export mock function to verify calls
 const mockAuthGuard = jest.fn(() => {
