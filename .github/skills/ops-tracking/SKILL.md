@@ -19,6 +19,16 @@ Full rules (triage, label meanings, work order) live in `CLAUDE.md` of `buzz-cod
 - Reference the item only as `buzz-code/ops#N` plus a neutral technical description.
 - Detailed context belongs in the ops issue (private), not in the code repo.
 
+## Session link
+
+Every ops issue links to the Claude session(s) that worked on it.
+
+- Creating an ops issue: end the body with `🔗 סשן Claude: <link>`.
+- First time this session comments on an existing ops issue (plan, status change, PR link): add the same line, unless the issue already has this session's link.
+- Link: the project thread URL if this session runs in a Claude project thread, otherwise `https://claude.ai/code/session_…` (same value as the `Claude-Session:` commit trailer).
+- Not sure of the link → leave it out. Never guess.
+- Put the link only on the ops issue. Nothing extra goes into code-repo PRs or commits.
+
 ## Labels
 
 | Repo | Project label |
