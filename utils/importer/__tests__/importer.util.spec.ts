@@ -131,7 +131,6 @@ describe('importer.util', () => {
     beforeEach(() => {
       (XLSX.read as jest.Mock).mockReturnValue(mockWorkbook);
       (XLSX.utils.sheet_to_json as jest.Mock).mockImplementation((ws, opts) => {
-        const skipRows = opts?.range || 1;
         return [{
           name: 'John',
           grade: 95

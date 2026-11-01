@@ -104,7 +104,7 @@ export async function fixTimezoneShift(repository: Repository<any>, ids: number[
   for (const row of rows) {
     const updates: Record<string, Date> = {};
     for (const column of dateColumns) {
-      const current = (row as any)[column];
+      const current = row[column];
       if (current instanceof Date && !isNaN(current.getTime())) {
         updates[column] = reinterpretUtcDigitsAsIsraelLocal(current);
       }
@@ -114,7 +114,7 @@ export async function fixTimezoneShift(repository: Repository<any>, ids: number[
         .createQueryBuilder()
         .update()
         .set(updates)
-        .where('id = :id', { id: (row as any).id })
+        .where('id = :id', { id: row.id })
         .execute();
       fixedCount++;
     }

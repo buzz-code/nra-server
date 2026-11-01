@@ -21,7 +21,6 @@ describe('BaseEntityService', () => {
   let service: BaseEntityService<any>;
   let repository: Repository<any>;
   let dataSource: DataSource;
-  let mailService: MailSendService;
   let entityColumns: string[];
   let mockDto: { name: string; userId?: number };
 
@@ -123,7 +122,6 @@ describe('BaseEntityService', () => {
     service = module.get<BaseEntityService<any>>(BaseEntityService);
     repository = module.get(ENTITY_REPOSITORY);
     dataSource = module.get<DataSource>(DataSource);
-    mailService = module.get<MailSendService>(MailSendService);
 
     // Reset mockDto for each test
     mockDto = { name: 'test' };
