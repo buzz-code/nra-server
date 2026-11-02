@@ -1,9 +1,14 @@
 import puppeteer from 'puppeteer';
-import type { Page } from 'puppeteer';
+import type { Browser, Page } from 'puppeteer';
 import { BaseReportGenerator } from './report.generators';
 import { CommonFileFormat } from './types';
-
-const PUPPETEER_LAUNCH_ARGS = ['--disable-dev-shm-usage', '--no-sandbox', '--disable-setuid-sandbox'];
+import {
+  acquireBrowserSlot,
+  PUPPETEER_LAUNCH_ARGS,
+  getPdfRenderBudgetMs,
+  getPdfRenderScope,
+  releaseBrowserSlot,
+} from './pdf-render.queue';
 
 // Browser processes can die mid-render under load (e.g. killed by the OOM killer
 // while several reports render at once), surfacing as protocol errors like
@@ -48,22 +53,54 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
       return Buffer.from(markup);
     }
 
+    // One render budget per convertMarkupToPdf call: the queue wait of a
+    // retry is capped by the remaining budget, never by a fresh full wait.
+    const queueDeadline = Date.now() + getPdfRenderBudgetMs();
+
     try {
-      return await this.generatePdfInFreshBrowser(markup);
+      return await this.renderPdfAttempt(markup, queueDeadline, false);
     } catch (e) {
       if (!isTransientPuppeteerError(e)) {
         throw e;
       }
-      return await this.generatePdfInFreshBrowser(markup);
+      return await this.renderPdfAttempt(markup, queueDeadline, true);
     }
   }
 
-  private async generatePdfInFreshBrowser(markup: string): Promise<Buffer> {
+  // One attempt: either render on the browser of the active report render
+  // scope (one browser per bulk report), or on a browser of this conversion's
+  // own, launched inside a globally capped render-queue slot.
+  private async renderPdfAttempt(markup: string, queueDeadline: number, isRetry: boolean): Promise<Buffer> {
+    const scope = getPdfRenderScope();
+    if (scope) {
+      // Inside a render scope the report owns one browser: this conversion
+      // only opens its page on it and must not close the browser. A retry
+      // relaunches the shared browser at most once (restartBrowser).
+      const browser = isRetry ? await scope.restartBrowser(queueDeadline) : await scope.getBrowser(queueDeadline);
+      return this.renderPdfOnBrowser(browser, markup);
+    }
+
+    await acquireBrowserSlot(queueDeadline);
     let browser;
     try {
       browser = await puppeteer.launch({ args: PUPPETEER_LAUNCH_ARGS });
-      const page = await browser.newPage();
+      return await this.renderPdfOnBrowser(browser, markup);
+    } finally {
+      // The browser may already be dead (crashed / OOM-killed), in which case
+      // close() itself can reject - don't let that mask the real result.
+      if (browser) {
+        try {
+          await browser.close();
+        } catch {}
+      }
+      releaseBrowserSlot();
+    }
+  }
 
+  private async renderPdfOnBrowser(browser: Browser, markup: string): Promise<Buffer> {
+    const page = await browser.newPage();
+
+    try {
       try {
         await page.setContent(markup, { waitUntil: 'networkidle0', timeout: 10000 });
       } catch (e) {
@@ -81,13 +118,12 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
         timeout: getPdfPrintTimeoutMs(),
       });
     } finally {
-      // The browser may already be dead (crashed / OOM-killed), in which case
-      // close() itself can reject - don't let that mask the real result.
-      if (browser) {
-        try {
-          await browser.close();
-        } catch {}
-      }
+      // Rows of a shared scope browser take their page with them, so a
+      // many-row report can't pile up open pages; standalone browsers would
+      // close it together with the browser anyway.
+      try {
+        await page.close();
+      } catch {}
     }
   }
 }
