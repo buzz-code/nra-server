@@ -59,17 +59,13 @@ describe('MarkupToPdfReportGenerator', () => {
       const result = await generator.convertMarkupToPdf(markup);
 
       expect(puppeteer.launch).toHaveBeenCalledWith({
-        args: [
-          "--disable-dev-shm-usage",
-          '--no-sandbox',
-          '--disable-setuid-sandbox'
-        ]
+        args: ['--disable-dev-shm-usage', '--no-sandbox', '--disable-setuid-sandbox'],
       });
       expect(mockPage.setContent).toHaveBeenCalledWith(markup, expect.any(Object));
       expect(mockPage.pdf).toHaveBeenCalledWith({
         format: 'A4',
         printBackground: true,
-        timeout: 30000
+        timeout: 30000,
       });
       expect(mockBrowser.close).toHaveBeenCalled();
       expect(result).toEqual(pdfBuffer);
@@ -109,11 +105,19 @@ describe('MarkupToPdfReportGenerator', () => {
       expect(mockPage.on).toHaveBeenCalledWith('request', expect.any(Function));
       expect(mockPage.setRequestInterception).toHaveBeenCalledWith(true);
 
-      const externalRequest = { url: () => 'https://fonts.googleapis.com/css2?family=Roboto', abort: jest.fn().mockResolvedValue(undefined), continue: jest.fn() };
+      const externalRequest = {
+        url: () => 'https://fonts.googleapis.com/css2?family=Roboto',
+        abort: jest.fn().mockResolvedValue(undefined),
+        continue: jest.fn(),
+      };
       requestHandler(externalRequest);
       expect(externalRequest.abort).toHaveBeenCalled();
 
-      const localRequest = { url: () => 'data:image/png;base64,abc', abort: jest.fn(), continue: jest.fn().mockResolvedValue(undefined) };
+      const localRequest = {
+        url: () => 'data:image/png;base64,abc',
+        abort: jest.fn(),
+        continue: jest.fn().mockResolvedValue(undefined),
+      };
       requestHandler(localRequest);
       expect(localRequest.continue).toHaveBeenCalled();
     });
@@ -127,7 +131,7 @@ describe('MarkupToPdfReportGenerator', () => {
       expect(mockPage.pdf).toHaveBeenCalledWith({
         format: 'A4',
         printBackground: true,
-        timeout: 60000
+        timeout: 60000,
       });
       delete process.env.PDF_PRINT_TIMEOUT_MS;
     });
@@ -135,16 +139,14 @@ describe('MarkupToPdfReportGenerator', () => {
     it('should retry once with a fresh browser on transient session-closed errors', async () => {
       const pdfBuffer = Buffer.from('pdf content');
       const transientError = new Error(
-        'Protocol error (Runtime.callFunctionOn): Session closed. Most likely the page has been closed.'
+        'Protocol error (Runtime.callFunctionOn): Session closed. Most likely the page has been closed.',
       );
       const deadBrowser = {
         newPage: jest.fn().mockRejectedValue(transientError),
         close: jest.fn(),
       };
       mockPage.pdf.mockResolvedValue(pdfBuffer);
-      (puppeteer.launch as jest.Mock)
-        .mockResolvedValueOnce(deadBrowser)
-        .mockResolvedValue(mockBrowser);
+      (puppeteer.launch as jest.Mock).mockResolvedValueOnce(deadBrowser).mockResolvedValue(mockBrowser);
 
       const result = await generator.convertMarkupToPdf(markup);
 
@@ -157,7 +159,7 @@ describe('MarkupToPdfReportGenerator', () => {
     it('should retry with a fresh browser when the page dies mid-setContent', async () => {
       const pdfBuffer = Buffer.from('pdf content');
       const transientError = new Error(
-        'Protocol error (Runtime.callFunctionOn): Session closed. Most likely the page has been closed.'
+        'Protocol error (Runtime.callFunctionOn): Session closed. Most likely the page has been closed.',
       );
       mockPage.setContent
         .mockRejectedValueOnce(transientError) // first attempt, networkidle0
@@ -207,8 +209,7 @@ describe('SimpleMarkupToPdfReportGenerator', () => {
   beforeEach(() => {
     generator = new SimpleMarkupToPdfReportGenerator(getReportName, markup);
     // Mock convertMarkupToPdf to avoid actual PDF conversion
-    jest.spyOn(generator as any, 'convertMarkupToPdf')
-      .mockImplementation(async (m: string) => Buffer.from(m));
+    jest.spyOn(generator as any, 'convertMarkupToPdf').mockImplementation(async (m: string) => Buffer.from(m));
   });
 
   afterEach(() => {
@@ -246,8 +247,7 @@ describe('SimpleMarkupToPdfReportGenerator', () => {
 
     it('should handle PDF conversion errors', async () => {
       const error = new Error('PDF conversion error');
-      jest.spyOn(generator as any, 'convertMarkupToPdf')
-        .mockImplementation(() => Promise.reject(error));
+      jest.spyOn(generator as any, 'convertMarkupToPdf').mockImplementation(() => Promise.reject(error));
 
       await expect(generator.getFileBuffer({})).rejects.toThrow(error);
     });
