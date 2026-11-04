@@ -103,12 +103,30 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         if (!ids?.length) {
             return [];
         }
+        const builder = await this.createBuilderByIds(req, ids);
+        return builder.getMany();
+    }
+
+    /**
+     * Like getManyByIds, for the ids in `req.parsed.extra.ids`, but selects only the
+     * id column - no entity hydration. Same crudAuth filtering.
+     */
+    async getSelectedIds(req: CrudRequest<any, any>): Promise<number[]> {
+        const ids = getAsNumberArray(req.parsed.extra.ids);
+        if (!ids?.length) {
+            return [];
+        }
+        const builder = await this.createBuilderByIds(req, ids);
+        const rows = await builder.select(`${builder.alias}.id`, 'id').getRawMany<{ id: number }>();
+        return [...new Set(rows.map(row => Number(row.id)))];
+    }
+
+    private async createBuilderByIds(req: CrudRequest, ids: any[]) {
         const idCondition = { id: { $in: ids } };
         const search = req.parsed.search && Object.keys(req.parsed.search).length
             ? { $and: [req.parsed.search, idCondition] }
             : idCondition;
-        const builder = await this.createBuilder({ ...req.parsed, search }, req.options);
-        return builder.getMany();
+        return this.createBuilder({ ...req.parsed, search }, req.options);
     }
 
     insertUserDataBeforeCreate(dto: DeepPartial<T>, userId: number) {
@@ -185,9 +203,8 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
      * whose own entity is a view over that table.
      */
     protected async handleBulkEditAction(req: CrudRequest<any, any>, repo: Repository<any>): Promise<string> {
-        const ids = getAsNumberArray(req.parsed.extra.ids);
-        const entities = await this.getManyByIds(req, ids);
-        if (!entities.length) {
+        const selectedIds = await this.getSelectedIds(req);
+        if (!selectedIds.length) {
             return 'לא נבחרו רשומות';
         }
         const fields = getBulkEditFieldsByColumnType(repo.metadata, this.bulkEditFields ?? []);
@@ -195,7 +212,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         if (Object.keys(update).length === 0) {
             return 'לא נבחרו שדות לעדכון';
         }
-        const result = await repo.update({ id: In(entities.map((entity: any) => entity.id)) }, update);
+        const result = await repo.update({ id: In(selectedIds) }, update);
         return `עודכנו ${result.affected} רשומות`;
     }
 
@@ -203,19 +220,18 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
      * Admin-only bulk action: corrects createdAt/updatedAt on the selected
      * rows for entities written before the mysql connection was pinned to
      * UTC (nra-server#44). See fixTimezoneShift.util.ts for the mechanism.
-     * getManyByIds both resolves the ids to rows the caller can see (crudAuth)
+     * getSelectedIds both resolves the ids to rows the caller can see (crudAuth)
      * and validates the caller-supplied ids without re-deriving the auth filter.
      */
     private async handleFixTimezoneShiftAction(req: CrudRequest<any, any>): Promise<string> {
         if (!isAdmin(req.auth)) {
             throw new ForbiddenException();
         }
-        const ids = getAsNumberArray(req.parsed.extra.ids);
-        if (!ids?.length) {
+        const selectedIds = await this.getSelectedIds(req);
+        if (!selectedIds.length) {
             return 'לא נבחרו רשומות';
         }
-        const entities = await this.getManyByIds(req, ids);
-        return fixTimezoneShift(this.repo, entities.map((entity: any) => entity.id));
+        return fixTimezoneShift(this.repo, selectedIds);
     }
 
     async getPivotData(req: CrudRequest<any, any>): Promise<GetManyDefaultResponse<T> | T[]> {
