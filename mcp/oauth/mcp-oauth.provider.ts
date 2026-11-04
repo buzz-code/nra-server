@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
@@ -17,6 +17,7 @@ import {
 import { User } from '@shared/entities/User.entity';
 import { isAdmin } from '@shared/utils/permissionsUtil';
 import { renderLoginPage } from './mcp-login-page';
+import { DEFAULT_MCP_CONSENT, MCP_CONSENT, McpConsent } from '../mcp.types';
 
 const ACCESS_TOKEN_SECONDS = 60 * 60;
 const REFRESH_TOKEN_SECONDS = 60 * 60 * 24 * 90;
@@ -48,7 +49,10 @@ export class McpOAuthProvider implements OAuthServerProvider {
   // Codes are single use; enough for one server instance, and they expire in 5 minutes anyway.
   private readonly usedCodes = new Map<string, number>();
 
-  constructor(@InjectRepository(User) private userRepository: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private userRepository: Repository<User>,
+    @Optional() @Inject(MCP_CONSENT) readonly consent: McpConsent = DEFAULT_MCP_CONSENT,
+  ) {}
 
   get clientsStore(): OAuthRegisteredClientsStore {
     return {
@@ -75,7 +79,7 @@ export class McpOAuthProvider implements OAuthServerProvider {
       scopes: params.scopes,
       resource: params.resource?.href,
     };
-    res.status(200).type('html').send(renderLoginPage(this.signLoginRequest(request), client.client_name));
+    res.status(200).type('html').send(renderLoginPage(this.signLoginRequest(request), this.consent.description, client.client_name));
   }
 
   signLoginRequest(request: LoginRequest): string {
