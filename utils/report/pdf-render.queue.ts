@@ -33,7 +33,13 @@ export function getPdfRenderBudgetMs(): number {
   return Number.isFinite(configured) && configured > 0 ? configured : 45000;
 }
 
+export const PDF_RENDER_BUSY_CODE = 'PDF_RENDER_BUSY';
+
 export class PdfRenderQueueTimeoutError extends Error {
+  // Stable machine-readable code: the HTTP layer sends it to clients, which
+  // map it to a localized "busy, try again" message.
+  readonly code = PDF_RENDER_BUSY_CODE;
+
   constructor(allowedWaitMs: number, maxConcurrentBrowsers: number) {
     super(`PDF render queue wait exceeded ${allowedWaitMs}ms (max ${maxConcurrentBrowsers} concurrent browsers)`);
     this.name = 'PdfRenderQueueTimeoutError';

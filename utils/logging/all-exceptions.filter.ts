@@ -2,6 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpServer, HttpS
 import { snakeCase } from 'change-case';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { getTranslatedProperty } from '@shared/utils/validation/class-validator-he';
+import { PdfRenderQueueTimeoutError } from '@shared/utils/report/pdf-render.queue';
 
 interface MysqlDriverError {
   code?: string;
@@ -48,6 +49,9 @@ function getReferencingTable(exception: QueryFailedError): string | null {
   const match = /\(`[^`]+`\.`([^`]+)`/.exec(getDriverError(exception)?.sqlMessage || '');
   return match?.[1] || null;
 }
+
+// Suggested client back-off when the PDF render queue is full.
+const PDF_RENDER_BUSY_RETRY_AFTER_SECONDS = 60;
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -101,6 +105,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
         field,
       };
       this.httpAdapter.reply(response, body, HttpStatus.BAD_REQUEST);
+      return;
+    }
+
+    if (exception instanceof PdfRenderQueueTimeoutError) {
+      // Too many PDF renders at once: a temporary overload, not a server bug.
+      // The client translates `code` into a localized "try again shortly" message.
+      this.logger.warn(exception.message);
+      const body = {
+        statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+        code: exception.code,
+        message: 'PDF generation is busy with other requests. Please try again in a few minutes.',
+      };
+      this.httpAdapter.setHeader(response, 'Retry-After', String(PDF_RENDER_BUSY_RETRY_AFTER_SECONDS));
+      this.httpAdapter.reply(response, body, HttpStatus.SERVICE_UNAVAILABLE);
       return;
     }
 

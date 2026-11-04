@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
 import { AllExceptionsFilter } from '../all-exceptions.filter';
+import { PdfRenderQueueTimeoutError } from '../../report/pdf-render.queue';
 
 function buildFkViolation(referencingTable: string) {
   const sqlMessage = `Cannot delete or update a parent row: a foreign key constraint fails (\`app_db\`.\`${referencingTable}\`, CONSTRAINT \`FK_x\` FOREIGN KEY (\`teacherReferenceId\`) REFERENCES \`teachers\` (\`id\`))`;
@@ -29,6 +30,26 @@ function buildHost(response: any) {
 }
 
 describe('AllExceptionsFilter', () => {
+  it('replies 503 with the PDF_RENDER_BUSY code and a Retry-After header when the PDF render queue is full', () => {
+    const httpAdapter = { reply: jest.fn(), setHeader: jest.fn() };
+    const filter = new AllExceptionsFilter(httpAdapter as any);
+    const response: any = {};
+
+    filter.catch(new PdfRenderQueueTimeoutError(20000, 2), buildHost(response));
+
+    expect(response.err).toBeUndefined();
+    expect(httpAdapter.setHeader).toHaveBeenCalledWith(response, 'Retry-After', '60');
+    expect(httpAdapter.reply).toHaveBeenCalledWith(
+      response,
+      {
+        statusCode: 503,
+        code: 'PDF_RENDER_BUSY',
+        message: 'PDF generation is busy with other requests. Please try again in a few minutes.',
+      },
+      503,
+    );
+  });
+
   it('attaches a non-HttpException to response.err (for pino-http to log) and replies 500', () => {
     const httpAdapter = { reply: jest.fn() };
     const filter = new AllExceptionsFilter(httpAdapter as any);
