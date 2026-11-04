@@ -2,7 +2,7 @@ const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 /** Sign-in page shown when an MCP client (Claude, Codex, Gemini…) asks to connect. Posts to `/mcp/oauth/login`. */
-export function renderLoginPage(request: string, clientName?: string, error?: string): string {
+export function renderLoginPage(request: string, description: string, clientName?: string, error?: string): string {
   const client = escapeHtml(clientName || 'אפליקציית AI');
   return `<!doctype html>
 <html lang="he" dir="rtl">
@@ -24,7 +24,7 @@ export function renderLoginPage(request: string, clientName?: string, error?: st
 <body>
 <form method="post" action="/mcp/oauth/login">
   <h1>חיבור ${client}</h1>
-  <p>${client} מבקש גישת קריאה לסטטיסטיקות השימוש שלך. התחברו עם המייל והסיסמה של המערכת כדי לאשר.</p>
+  <p>${client} ${escapeHtml(description)} התחברו עם המייל והסיסמה של המערכת כדי לאשר.</p>
   ${error ? `<div class="error">${escapeHtml(error)}</div>` : ''}
   <input type="hidden" name="request" value="${escapeHtml(request)}">
   <label for="email">מייל</label>

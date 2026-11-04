@@ -171,11 +171,6 @@ describe('exporter.util', () => {
 
     it('should handle PDF format', async () => {
       const headers: IHeader[] = ['id', 'name'];
-      const expectedHeaderRow = ['id', 'name'];
-      const expectedData = [
-        ['1', 'John'],
-        ['2', 'Jane']
-      ];
 
       await getExportedFile(CommonFileFormat.Pdf, 'test', mockData, headers);
 

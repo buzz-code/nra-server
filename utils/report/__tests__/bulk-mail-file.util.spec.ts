@@ -18,7 +18,6 @@ describe('bulk-mail-file.util', () => {
 let mockAuth: any;
   let mockParams: any[];
   let mockGetEmailParamsFromData: jest.Mock;
-  let mockGetUserMailAddressFrom: jest.SpyInstance;
   let mockValidateUserHasPaid: jest.SpyInstance;
 
   beforeEach(() => {
@@ -42,7 +41,7 @@ let mockAuth: any;
       mailBody: 'Test Body'
     });
 
-    mockGetUserMailAddressFrom = jest.spyOn(BaseEntityUtil, 'getUserMailAddressFrom')
+    jest.spyOn(BaseEntityUtil, 'getUserMailAddressFrom')
       .mockResolvedValue({ address: 'from@example.com', name: 'Sender' });
 
     mockValidateUserHasPaid = jest.spyOn(BaseEntityUtil, 'validateUserHasPaid')

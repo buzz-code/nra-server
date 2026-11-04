@@ -25,7 +25,9 @@ Full rollout process: the `shared-changes-workflow` and `bump-shared-ref` skills
 
 ## Tests
 
-`yarn test` (Jest + ts-jest). Mock the TypeORM repo/DataSource — no live DB in unit tests. See the `write-tests` skill.
+`yarn test` (Jest + ts-jest). Mock the TypeORM repo/DataSource — no live DB in unit tests (a few specs use in-memory sqlite via `utils/yemot/testing/real-data-source.ts`). See the `write-tests` skill.
+
+Tests also run standalone, with no consumer app: `.github/workflows/test.yml` checks the repo out as `server/shared` (some specs resolve paths from that layout) and runs `yarn install && yarn test`. `package.json`/`yarn.lock`/`jest.config.js`/`tsconfig.json` exist only for that; consumers ignore them and use their own deps. Dependency versions are copied from the consumers, so when a consumer bumps one that the shared code relies on, bump it here too. Standalone, `src/db/entities/User.entity` maps to the base `entities/User.entity`.
 
 ## Task tracking
 

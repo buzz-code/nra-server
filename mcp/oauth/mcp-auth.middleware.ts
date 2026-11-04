@@ -41,7 +41,7 @@ export class McpAuthMiddleware implements NestMiddleware {
           provider: this.provider,
           issuerUrl: new URL(baseUrl),
           resourceServerUrl: new URL(`${baseUrl}/mcp`),
-          resourceName: 'Usage statistics',
+          resourceName: this.provider.consent.resourceName,
           // Behind the reverse proxy every request shares one IP, so per-IP limits would lock everyone out.
           authorizationOptions: { rateLimit: false },
           tokenOptions: { rateLimit: false },

@@ -21,7 +21,7 @@ export class McpOAuthController {
     const user = await this.provider.login(body.email, body.password);
     if (!user) {
       const retry = this.provider.signLoginRequest(request);
-      res.status(401).type('html').send(renderLoginPage(retry, request.clientName, 'מייל או סיסמה שגויים'));
+      res.status(401).type('html').send(renderLoginPage(retry, this.provider.consent.description, request.clientName, 'מייל או סיסמה שגויים'));
       return;
     }
     res.redirect(302, this.provider.issueCodeRedirect(request, user.id));
