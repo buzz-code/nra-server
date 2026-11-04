@@ -7,6 +7,22 @@ export const MCP_TOOL = 'MCP_TOOL';
 /** DI token for the app's server instructions, sent to every client on connect. */
 export const MCP_INSTRUCTIONS = 'MCP_INSTRUCTIONS';
 
+/** DI token for what the login page and OAuth metadata say the connection gives access to. */
+export const MCP_CONSENT = 'MCP_CONSENT';
+
+/** What a user grants when connecting an AI app. Defaults to read access to usage statistics. */
+export interface McpConsent {
+  /** Resource name in the OAuth protected-resource metadata (English). */
+  resourceName: string;
+  /** Sentence on the login page after the app name, e.g. "מבקש גישת קריאה לסטטיסטיקות השימוש שלך." */
+  description: string;
+}
+
+export const DEFAULT_MCP_CONSENT: McpConsent = {
+  resourceName: 'Usage statistics',
+  description: 'מבקש גישת קריאה לסטטיסטיקות השימוש שלך.',
+};
+
 /** Who the call runs as. Always one real, non-admin user — set by shared code, never by a tool. */
 export interface McpToolContext {
   userId: number;

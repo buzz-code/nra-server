@@ -14,7 +14,7 @@ import { S3Module } from '@shared/utils/s3/s3.module';
 import { JobsModule } from '@shared/utils/jobs/jobs.module';
 import { JobHandler } from '@shared/utils/jobs/job.types';
 import { McpModule } from '@shared/mcp/mcp.module';
-import { McpTool } from '@shared/mcp/mcp.types';
+import { McpConsent, McpTool } from '@shared/mcp/mcp.types';
 import { getPinoConfig } from '@shared/config/pino.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -32,6 +32,8 @@ export interface BaseNraAppModuleOptions {
   mcpTools?: Type<McpTool>[];
   /** MCP server instructions: what the app is and how its tools fit together. */
   mcpInstructions?: string;
+  /** What the MCP login page says the connection gives access to. Defaults to read access to usage statistics. */
+  mcpConsent?: McpConsent;
 }
 
 @Module({})
@@ -53,7 +55,7 @@ export class BaseNraAppModule {
         options.entitiesModule,
         AuthModule.forRoot({ userInitModule }),
         YemotModule.register(options.yemotHandlerService),
-        ...(options.mcpTools?.length ? [McpModule.forRoot({ tools: options.mcpTools, instructions: options.mcpInstructions })] : []),
+        ...(options.mcpTools?.length ? [McpModule.forRoot({ tools: options.mcpTools, instructions: options.mcpInstructions, consent: options.mcpConsent })] : []),
       ],
       controllers: [AppController],
       providers: [
