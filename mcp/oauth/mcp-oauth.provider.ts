@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
+import * as cookie from 'cookie';
 import { createHmac } from 'crypto';
 import { AuthorizationParams, OAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/provider.js';
 import { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/server/auth/clients.js';
@@ -16,7 +17,7 @@ import {
 } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { User } from '@shared/entities/User.entity';
 import { isAdmin } from '@shared/utils/permissionsUtil';
-import { renderLoginPage } from './mcp-login-page';
+import { renderLoginPage, sendLoginPage } from './mcp-login-page';
 import { DEFAULT_MCP_CONSENT, MCP_CONSENT, McpConsent } from '../mcp.types';
 
 const ACCESS_TOKEN_SECONDS = 60 * 60;
@@ -44,7 +45,9 @@ export interface LoginRequest {
  */
 @Injectable()
 export class McpOAuthProvider implements OAuthServerProvider {
-  private readonly secret = createHmac('sha256', process.env.JWT_SECRET ?? '').update('mcp-oauth').digest('hex');
+  private readonly secret = createHmac('sha256', process.env.JWT_SECRET ?? '')
+    .update('mcp-oauth')
+    .digest('hex');
   private readonly jwt = new JwtService({ secret: this.secret });
   // Codes are single use; enough for one server instance, and they expire in 5 minutes anyway.
   private readonly usedCodes = new Map<string, number>();
@@ -62,7 +65,8 @@ export class McpOAuthProvider implements OAuthServerProvider {
         return { ...metadata.client, ...this.credentials(clientId, metadata.client) };
       },
       registerClient: (client) => {
-        const { client_secret, client_secret_expires_at, client_id, client_id_issued_at, ...metadata } = client as OAuthClientInformationFull;
+        const { client_secret, client_secret_expires_at, client_id, client_id_issued_at, ...metadata } =
+          client as OAuthClientInformationFull;
         const clientId = this.jwt.sign({ typ: 'client', client: metadata });
         return { ...metadata, ...this.credentials(clientId, metadata) };
       },
@@ -79,7 +83,12 @@ export class McpOAuthProvider implements OAuthServerProvider {
       scopes: params.scopes,
       resource: params.resource?.href,
     };
-    res.status(200).type('html').send(renderLoginPage(this.signLoginRequest(request), this.consent.description, client.client_name));
+    sendLoginPage(res, 200, this.loginPage(request));
+  }
+
+  /** The sign-in page for a pending authorization, with a fresh signed copy of it. */
+  loginPage(request: LoginRequest, error?: string): string {
+    return renderLoginPage(this.signLoginRequest(request), this.consent.description, request, error);
   }
 
   signLoginRequest(request: LoginRequest): string {
@@ -95,6 +104,26 @@ export class McpOAuthProvider implements OAuthServerProvider {
     if (!email || !password) return null;
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user || isAdmin(user) || !(await bcrypt.compare(password, user.password))) return null;
+    return user;
+  }
+
+  /**
+   * The user signed in to the site in this browser (its `Authentication` cookie), for one-click approval.
+   * Refuses admins and impersonation, like the password login.
+   */
+  async sessionUser(cookieHeader: string | undefined): Promise<User | null> {
+    const token = cookie.parse(cookieHeader ?? '').Authentication;
+    if (!token || !process.env.JWT_SECRET) return null;
+    let session: { id?: number; impersonated?: boolean };
+    try {
+      session = new JwtService({ secret: process.env.JWT_SECRET }).verify(token);
+    } catch {
+      return null;
+    }
+    // Same user the password login would pick: the cookie's own id, never an impersonated one.
+    if (!session?.id || session.impersonated) return null;
+    const user = await this.userRepository.findOneBy({ id: session.id });
+    if (!user || isAdmin(user)) return null;
     return user;
   }
 
