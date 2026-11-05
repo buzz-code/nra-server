@@ -24,6 +24,7 @@ const ACCESS_TOKEN_SECONDS = 60 * 60;
 const REFRESH_TOKEN_SECONDS = 60 * 60 * 24 * 90;
 const CODE_SECONDS = 5 * 60;
 const LOGIN_REQUEST_SECONDS = 15 * 60;
+const API_KEY_SECONDS = 60 * 60 * 24 * 365;
 
 /** A pending authorization, carried through the login form as a signed token. */
 export interface LoginRequest {
@@ -177,6 +178,19 @@ export class McpOAuthProvider implements OAuthServerProvider {
   async revokeToken(_client: OAuthClientInformationFull, request: OAuthTokenRevocationRequest): Promise<void> {
     const payload = this.verify(request.token, 'access') ?? this.verify(request.token, 'refresh');
     if (payload) await this.disconnectAll(payload.userId);
+  }
+
+  /**
+   * A personal key for clients that can't do the OAuth login (sent as `Authorization: Bearer <key>`).
+   * It is an access token valid for a year; "disconnect all" revokes it with every other token.
+   */
+  async issueApiKey(userId: number): Promise<string | null> {
+    const version = await this.tokenVersion(userId);
+    if (version === null) return null;
+    return this.jwt.sign(
+      { typ: 'access', clientId: 'api-key', userId, scopes: [], v: version },
+      { expiresIn: API_KEY_SECONDS },
+    );
   }
 
   /** Invalidates every MCP token the user holds, across all clients. */

@@ -241,6 +241,24 @@ describe('MCP endpoint with OAuth login', () => {
     expect(login.headers['x-frame-options']).toBe('DENY');
   });
 
+  it('a personal key works as a bearer token until disconnect', async () => {
+    const provider = app.get(McpOAuthProvider);
+    expect(await provider.issueApiKey(9)).toBeNull();
+    const apiKey = await provider.issueApiKey(42);
+    const whoami = () =>
+      request(server())
+        .post('/mcp')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .set('Accept', ACCEPT)
+        .send({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'whoami', arguments: {} } });
+    const call = await whoami();
+    expect(call.status).toBe(200);
+    expect(JSON.parse(call.body.result.content[0].text).userId).toBe(42);
+
+    await provider.disconnectAll(42);
+    expect((await whoami()).status).toBe(401);
+  });
+
   it('refuses GET', async () => {
     expect((await request(server()).get('/mcp')).status).toBe(405);
   });
