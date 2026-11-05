@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Request, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Post, Request, Res, UseGuards } from '@nestjs/common';
 import { Request as ExpressRequest, Response } from 'express';
 import { JwtAuthGuard } from '@shared/auth/jwt-auth.guard';
 import { AuthenticatedRequest } from '@shared/auth/auth.types';
@@ -58,6 +58,16 @@ export class McpOAuthController {
       return;
     }
     res.redirect(302, this.provider.issueCodeRedirect(request, user.id));
+  }
+
+  /** "Personal key" in the app settings, for AI apps whose OAuth login doesn't work. Not for admins or impersonation. */
+  @UseGuards(JwtAuthGuard)
+  @Post('api-key')
+  async apiKey(@Request() req: AuthenticatedRequest) {
+    const userId = req.user?.impersonated ? undefined : getUserIdFromUser(req.user, true);
+    const apiKey = userId ? await this.provider.issueApiKey(userId) : null;
+    if (!apiKey) throw new ForbiddenException();
+    return { apiKey };
   }
 
   /** "Disconnect" in the app settings: signs every connected AI client out. */
