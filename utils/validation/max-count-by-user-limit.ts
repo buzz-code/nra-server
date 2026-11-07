@@ -1,5 +1,5 @@
 import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
-import { DataSource, Not } from "typeorm";
+import { DataSource, FindOptionsWhere, Not, ObjectLiteral } from "typeorm";
 import { withTemporaryDataSource } from '../entity/temporaryDataSource.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { getCurrentUser } from './current-user.util';
@@ -19,9 +19,9 @@ export function MaxCountByUserLimit(entity: Function, getMaxLimit: GetMaxLimitTy
             },
             validator: {
                 async validate(value: any, args: ValidationArguments) {
-                    const fullObject = args.object as any;
+                    const fullObject = args.object as Record<string, any>;
                     const user = getCurrentUser();
-                    const entityFilter: any = {
+                    const entityFilter: FindOptionsWhere<ObjectLiteral> & { userId: number } = {
                         userId: fullObject.userId ?? getUserIdFromUser(user),
                         year: fullObject.year ?? getCurrentHebrewYear(),
                     };
