@@ -1,5 +1,5 @@
 import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
-import { LessThanOrEqual, MoreThanOrEqual, Not } from "typeorm";
+import { FindOptionsWhere, LessThanOrEqual, MoreThanOrEqual, Not, ObjectLiteral } from "typeorm";
 import { withTemporaryDataSource } from '../entity/temporaryDataSource.util';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { getCurrentUser } from './current-user.util';
@@ -25,7 +25,7 @@ export function IsUniqueDateRange(
                 async validate(value: any, args: ValidationArguments) {
                     if (!value) return true;
 
-                    const fullObject = args.object as any;
+                    const fullObject = args.object as Record<string, any>;
                     const startDate = fullObject[startDateField];
                     const endDate = fullObject[endDateField];
 
@@ -33,7 +33,7 @@ export function IsUniqueDateRange(
 
                     const user = getCurrentUser();
 
-                    const whereConditions: any = {
+                    const whereConditions: FindOptionsWhere<ObjectLiteral> = {
                         [startDateField]: LessThanOrEqual(endDate),
                         [endDateField]: MoreThanOrEqual(startDate),
                         userId: fullObject.userId ?? getUserIdFromUser(user),
