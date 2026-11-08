@@ -79,6 +79,18 @@ describe('MarkupToPdfReportGenerator', () => {
       expect(mockBrowser.close).toHaveBeenCalled();
     });
 
+    it('should turn a Page.printToPDF timeout into a PdfPrintTimeoutError without retrying', async () => {
+      mockPage.pdf.mockRejectedValue(new Error('waiting for Page.printToPDF failed: timeout 30000ms exceeded'));
+
+      await expect(generator.convertMarkupToPdf(markup)).rejects.toMatchObject({
+        name: 'PdfPrintTimeoutError',
+        code: 'PDF_PRINT_TIMEOUT',
+        timeoutMs: 30000,
+      });
+      expect(puppeteer.launch).toHaveBeenCalledTimes(1);
+      expect(mockBrowser.close).toHaveBeenCalled();
+    });
+
     it('should close browser even if PDF generation fails', async () => {
       const error = new Error('PDF generation error');
       mockPage.pdf.mockRejectedValue(error);

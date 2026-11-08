@@ -46,6 +46,21 @@ export class PdfRenderQueueTimeoutError extends Error {
   }
 }
 
+export const PDF_PRINT_TIMEOUT_CODE = 'PDF_PRINT_TIMEOUT';
+
+// Page.printToPDF ran out of time: the report is too heavy to print in one go (typically a
+// very large export). Retrying the same request cannot help, so unlike a busy queue this is
+// reported to the client as a request to narrow the report.
+export class PdfPrintTimeoutError extends Error {
+  readonly code = PDF_PRINT_TIMEOUT_CODE;
+
+  constructor(readonly timeoutMs: number, options?: { cause?: unknown }) {
+    super(`PDF print exceeded ${timeoutMs}ms`);
+    this.name = 'PdfPrintTimeoutError';
+    if (options?.cause !== undefined) (this as any).cause = options.cause;
+  }
+}
+
 // ---------------------------------------------------------------- queue ----
 
 let activeBrowserSlots = 0;
