@@ -96,6 +96,40 @@ describe("S3Service", () => {
         });
     });
 
+    describe("missing keys", () => {
+        const missing = () => Object.assign(new Error("Key not found"), { name: "NoSuchKey" });
+
+        it("still throws the wrapped error but logs a warning, not an error", async () => {
+            mockS3Client.send.mockRejectedValue(missing());
+            const errorLog = jest.spyOn((service as any).logger, "error").mockImplementation();
+            const warnLog = jest.spyOn((service as any).logger, "warn").mockImplementation();
+
+            await expect(service.getFileBuffer("my-bucket", "a/voice.json")).rejects.toThrow(
+                "S3 error: Key not found"
+            );
+            expect(errorLog).not.toHaveBeenCalled();
+            expect(warnLog).toHaveBeenCalledWith("File not found my-bucket/a/voice.json");
+        });
+
+        it("treats a 404 response the same way for streams", async () => {
+            mockS3Client.send.mockRejectedValue(
+                Object.assign(new Error("boom"), { $metadata: { httpStatusCode: 404 } })
+            );
+            const errorLog = jest.spyOn((service as any).logger, "error").mockImplementation();
+
+            await expect(service.getFileStream("my-bucket", "x")).rejects.toThrow("S3 error: boom");
+            expect(errorLog).not.toHaveBeenCalled();
+        });
+
+        it("keeps logging real failures as errors", async () => {
+            mockS3Client.send.mockRejectedValue(new Error("Timeout"));
+            const errorLog = jest.spyOn((service as any).logger, "error").mockImplementation();
+
+            await expect(service.getFileBuffer("my-bucket", "x")).rejects.toThrow("S3 error: Timeout");
+            expect(errorLog).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe("listFiles", () => {
         it("should send a ListObjectsV2Command with bucket and prefix", async () => {
             mockS3Client.send.mockResolvedValue({ Contents: [] });
