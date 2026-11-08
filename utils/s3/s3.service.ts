@@ -4,6 +4,19 @@ import { Readable } from "stream";
 
 export const S3_CLIENT = Symbol("S3_CLIENT");
 
+/**
+ * A missing object is an expected outcome for callers that probe for optional files
+ * (e.g. "is there a stored take yet?"), not a server failure.
+ */
+function isMissingKey(error: any): boolean {
+    return (
+        error?.name === "NoSuchKey" ||
+        error?.name === "NotFound" ||
+        error?.$metadata?.httpStatusCode === 404 ||
+        /key not found|does not exist/i.test(error?.message ?? "")
+    );
+}
+
 export interface S3ObjectSummary {
     key: string;
     size?: number;
@@ -41,7 +54,7 @@ export class S3Service {
         try {
             return await this.getObjectStream(bucket, key);
         } catch (error) {
-            this.logger.error(`Failed to get file stream ${bucket}/${key}: ${error.message}`, error.stack);
+            this.logFetchFailure("file stream", bucket, key, error);
             throw new Error(`S3 error: ${error.message}`);
         }
     }
@@ -54,7 +67,7 @@ export class S3Service {
             const stream = await this.getObjectStream(bucket, key);
             return await streamToBuffer(stream);
         } catch (error) {
-            this.logger.error(`Failed to get file buffer ${bucket}/${key}: ${error.message}`, error.stack);
+            this.logFetchFailure("file buffer", bucket, key, error);
             throw new Error(`S3 error: ${error.message}`);
         }
     }
@@ -93,6 +106,14 @@ export class S3Service {
             this.logger.error(`Failed to delete file ${bucket}/${key}: ${error.message}`, error.stack);
             throw new Error(`S3 error: ${error.message}`);
         }
+    }
+
+    private logFetchFailure(what: string, bucket: string, key: string, error: any): void {
+        if (isMissingKey(error)) {
+            this.logger.warn(`File not found ${bucket}/${key}`);
+            return;
+        }
+        this.logger.error(`Failed to get ${what} ${bucket}/${key}: ${error.message}`, error.stack);
     }
 
     private async getObjectStream(bucket: string, key: string): Promise<Readable> {
