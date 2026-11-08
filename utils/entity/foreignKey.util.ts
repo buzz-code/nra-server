@@ -2,7 +2,7 @@ import { databaseConfig } from "@shared/config/database.config";
 import { DataSource, DataSourceOptions, EntityTarget, FindOneOptions, ObjectLiteral } from "typeorm";
 
 export async function getDataSource(entities: DataSourceOptions['entities']) {
-    const dataSource = new DataSource(Object.assign(Object.assign({}, databaseConfig), { entities }));
+    const dataSource = new DataSource({ ...databaseConfig, entities });
     await dataSource.initialize();
     return dataSource;
 }
@@ -18,9 +18,9 @@ export async function findOneAndAssignReferenceId(
     if (keyValue && !referenceIdValue) {
         const item = await dataSource.getRepository(repository)
             .findOne({
-                where: Object.assign(Object.assign({}, where), { userId: userId })
+                where: { ...where, userId }
             });
-        return item === null || item === void 0 ? void 0 : item.id;
+        return item?.id;
     }
     return referenceIdValue;
 }
@@ -61,7 +61,7 @@ export async function findManyAndAssignReferenceIds(
     if (keyValue && !referenceIdValue) {
         const items = await dataSource.getRepository(repository)
             .find({
-                where: Object.assign(Object.assign({}, where), { userId: userId })
+                where: { ...where, userId }
             });
         return items.map(item => item.id);
     }
