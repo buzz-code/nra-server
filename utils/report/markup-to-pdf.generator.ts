@@ -7,6 +7,7 @@ import {
   PUPPETEER_LAUNCH_ARGS,
   getPdfRenderBudgetMs,
   getPdfRenderScope,
+  PdfPrintTimeoutError,
   releaseBrowserSlot,
 } from './pdf-render.queue';
 
@@ -112,11 +113,20 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
         await page.setContent(markup, { waitUntil: 'domcontentloaded' });
       }
 
-      return await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        timeout: getPdfPrintTimeoutMs(),
-      });
+      const printTimeoutMs = getPdfPrintTimeoutMs();
+      try {
+        return await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          timeout: printTimeoutMs,
+        });
+      } catch (e) {
+        // puppeteer: "waiting for Page.printToPDF failed: timeout 30000ms exceeded"
+        if (e instanceof Error && (e.name === 'TimeoutError' || /printToPDF.*timeout/i.test(e.message))) {
+          throw new PdfPrintTimeoutError(printTimeoutMs, { cause: e });
+        }
+        throw e;
+      }
     } finally {
       // Rows of a shared scope browser take their page with them, so a
       // many-row report can't pile up open pages; standalone browsers would

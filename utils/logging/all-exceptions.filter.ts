@@ -2,7 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpServer, HttpS
 import { snakeCase } from 'change-case';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { getTranslatedProperty } from '@shared/utils/validation/class-validator-he';
-import { PdfRenderQueueTimeoutError } from '@shared/utils/report/pdf-render.queue';
+import { PdfPrintTimeoutError, PdfRenderQueueTimeoutError } from '@shared/utils/report/pdf-render.queue';
 
 interface MysqlDriverError {
   code?: string;
@@ -119,6 +119,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
       this.httpAdapter.setHeader(response, 'Retry-After', String(PDF_RENDER_BUSY_RETRY_AFTER_SECONDS));
       this.httpAdapter.reply(response, body, HttpStatus.SERVICE_UNAVAILABLE);
+      return;
+    }
+
+    if (exception instanceof PdfPrintTimeoutError) {
+      // The report is too large to print: the user has to narrow it, so say so (413, not a bare 500).
+      this.logger.warn(exception.message);
+      const body = {
+        statusCode: HttpStatus.PAYLOAD_TOO_LARGE,
+        code: exception.code,
+        message: 'הדוח גדול מדי להפקה כ-PDF. יש לצמצם את הסינון (למשל לטווח תאריכים קצר יותר) או להוריד אותו כקובץ Excel.',
+      };
+      this.httpAdapter.reply(response, body, HttpStatus.PAYLOAD_TOO_LARGE);
       return;
     }
 

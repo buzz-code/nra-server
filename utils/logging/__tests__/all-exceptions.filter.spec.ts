@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
 import { AllExceptionsFilter } from '../all-exceptions.filter';
-import { PdfRenderQueueTimeoutError } from '../../report/pdf-render.queue';
+import { PdfPrintTimeoutError, PdfRenderQueueTimeoutError } from '../../report/pdf-render.queue';
 
 function buildFkViolation(referencingTable: string) {
   const sqlMessage = `Cannot delete or update a parent row: a foreign key constraint fails (\`app_db\`.\`${referencingTable}\`, CONSTRAINT \`FK_x\` FOREIGN KEY (\`teacherReferenceId\`) REFERENCES \`teachers\` (\`id\`))`;
@@ -47,6 +47,21 @@ describe('AllExceptionsFilter', () => {
         message: 'PDF generation is busy with other requests. Please try again in a few minutes.',
       },
       503,
+    );
+  });
+
+  it('replies 413 with an explanation (not a bare 500) when printing the PDF timed out', () => {
+    const httpAdapter = { reply: jest.fn() };
+    const filter = new AllExceptionsFilter(httpAdapter as any);
+    const response: any = {};
+
+    filter.catch(new PdfPrintTimeoutError(30000), buildHost(response));
+
+    expect(response.err).toBeUndefined();
+    expect(httpAdapter.reply).toHaveBeenCalledWith(
+      response,
+      expect.objectContaining({ statusCode: 413, code: 'PDF_PRINT_TIMEOUT', message: expect.stringContaining('הדוח גדול מדי') }),
+      413,
     );
   });
 
