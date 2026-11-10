@@ -2,7 +2,7 @@ import { DynamicModule, MiddlewareConsumer, Module, NestModule, Provider, Type }
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@shared/entities/User.entity';
 import { McpController } from './mcp.controller';
-import { DEFAULT_MCP_CONSENT, MCP_CONSENT, MCP_INSTRUCTIONS, MCP_TOOL, McpConsent, McpTool } from './mcp.types';
+import { DEFAULT_MCP_CONSENT, MCP_CONSENT, MCP_INSTRUCTIONS, MCP_PROMPTS, MCP_TOOL, McpConsent, McpPrompt, McpTool } from './mcp.types';
 import { McpOAuthProvider } from './oauth/mcp-oauth.provider';
 import { McpOAuthController } from './oauth/mcp-oauth.controller';
 import { McpAuthMiddleware } from './oauth/mcp-auth.middleware';
@@ -11,6 +11,8 @@ export interface McpModuleOptions {
   tools: Type<McpTool>[];
   /** Sent to every client on connect: what the app is and how to use its tools. */
   instructions?: string;
+  /** Prompt templates the user can pick in the AI app. */
+  prompts?: McpPrompt[];
   /** What the login page says the connection gives access to. Defaults to read access to usage statistics. */
   consent?: McpConsent;
 }
@@ -38,6 +40,7 @@ export class McpModule implements NestModule {
         ...options.tools,
         toolAggregator,
         { provide: MCP_INSTRUCTIONS, useValue: options.instructions ?? null },
+        { provide: MCP_PROMPTS, useValue: options.prompts ?? [] },
         { provide: MCP_CONSENT, useValue: options.consent ?? DEFAULT_MCP_CONSENT },
       ],
     };

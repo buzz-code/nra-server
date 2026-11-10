@@ -44,5 +44,21 @@ export interface McpTool<Shape extends ZodRawShape = ZodRawShape> {
   handler(input: any, ctx: McpToolContext): Promise<unknown>;
 }
 
+/**
+ * A prompt template on `/mcp` (prompts/list): a ready-made request the user picks in the AI app
+ * (often as a slash command). `build` turns the user's arguments into the message sent to the model.
+ * MCP prompt arguments are strings; mark optional ones with `.optional()`.
+ */
+export interface McpPrompt<Shape extends ZodRawShape = ZodRawShape> {
+  name: string;
+  title?: string;
+  description: string;
+  argsSchema?: Shape;
+  build(args: Record<string, string | undefined>): string;
+}
+
+/** DI token for the app's MCP prompts. */
+export const MCP_PROMPTS = 'MCP_PROMPTS';
+
 /** An error whose message is shown to the user (nothing found, no active game). Other errors are hidden. */
 export class McpToolError extends Error {}

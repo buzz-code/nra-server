@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Inject, Optional, Post, Request, Res } f
 import { Request as ExpressRequest, Response } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { buildMcpServer } from './mcp-server.factory';
-import { MCP_INSTRUCTIONS, MCP_TOOL, McpTool } from './mcp.types';
+import { MCP_INSTRUCTIONS, MCP_PROMPTS, MCP_TOOL, McpPrompt, McpTool } from './mcp.types';
 import { McpOAuthProvider } from './oauth/mcp-oauth.provider';
 import { mcpBaseUrl, resourceMetadataUrl } from './oauth/mcp-auth.middleware';
 
@@ -16,6 +16,7 @@ export class McpController {
     private readonly oauth: McpOAuthProvider,
     @Inject(MCP_TOOL) private readonly tools: McpTool[],
     @Optional() @Inject(MCP_INSTRUCTIONS) private readonly instructions?: string | null,
+    @Optional() @Inject(MCP_PROMPTS) private readonly prompts?: McpPrompt[] | null,
   ) {}
 
   /** Streamable HTTP, stateless: a fresh server + transport per request, JSON responses, no sessions. */
@@ -35,6 +36,7 @@ export class McpController {
       this.tools,
       { userId: auth.extra.userId as number, baseUrl: mcpBaseUrl(req) ?? undefined },
       this.instructions ?? undefined,
+      this.prompts ?? [],
     );
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on('close', () => {
