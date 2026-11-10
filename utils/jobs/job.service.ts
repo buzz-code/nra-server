@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThanOrEqual, Like, Repository } from 'typeorm';
+import { In, LessThan, LessThanOrEqual, Like, Repository } from 'typeorm';
 import { Job, JobStatus } from '@shared/entities/Job.entity';
 import { JobResult } from './job.types';
 
@@ -94,6 +94,40 @@ export class JobService {
       }
     }
     return claimed;
+  }
+
+  /** Renews a running job's lock, so releaseStale leaves it alone. */
+  async heartbeat(job: Job): Promise<void> {
+    job.lockedAt = new Date();
+    await this.repo.update({ id: job.id, lockedBy: job.lockedBy }, { lockedAt: job.lockedAt });
+  }
+
+  /**
+   * Running jobs whose lock wasn't renewed for `ttlMs` belong to a worker that
+   * died (killed mid-deploy, crashed): put them back to pending so a live
+   * worker resumes them. Returns how many were released.
+   */
+  async releaseStale(ttlMs: number): Promise<number> {
+    const now = new Date();
+    const res = await this.repo.update(
+      { status: 'running', lockedAt: LessThan(new Date(now.getTime() - ttlMs)) },
+      { status: 'pending', lockedAt: null, lockedBy: null, availableAt: now },
+    );
+    return res.affected ?? 0;
+  }
+
+  /**
+   * The worker stopped (shutdown) before or while running the job: back to
+   * pending at once, and the attempt it took is given back - a deploy is not
+   * a failure.
+   */
+  async release(job: Job): Promise<void> {
+    job.status = 'pending';
+    job.lockedAt = null;
+    job.lockedBy = null;
+    job.availableAt = new Date();
+    job.attempts = Math.max(job.attempts - 1, 0);
+    await this.repo.save(job);
   }
 
   async markCompleted(job: Job, result?: JobResult | null): Promise<void> {

@@ -108,6 +108,31 @@ describe('JobService', () => {
     });
   });
 
+  describe('restarts', () => {
+    it('releaseStale puts running jobs with an old lock back to pending', async () => {
+      const repo = makeRepo({ update: jest.fn().mockResolvedValue({ affected: 2 }) });
+      expect(await new JobService(repo).releaseStale(60_000)).toBe(2);
+      const [where, set] = repo.update.mock.calls[0];
+      expect(where.status).toBe('running');
+      expect(where.lockedAt.type).toBe('lessThan');
+      expect(Date.now() - where.lockedAt.value.getTime()).toBeGreaterThanOrEqual(60_000);
+      expect(set).toMatchObject({ status: 'pending', lockedAt: null, lockedBy: null });
+    });
+
+    it('heartbeat renews only the lock this worker holds', async () => {
+      const repo = makeRepo();
+      await new JobService(repo).heartbeat({ id: 3, lockedBy: 'w1' } as Job);
+      expect(repo.update).toHaveBeenCalledWith({ id: 3, lockedBy: 'w1' }, { lockedAt: expect.any(Date) });
+    });
+
+    it('release returns the job to pending and gives back its attempt', async () => {
+      const repo = makeRepo();
+      const job = { id: 4, status: 'running', attempts: 2, lockedBy: 'w1', lockedAt: new Date() } as Job;
+      await new JobService(repo).release(job);
+      expect(repo.save).toHaveBeenCalledWith(expect.objectContaining({ status: 'pending', attempts: 1, lockedBy: null, lockedAt: null }));
+    });
+  });
+
   describe('markCompleted', () => {
     it('sets completed state and result', async () => {
       const repo = makeRepo();

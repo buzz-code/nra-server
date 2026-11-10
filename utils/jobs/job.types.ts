@@ -15,6 +15,18 @@ export interface JobResult {
   [key: string]: any;
 }
 
+/** Passed to a handler alongside its job. */
+export interface JobContext {
+  /**
+   * Aborted when the process shuts down (a deploy). A long handler checks it
+   * between safe steps, saves its progress (e.g. into job.payload) and throws:
+   * the job then goes back to pending, without using up an attempt, and the
+   * next instance resumes it. A handler that ignores it simply runs on until
+   * the shutdown wait (JOB_SHUTDOWN_WAIT_MS) ends.
+   */
+  signal: AbortSignal;
+}
+
 /**
  * A unit of background work. Handlers are Nest providers registered via
  * JobsModule; they receive their own dependencies through DI.
@@ -22,5 +34,5 @@ export interface JobResult {
 export interface JobHandler {
   /** Unique key matched against Job.type. */
   readonly type: string;
-  handle(job: Job): Promise<JobResult | void>;
+  handle(job: Job, context?: JobContext): Promise<JobResult | void>;
 }
