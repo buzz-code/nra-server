@@ -1,11 +1,11 @@
 import { Logger } from '@nestjs/common';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { McpTool, McpToolContext, McpToolError } from './mcp.types';
+import { McpPrompt, McpTool, McpToolContext, McpToolError } from './mcp.types';
 
 const logger = new Logger('Mcp');
 
 /** One server per request (stateless transport); each tool runs as `ctx.userId`. */
-export function buildMcpServer(tools: McpTool[], ctx: McpToolContext, instructions?: string): McpServer {
+export function buildMcpServer(tools: McpTool[], ctx: McpToolContext, instructions?: string, prompts: McpPrompt[] = []): McpServer {
   const server = new McpServer({ name: 'nra-stats', version: '1.0.0' }, instructions ? { instructions } : undefined);
   for (const tool of tools) {
     server.registerTool(
@@ -23,6 +23,13 @@ export function buildMcpServer(tools: McpTool[], ctx: McpToolContext, instructio
           return { content: [{ type: 'text' as const, text }], isError: true };
         }
       },
+    );
+  }
+  for (const prompt of prompts) {
+    server.registerPrompt(
+      prompt.name,
+      { title: prompt.title, description: prompt.description, argsSchema: prompt.argsSchema },
+      (args: any) => ({ messages: [{ role: 'user' as const, content: { type: 'text' as const, text: prompt.build(args ?? {}) } }] }),
     );
   }
   return server;
