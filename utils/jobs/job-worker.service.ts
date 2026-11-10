@@ -9,6 +9,13 @@ import { JOB_HANDLER, JobHandler, JobResult } from './job.types';
 const MAX_IDLE_MS = Number(process.env.JOB_POLL_MS) || 5 * 60_000;
 const ERROR_RETRY_MS = 30_000;
 const BATCH = Number(process.env.JOB_WORKER_BATCH) || 5;
+// A running job's lock is renewed this often while its handler runs; one not
+// renewed for LOCK_TTL_MS belongs to a dead worker and is released to pending.
+const LOCK_TTL_MS = Number(process.env.JOB_LOCK_TTL_MS) || 10 * 60_000;
+const HEARTBEAT_MS = Math.max(Math.floor(LOCK_TTL_MS / 4), 1000);
+// On shutdown, how long to wait for the job in progress. Fits the containers'
+// stop_grace_period (40s) after gracefulShutdown's 5s proxy wait.
+const SHUTDOWN_WAIT_MS = Number(process.env.JOB_SHUTDOWN_WAIT_MS) || 25_000;
 
 /**
  * Runs due jobs from the jobs table. Instead of polling on a fixed interval it
@@ -20,6 +27,12 @@ const BATCH = Number(process.env.JOB_WORKER_BATCH) || 5;
  * Disabled by default; set WORKER_ENABLED=true on the instance(s) that should
  * process jobs (typically a dedicated worker process, or the single API
  * container for small deployments).
+ *
+ * Restarts: on shutdown the worker claims nothing more, aborts the running
+ * handler's signal (JobContext) and waits up to JOB_SHUTDOWN_WAIT_MS; a job
+ * that stops on the signal goes back to pending for the next instance. A
+ * worker killed outright stops renewing its locks, and its running jobs are
+ * released after JOB_LOCK_TTL_MS.
  */
 @Injectable()
 export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -31,6 +44,8 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
   private stopped = false;
   private timer: NodeJS.Timeout | null = null;
   private lastReconcileAt = 0;
+  private readonly shutdown = new AbortController();
+  private polling: Promise<void> | null = null;
 
   constructor(
     @Inject(JOB_HANDLER) handlers: JobHandler[],
@@ -55,11 +70,18 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
     this.wake();
   }
 
-  onModuleDestroy(): void {
+  async onModuleDestroy(): Promise<void> {
     this.stopped = true;
     if (this.timer) {
       clearTimeout(this.timer);
     }
+    this.shutdown.abort();
+    if (!this.polling) {
+      return;
+    }
+    let timeout: NodeJS.Timeout;
+    await Promise.race([this.polling, new Promise((resolve) => (timeout = setTimeout(resolve, SHUTDOWN_WAIT_MS)))]);
+    clearTimeout(timeout);
   }
 
   /** Run due jobs now (or right after the current batch) and re-arm the timer. */
@@ -78,10 +100,15 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
     void this.poll();
   }
 
-  async poll(): Promise<void> {
-    if (!JobWorkerService.isEnabled() || this.busy) {
-      return;
+  poll(): Promise<void> {
+    if (!JobWorkerService.isEnabled() || this.busy || this.stopped) {
+      return Promise.resolve();
     }
+    this.polling = this.runPoll().finally(() => (this.polling = null));
+    return this.polling;
+  }
+
+  private async runPoll(): Promise<void> {
     this.busy = true;
     let delay = MAX_IDLE_MS;
     try {
@@ -89,11 +116,15 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
         this.lastReconcileAt = Date.now();
         await this.scheduleSync.reconcile().catch((err) => this.logger.error(`schedule reconcile failed: ${err?.message}`));
       }
+      const released = await this.jobService.releaseStale(LOCK_TTL_MS);
+      if (released) {
+        this.logger.warn(`released ${released} stale running job(s) of a stopped worker`);
+      }
       let claimed: number;
       do {
         this.rerun = false;
         claimed = await this.processBatch();
-      } while (claimed === BATCH || this.rerun);
+      } while (!this.stopped && (claimed === BATCH || this.rerun));
       const next = await this.jobService.nextAvailableAt();
       if (next) {
         delay = Math.min(Math.max(next.getTime() - Date.now(), 0), MAX_IDLE_MS);
@@ -116,6 +147,11 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
   async processBatch(): Promise<number> {
     const jobs = await this.jobService.claimNext(this.workerId, BATCH);
     for (const job of jobs) {
+      if (this.stopped) {
+        // Claimed but not started: hand it straight back.
+        await this.jobService.release(job);
+        continue;
+      }
       await this.runJob(job);
     }
     return jobs.length;
@@ -137,16 +173,27 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
         this.logger.error(`schedule ${scheduleId} chaining failed: ${err?.message}`);
       }
     }
+    const heartbeat = setInterval(() => {
+      this.jobService.heartbeat(job).catch((err) => this.logger.error(`job ${job.id} heartbeat failed: ${err?.message}`));
+    }, HEARTBEAT_MS);
     try {
-      const result = (await handler.handle(job)) || null;
+      const result = (await handler.handle(job, { signal: this.shutdown.signal })) || null;
       await this.jobService.markCompleted(job, result);
       await this.notify(job, result);
     } catch (err) {
+      if (this.shutdown.signal.aborted) {
+        // Stopped for the shutdown, not failed: the next instance resumes it.
+        this.logger.log(`job ${job.id} (${job.type}) interrupted by shutdown, back to pending`);
+        await this.jobService.release(job);
+        return;
+      }
       this.logger.error(`job ${job.id} (${job.type}) failed: ${err?.message}`);
       await this.jobService.markFailed(job, err?.message ?? 'unknown error');
       if (job.status === 'failed') {
         await this.notify(job, null);
       }
+    } finally {
+      clearInterval(heartbeat);
     }
   }
 

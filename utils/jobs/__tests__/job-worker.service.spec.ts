@@ -17,6 +17,9 @@ describe('JobWorkerService', () => {
       markFailed: jest.fn(),
       nextAvailableAt: jest.fn().mockResolvedValue(null),
       onEnqueue: jest.fn(),
+      releaseStale: jest.fn().mockResolvedValue(0),
+      release: jest.fn(),
+      heartbeat: jest.fn().mockResolvedValue(undefined),
     } as any;
   }
 
@@ -33,7 +36,7 @@ describe('JobWorkerService', () => {
     worker = new JobWorkerService([handler], jobService, makeScheduleSync());
     const job = { id: 1, type: 'demo', payload: {} } as Job;
     await worker.runJob(job);
-    expect(handler.handle).toHaveBeenCalledWith(job);
+    expect(handler.handle).toHaveBeenCalledWith(job, { signal: expect.any(AbortSignal) });
     expect(jobService.markCompleted).toHaveBeenCalledWith(job, { summary: 'ok' });
   });
 
@@ -113,6 +116,81 @@ describe('JobWorkerService', () => {
     const job = { id: 9, type: 'demo', payload: {}, attempts: 1, dedupeKey: 'sched-4-x' } as Job;
     await worker.runJob(job);
     expect(jobService.markCompleted).toHaveBeenCalledWith(job, null);
+  });
+
+  describe('restarts', () => {
+    it('releases stale running jobs of a dead worker before claiming', async () => {
+      process.env.WORKER_ENABLED = 'true';
+      const jobService = makeJobService();
+      worker = new JobWorkerService([], jobService, makeScheduleSync());
+      await worker.poll();
+      expect(jobService.releaseStale).toHaveBeenCalledWith(10 * 60_000);
+      expect(jobService.releaseStale.mock.invocationCallOrder[0]).toBeLessThan(jobService.claimNext.mock.invocationCallOrder[0]);
+    });
+
+    it('on shutdown aborts the handler, waits for it and puts its job back to pending', async () => {
+      process.env.WORKER_ENABLED = 'true';
+      let started: () => void;
+      const running = new Promise<void>((resolve) => (started = resolve));
+      const handler: JobHandler = {
+        type: 'demo',
+        handle: jest.fn((_job, { signal }) => {
+          started();
+          return new Promise((_resolve, reject) => signal.addEventListener('abort', () => setTimeout(() => reject(new Error('stopped')), 10)));
+        }),
+      };
+      const job = { id: 10, type: 'demo', payload: {}, attempts: 1 } as Job;
+      const jobService = makeJobService();
+      jobService.claimNext.mockResolvedValue([job]);
+      worker = new JobWorkerService([handler], jobService, makeScheduleSync());
+      void worker.poll();
+      await running;
+      await worker.onModuleDestroy();
+      expect(jobService.release).toHaveBeenCalledWith(job);
+      expect(jobService.markFailed).not.toHaveBeenCalled();
+      // Stopped: no more polls.
+      await worker.poll();
+      expect(jobService.claimNext).toHaveBeenCalledTimes(1);
+    });
+
+    it('a job that finishes during the shutdown wait is completed', async () => {
+      process.env.WORKER_ENABLED = 'true';
+      const handler: JobHandler = { type: 'demo', handle: jest.fn(() => new Promise((resolve) => setTimeout(() => resolve({ summary: 'ok' }), 20))) };
+      const job = { id: 11, type: 'demo', payload: {} } as Job;
+      const jobService = makeJobService();
+      jobService.claimNext.mockResolvedValue([job]);
+      worker = new JobWorkerService([handler], jobService, makeScheduleSync());
+      void worker.poll();
+      await new Promise((r) => setTimeout(r, 5));
+      await worker.onModuleDestroy();
+      expect(jobService.markCompleted).toHaveBeenCalledWith(job, { summary: 'ok' });
+      expect(jobService.release).not.toHaveBeenCalled();
+    });
+
+    it('hands back jobs claimed but not started when stopping', async () => {
+      const jobs = [{ id: 12, type: 'demo' }, { id: 13, type: 'demo' }] as Job[];
+      const jobService = makeJobService();
+      jobService.claimNext.mockResolvedValue(jobs);
+      let worker2: JobWorkerService;
+      const handler: JobHandler = { type: 'demo', handle: jest.fn(async () => { void worker2.onModuleDestroy(); }) };
+      worker2 = worker = new JobWorkerService([handler], jobService, makeScheduleSync());
+      await worker.processBatch();
+      expect(handler.handle).toHaveBeenCalledTimes(1);
+      expect(jobService.markCompleted).toHaveBeenCalledWith(jobs[0], null);
+      expect(jobService.release).toHaveBeenCalledWith(jobs[1]);
+    });
+
+    it('renews the lock while the handler runs', async () => {
+      jest.useFakeTimers();
+      const handler: JobHandler = { type: 'demo', handle: jest.fn(() => new Promise((resolve) => setTimeout(resolve, 6 * 60_000))) };
+      const jobService = makeJobService();
+      worker = new JobWorkerService([handler], jobService, makeScheduleSync());
+      const run = worker.runJob({ id: 14, type: 'demo', payload: {} } as Job);
+      await jest.advanceTimersByTimeAsync(6 * 60_000);
+      await run;
+      expect(jobService.heartbeat).toHaveBeenCalledTimes(2);
+      jest.useRealTimers();
+    });
   });
 
   describe('timer', () => {
