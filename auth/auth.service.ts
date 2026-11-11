@@ -101,6 +101,17 @@ export class AuthService {
     });
   }
 
+  getUserFromToken(token?: string): IAuthenticatedUser | undefined {
+    if (!token) {
+      return undefined;
+    }
+    try {
+      return this.jwtService.verify(token);
+    } catch {
+      return undefined;
+    }
+  }
+
   async getCookieForLogOut(user?: IAuthenticatedUser) {
     if (!user?.impersonated) {
       return cookie.serialize('Authentication', '', {
