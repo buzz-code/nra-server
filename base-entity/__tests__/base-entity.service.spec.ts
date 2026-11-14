@@ -61,13 +61,6 @@ describe('BaseEntityService', () => {
       name: string;
       userId?: number;
     }
-    const options = {
-      model: {
-        type: TestEntity,
-        options: {}
-      }
-    };
-
     const mockRepository = {
       target: TestEntity,
       manager: {
