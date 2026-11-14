@@ -136,10 +136,7 @@ export class AuthService {
   }
 
   async getProfile(userId: number) {
-    const user = await this.userRepository.findOneBy({ id: userId });
-    if (!user) {
-      throw new Error('User not found');
-    }
+    const user = await this.findUserOrThrow(userId);
 
     if (!user.additionalData?.yemotWebhookToken) {
       user.additionalData = {
@@ -158,10 +155,7 @@ export class AuthService {
   }
 
   async updateSettings(userId: number, data: any) {
-    const user = await this.userRepository.findOneBy({ id: userId });
-    if (!user) {
-      throw new Error('User not found');
-    }
+    const user = await this.findUserOrThrow(userId);
 
     user.additionalData = {
       ...user.additionalData,
@@ -173,10 +167,7 @@ export class AuthService {
   }
 
   async updateProfile(userId: number, data: UpdateProfileData) {
-    const user = await this.userRepository.findOneBy({ id: userId });
-    if (!user) {
-      throw new Error('User not found');
-    }
+    const user = await this.findUserOrThrow(userId);
 
     const update: Partial<User> = {};
     if (data.phoneNumber !== undefined) {
@@ -197,6 +188,14 @@ export class AuthService {
       await this.userRepository.update(user.id, update);
     }
     return { success: true };
+  }
+
+  private async findUserOrThrow(userId: number): Promise<User> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return user;
   }
 
   private async validateMailAddressAlias(userId: number, alias: string) {

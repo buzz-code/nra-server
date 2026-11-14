@@ -103,7 +103,7 @@ describe('BulkToPdfReportGenerator render scope', () => {
       .mockResolvedValue(onePagePdfBuffer);
     const bulkGenerator = new BulkToPdfReportGenerator(new TestMarkupToPdfGenerator(() => 'test'));
 
-    const result = await bulkGenerator.getFileBuffer([1, 2, 3]);
+    await bulkGenerator.getFileBuffer([1, 2, 3]);
 
     expect(puppeteer.launch).toHaveBeenCalledTimes(2); // shared browser relaunched once
 
