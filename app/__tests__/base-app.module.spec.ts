@@ -28,6 +28,17 @@ describe('BaseNraAppModule', () => {
       expect(result.controllers).toContain(AppController);
     });
 
+    it('registers project controllers after AppController', () => {
+      class ProjectController { }
+      const result = BaseNraAppModule.forRoot({
+        entitiesModule: FakeEntitiesModule,
+        yemotHandlerService: FakeYemotHandlerService as any,
+        controllers: [ProjectController],
+      });
+
+      expect(result.controllers).toEqual([AppController, ProjectController]);
+    });
+
     it('includes AppService in providers', () => {
       const result = BaseNraAppModule.forRoot({
         entitiesModule: FakeEntitiesModule,
