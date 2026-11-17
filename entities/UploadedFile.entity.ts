@@ -6,6 +6,7 @@ import { StringType } from "@shared/utils/entity/class-transformer";
 import { CreatedAtColumn, UpdatedAtColumn } from "@shared/utils/entity/column-types.util";
 import { IHasUserId } from "@shared/base-entity/interface";
 import { FileData } from "./Image.entity";
+import { IsNotBlobFile } from "@shared/utils/validation/is-not-blob-file";
 
 @Entity("uploaded_files")
 export class UploadedFile implements IHasUserId {
@@ -31,6 +32,7 @@ export class UploadedFile implements IHasUserId {
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+    @IsNotBlobFile({ always: true })
     @Column(() => FileData)
     fileData: FileData;
 
