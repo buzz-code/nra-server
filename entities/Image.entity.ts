@@ -4,6 +4,7 @@ import { CrudValidationGroups } from "@dataui/crud";
 import { IsNotEmpty, IsUniqueCombination, MaxLength } from "@shared/utils/validation/class-validator-he";
 import { StringType } from "@shared/utils/entity/class-transformer";
 import { MediumTextColumn, TextColumn } from "@shared/utils/entity/column-types.util";
+import { IsNotBlobFile } from "@shared/utils/validation/is-not-blob-file";
 
 export enum ImageTargetEnum {
     reportLogo = 'לוגו לתעודה',
@@ -33,6 +34,7 @@ export class Image {
 
     @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
     @IsNotEmpty({ groups: [CrudValidationGroups.CREATE] })
+    @IsNotBlobFile({ always: true })
     @Column(() => FileData)
     fileData: FileData;
 
