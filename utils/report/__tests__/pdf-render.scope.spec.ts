@@ -7,7 +7,7 @@ jest.mock('puppeteer');
 
 describe('BulkToPdfReportGenerator render scope', () => {
   class TestMarkupToPdfGenerator extends MarkupToPdfReportGenerator {
-    async getFileBuffer(data: any): Promise<Buffer> {
+    async getFileBuffer(): Promise<Buffer> {
       return this.convertMarkupToPdf('<div>row</div>');
     }
   }
@@ -119,7 +119,7 @@ describe('MarkupToPdfReportGenerator outside a scope', () => {
   // Sanity check: without a bulk report around it, every conversion still owns
   // its own browser.
   class TestMarkupToPdfGenerator extends MarkupToPdfReportGenerator {
-    async getFileBuffer(data: any): Promise<Buffer> {
+    async getFileBuffer(): Promise<Buffer> {
       return this.convertMarkupToPdf('<div>row</div>');
     }
   }
