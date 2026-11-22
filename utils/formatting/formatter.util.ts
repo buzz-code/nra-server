@@ -77,3 +77,12 @@ export const formatDisplayName = (value: any) => {
     if ('name' in value && value.name) return value.name;
     return null;
 }
+
+const hebrewWeekdays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+
+export const getHebrewWeekdayFormatter = (key: string) =>
+    row => formatHebrewWeekday(getValueByPath(row, key));
+
+// Date-only columns load as UTC midnight (the DB connection is UTC), so the UTC weekday is the right one
+export const formatHebrewWeekday = (value: any) =>
+    value && new Date(value).toString() !== 'Invalid Date' ? hebrewWeekdays[new Date(value).getUTCDay()] : null;

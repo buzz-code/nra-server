@@ -124,3 +124,20 @@ describe('Formatter Utils', () => {
     });
   });
 });
+describe('formatHebrewWeekday', () => {
+    const { formatHebrewWeekday, getHebrewWeekdayFormatter } = require('../formatter.util');
+
+    it('returns the Hebrew weekday of a date-only value', () => {
+        expect(formatHebrewWeekday(new Date('2026-11-22'))).toBe('ראשון');
+        expect(formatHebrewWeekday('2026-11-28')).toBe('שבת');
+    });
+
+    it('returns null for empty or invalid values', () => {
+        expect(formatHebrewWeekday(null)).toBeNull();
+        expect(formatHebrewWeekday('not a date')).toBeNull();
+    });
+
+    it('reads the value by path', () => {
+        expect(getHebrewWeekdayFormatter('report.date')({ report: { date: '2026-11-23' } })).toBe('שני');
+    });
+});
