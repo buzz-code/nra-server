@@ -29,6 +29,9 @@ const SUPPORT_PICK_SECONDS = 10 * 60;
 /** How long an admin may open a support session for, in minutes. */
 export const SUPPORT_MINUTES = [10, 15, 30, 60, 120];
 
+/** The site's built-in admin (`ADMIN_USER=name:password`), which has no row in `users`. */
+const ENV_ADMIN_ID = -1;
+
 /** A support session the admin picked: who to read as, and for how long. */
 export interface SupportGrant {
   adminId: number;
@@ -114,6 +117,7 @@ export class McpOAuthProvider implements OAuthServerProvider {
   /** Checks email + password like the site login. An admin gets the support-session picker next. */
   async login(email: string, password: string): Promise<User | null> {
     if (!email || !password) return null;
+    if (process.env.ADMIN_USER && `${email}:${password}` === process.env.ADMIN_USER) return envAdmin();
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user || !(await bcrypt.compare(password, user.password))) return null;
     return user;
@@ -150,7 +154,7 @@ export class McpOAuthProvider implements OAuthServerProvider {
   async sessionUser(cookieHeader: string | undefined): Promise<User | null> {
     const token = cookie.parse(cookieHeader ?? '').Authentication;
     if (!token || !process.env.JWT_SECRET) return null;
-    let session: { id?: number; impersonated?: boolean };
+    let session: { id?: number; impersonated?: boolean; permissions?: any };
     try {
       session = new JwtService({ secret: process.env.JWT_SECRET }).verify(token);
     } catch {
@@ -158,6 +162,7 @@ export class McpOAuthProvider implements OAuthServerProvider {
     }
     // Same user the password login would pick: the cookie's own id, never an impersonated one.
     if (!session?.id || session.impersonated) return null;
+    if (session.id === ENV_ADMIN_ID) return process.env.ADMIN_USER && isAdmin(session) ? envAdmin() : null;
     return (await this.userRepository.findOneBy({ id: session.id })) ?? null;
   }
 
@@ -275,6 +280,11 @@ export class McpOAuthProvider implements OAuthServerProvider {
 
   /** The admin's token version, or null when they are gone or no longer an admin. */
   private async adminTokenVersion(adminId: number): Promise<number | null> {
+    // The built-in admin has no row to keep a version in: changing ADMIN_USER revokes its sessions.
+    if (adminId === ENV_ADMIN_ID) {
+      if (!process.env.ADMIN_USER) return null;
+      return parseInt(createHmac('sha256', this.secret).update(process.env.ADMIN_USER).digest('hex').slice(0, 8), 16);
+    }
     const admin = await this.userRepository.findOneBy({ id: adminId });
     if (!admin || !isAdmin(admin)) return null;
     return admin.additionalData?.mcpTokenVersion ?? 0;
@@ -319,4 +329,8 @@ export class McpOAuthProvider implements OAuthServerProvider {
       return null;
     }
   }
+}
+
+function envAdmin(): User {
+  return { id: ENV_ADMIN_ID, name: 'admin', email: 'admin', permissions: { admin: true } } as User;
 }
