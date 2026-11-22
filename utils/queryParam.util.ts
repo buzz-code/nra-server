@@ -2,9 +2,10 @@ export function ifNotUndefined<T>(value: T | undefined): T | undefined {
     return value !== 'undefined' ? value : undefined;
 }
 
-export function getAsDate(dateStr: string | undefined): Date | undefined {
+// An empty date input arrives in the query string as 'null' or ''
+export function getAsDate(dateStr: string | null | undefined): Date | undefined {
     const val = ifNotUndefined(dateStr);
-    return val !== undefined ? new Date(val) : undefined;
+    return val === undefined || val === null || val === 'null' || val === '' ? undefined : new Date(val);
 }
 
 export function getAsString(value: string | undefined): string | undefined {
