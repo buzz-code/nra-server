@@ -25,6 +25,15 @@ const REFRESH_TOKEN_SECONDS = 60 * 60 * 24 * 90;
 const CODE_SECONDS = 5 * 60;
 const LOGIN_REQUEST_SECONDS = 15 * 60;
 const API_KEY_SECONDS = 60 * 60 * 24 * 365;
+const SUPPORT_PICK_SECONDS = 10 * 60;
+/** How long an admin may open a support session for, in minutes. */
+export const SUPPORT_MINUTES = [10, 15, 30, 60, 120];
+
+/** A support session the admin picked: who to read as, and for how long. */
+export interface SupportGrant {
+  adminId: number;
+  minutes: number;
+}
 
 /** A pending authorization, carried through the login form as a signed token. */
 export interface LoginRequest {
@@ -42,7 +51,9 @@ export interface LoginRequest {
  * signed JWTs (own secret derived from JWT_SECRET), so there are no tables. Registered client ids
  * carry their metadata; confidential clients get a secret derived from their id.
  * Revocation bumps `user.additionalData.mcpTokenVersion`, which disconnects all of that user's clients.
- * Admins can't connect, so a token always maps to exactly one user.
+ * A token always maps to exactly one non-admin user. An admin who signs in picks a user and a duration instead:
+ * that "support" token reads as the user, expires at the chosen time with no refresh token, and is revoked
+ * with the admin's own token version (the admin's "disconnect").
  */
 @Injectable()
 export class McpOAuthProvider implements OAuthServerProvider {
@@ -100,17 +111,41 @@ export class McpOAuthProvider implements OAuthServerProvider {
     return this.verify(token, 'login')?.request ?? null;
   }
 
-  /** Checks email + password like the site login. Admins are refused. */
+  /** Checks email + password like the site login. An admin gets the support-session picker next. */
   async login(email: string, password: string): Promise<User | null> {
     if (!email || !password) return null;
     const user = await this.userRepository.findOne({ where: { email } });
-    if (!user || isAdmin(user) || !(await bcrypt.compare(password, user.password))) return null;
+    if (!user || !(await bcrypt.compare(password, user.password))) return null;
     return user;
+  }
+
+  /** Carries a signed-in admin from the login form to the support picker. */
+  signSupportPick(request: LoginRequest, adminId: number): string {
+    return this.jwt.sign({ typ: 'support-pick', adminId, request }, { expiresIn: SUPPORT_PICK_SECONDS });
+  }
+
+  async verifySupportPick(token: string): Promise<{ adminId: number; request: LoginRequest } | null> {
+    const payload = this.verify(token, 'support-pick');
+    if (!payload || (await this.adminTokenVersion(payload.adminId)) === null) return null;
+    return { adminId: payload.adminId, request: payload.request };
+  }
+
+  /** Users an admin can open a support session on (not admins). */
+  async supportUsers(): Promise<Pick<User, 'id' | 'name' | 'email'>[]> {
+    const users = await this.userRepository.find({ select: ['id', 'name', 'email', 'permissions'], order: { name: 'ASC' } });
+    return users.filter((u) => !isAdmin(u)).map(({ id, name, email }) => ({ id, name, email }));
+  }
+
+  /** The user a support session would read as, or null if there's no such non-admin user. */
+  async supportTarget(userId: number): Promise<User | null> {
+    if (!Number.isInteger(userId) || userId <= 0) return null;
+    const user = await this.userRepository.findOneBy({ id: userId });
+    return user && !isAdmin(user) ? user : null;
   }
 
   /**
    * The user signed in to the site in this browser (its `Authentication` cookie), for one-click approval.
-   * Refuses admins and impersonation, like the password login.
+   * Refuses impersonation; an admin gets the support picker, like the password login.
    */
   async sessionUser(cookieHeader: string | undefined): Promise<User | null> {
     const token = cookie.parse(cookieHeader ?? '').Authentication;
@@ -123,14 +158,12 @@ export class McpOAuthProvider implements OAuthServerProvider {
     }
     // Same user the password login would pick: the cookie's own id, never an impersonated one.
     if (!session?.id || session.impersonated) return null;
-    const user = await this.userRepository.findOneBy({ id: session.id });
-    if (!user || isAdmin(user)) return null;
-    return user;
+    return (await this.userRepository.findOneBy({ id: session.id })) ?? null;
   }
 
   /** The redirect back to the client after a successful login. */
-  issueCodeRedirect(request: LoginRequest, userId: number): string {
-    const code = this.jwt.sign({ typ: 'code', userId, request }, { expiresIn: CODE_SECONDS });
+  issueCodeRedirect(request: LoginRequest, userId: number, support?: SupportGrant): string {
+    const code = this.jwt.sign({ typ: 'code', userId, request, support }, { expiresIn: CODE_SECONDS });
     const url = new URL(request.redirectUri);
     url.searchParams.set('code', code);
     if (request.state !== undefined) url.searchParams.set('state', request.state);
@@ -147,9 +180,10 @@ export class McpOAuthProvider implements OAuthServerProvider {
     _codeVerifier?: string,
     redirectUri?: string,
   ): Promise<OAuthTokens> {
-    const { userId, request, exp } = this.verifyCode(client, code);
+    const { userId, request, exp, support } = this.verifyCode(client, code);
     if (redirectUri && redirectUri !== request.redirectUri) throw new InvalidGrantError('redirect_uri mismatch');
     this.markCodeUsed(code, exp);
+    if (support) return this.issueSupportToken(client.client_id, userId, support);
     return this.issueTokens(client.client_id, userId, request.scopes ?? [], await this.tokenVersion(userId));
   }
 
@@ -164,6 +198,19 @@ export class McpOAuthProvider implements OAuthServerProvider {
   async verifyAccessToken(token: string): Promise<AuthInfo> {
     const payload = this.verify(token, 'access');
     if (!payload) throw new InvalidTokenError('Invalid access token');
+    if (payload.adminId) {
+      const adminVersion = await this.adminTokenVersion(payload.adminId);
+      if (adminVersion === null || adminVersion !== payload.v || !(await this.supportTarget(payload.userId))) {
+        throw new InvalidTokenError('Support session revoked');
+      }
+      return {
+        token,
+        clientId: payload.clientId,
+        scopes: payload.scopes ?? [],
+        expiresAt: payload.exp,
+        extra: { userId: payload.userId, adminId: payload.adminId },
+      };
+    }
     const version = await this.tokenVersion(payload.userId);
     if (version === null || version !== payload.v) throw new InvalidTokenError('Access token revoked');
     return {
@@ -177,7 +224,7 @@ export class McpOAuthProvider implements OAuthServerProvider {
 
   async revokeToken(_client: OAuthClientInformationFull, request: OAuthTokenRevocationRequest): Promise<void> {
     const payload = this.verify(request.token, 'access') ?? this.verify(request.token, 'refresh');
-    if (payload) await this.disconnectAll(payload.userId);
+    if (payload) await this.disconnectAll(payload.adminId ?? payload.userId);
   }
 
   /**
@@ -213,6 +260,26 @@ export class McpOAuthProvider implements OAuthServerProvider {
     };
   }
 
+  /** A support session: an access token only, ending at the chosen time; the client signs in again after it. */
+  private async issueSupportToken(clientId: string, userId: number, { adminId, minutes }: SupportGrant): Promise<OAuthTokens> {
+    const v = await this.adminTokenVersion(adminId);
+    if (v === null || !SUPPORT_MINUTES.includes(minutes)) throw new InvalidGrantError('Invalid support grant');
+    const seconds = minutes * 60;
+    return {
+      access_token: this.jwt.sign({ typ: 'access', clientId, userId, adminId, scopes: ['support'], v }, { expiresIn: seconds }),
+      token_type: 'bearer',
+      expires_in: seconds,
+      scope: 'support',
+    };
+  }
+
+  /** The admin's token version, or null when they are gone or no longer an admin. */
+  private async adminTokenVersion(adminId: number): Promise<number | null> {
+    const admin = await this.userRepository.findOneBy({ id: adminId });
+    if (!admin || !isAdmin(admin)) return null;
+    return admin.additionalData?.mcpTokenVersion ?? 0;
+  }
+
   /** null when the user is gone or became an admin, which also invalidates their tokens. */
   private async tokenVersion(userId: number): Promise<number | null> {
     const user = await this.userRepository.findOneBy({ id: userId });
@@ -225,7 +292,7 @@ export class McpOAuthProvider implements OAuthServerProvider {
     if (!payload || payload.request.clientId !== client.client_id || this.usedCodes.has(code)) {
       throw new InvalidGrantError('Invalid authorization code');
     }
-    return payload as { userId: number; request: LoginRequest; exp: number };
+    return payload as { userId: number; request: LoginRequest; exp: number; support?: SupportGrant };
   }
 
   private markCodeUsed(code: string, exp: number) {

@@ -11,6 +11,8 @@ import { MCP_TOOL, McpTool } from '../mcp.types';
 import { McpOAuthProvider } from '../oauth/mcp-oauth.provider';
 import { McpOAuthController } from '../oauth/mcp-oauth.controller';
 import { McpAuthMiddleware } from '../oauth/mcp-auth.middleware';
+import { McpSupportService } from '../support/mcp-support.service';
+import { getDataSourceToken } from '@nestjs/typeorm';
 
 const ACCEPT = 'application/json, text/event-stream';
 
@@ -23,6 +25,36 @@ describe('MCP endpoint with OAuth login', () => {
     inputSchema: {},
     handler: async (_input, ctx) => ({ userId: ctx.userId, baseUrl: ctx.baseUrl }),
   };
+  const writeTool: McpTool = {
+    name: 'write_thing',
+    description: 'Writes',
+    inputSchema: {},
+    annotations: { readOnlyHint: false },
+    handler: async () => 'written',
+  };
+  const sqlRun: string[] = [];
+  const audits: any[] = [];
+  const dataSource = {
+    entityMetadatas: [
+      { tableName: 'games', columns: [{ propertyName: 'id', databaseName: 'id' }, { propertyName: 'userId', databaseName: 'user_id' }] },
+      { tableName: 'lookups', columns: [{ propertyName: 'id', databaseName: 'id' }] },
+      {
+        tableName: 'users',
+        columns: ['id', 'name', 'password', 'additionalData'].map((c) => ({ propertyName: c, databaseName: c })),
+      },
+    ],
+    driver: { database: 'app_db' },
+    query: async () => [{ name: 'games' }, { name: 'lookups' }, { name: 'users' }],
+    getRepository: () => ({ insert: async (row) => audits.push(row) }),
+    createQueryRunner: () => ({
+      connect: async () => undefined,
+      release: async () => undefined,
+      query: async (sql: string) => {
+        sqlRun.push(sql);
+        return sql.startsWith('WITH') ? [{ id: 1 }] : undefined;
+      },
+    }),
+  };
 
   beforeAll(async () => {
     process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
@@ -34,6 +66,7 @@ describe('MCP endpoint with OAuth login', () => {
     const userRepo = {
       findOne: async ({ where }) => Object.values(users).find((u) => u.email === where.email) ?? null,
       findOneBy: async ({ id }) => users[id] ?? null,
+      find: async () => Object.values(users),
       update: async (id, patch) => Object.assign(users[id], patch),
     };
     const moduleRef = await Test.createTestingModule({
@@ -41,8 +74,10 @@ describe('MCP endpoint with OAuth login', () => {
       providers: [
         McpOAuthProvider,
         McpAuthMiddleware,
+        McpSupportService,
         { provide: getRepositoryToken(User), useValue: userRepo },
-        { provide: MCP_TOOL, useValue: [tool] },
+        { provide: getDataSourceToken(), useValue: dataSource },
+        { provide: MCP_TOOL, useValue: [tool, writeTool] },
       ],
     }).compile();
     app = moduleRef.createNestApplication();
@@ -61,7 +96,7 @@ describe('MCP endpoint with OAuth login', () => {
   const siteCookie = (payload: object) =>
     `Authentication=${new JwtService({ secret: process.env.JWT_SECRET }).sign(payload)}`;
 
-  type LoginStep = (loginRequest: string) => request.Test;
+  type LoginStep = (loginRequest: string) => PromiseLike<request.Response>;
   const passwordLogin =
     (email: string, password: string): LoginStep =>
     (loginRequest) =>
@@ -161,9 +196,110 @@ describe('MCP endpoint with OAuth login', () => {
     expect(refreshed.body.access_token).toBeTruthy();
   });
 
-  it('refuses a wrong password and admins', async () => {
+  it('refuses a wrong password', async () => {
     expect((await connect('user@test', 'wrong')).login.status).toBe(401);
-    expect((await connect('admin@test', 'secret')).login.status).toBe(401);
+    expect((await connect('admin@test', 'wrong')).login.status).toBe(401);
+  });
+
+  describe('admin support session', () => {
+    const rpc = (token: string, method: string, params?: object) =>
+      request(server())
+        .post('/mcp')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Accept', ACCEPT)
+        .send({ jsonrpc: '2.0', id: 1, method, params });
+    const pickStep =
+      (userId: string, minutes: string, login: LoginStep = passwordLogin('admin@test', 'secret')): LoginStep =>
+      async (loginRequest) => {
+        const picker = await login(loginRequest);
+        expect(picker.status).toBe(200);
+        expect(picker.text).toContain('<option value="42">');
+        expect(picker.text).not.toContain('<option value="9">');
+        const pick = /name="pick" value="([^"]+)"/.exec(picker.text)[1];
+        return request(server()).post('/mcp/oauth/support').type('form').send({ pick, userId, minutes });
+      };
+
+    beforeEach(() => {
+      users[9].permissions = { admin: true };
+      users[9].additionalData = {};
+      sqlRun.length = 0;
+      audits.length = 0;
+    });
+
+    it('signs in an admin, picks a user and duration, and reads only as that user', async () => {
+      const { login, token } = await connectWith(pickStep('42', '15'));
+      expect(login.status).toBe(302);
+      expect(token.status).toBe(200);
+      expect(token.body.expires_in).toBe(15 * 60);
+      expect(token.body.refresh_token).toBeUndefined();
+      expect(audits[0]).toMatchObject({ userId: 9, entityId: 42, entityName: 'mcp_support', operation: 'support_grant' });
+
+      const list = await rpc(token.body.access_token, 'tools/list');
+      expect(list.body.result.tools.map((t) => t.name).sort()).toEqual(['sql_query', 'sql_schema', 'whoami']);
+
+      const whoami = await rpc(token.body.access_token, 'tools/call', { name: 'whoami', arguments: {} });
+      expect(JSON.parse(whoami.body.result.content[0].text).userId).toBe(42);
+
+      const schema = await rpc(token.body.access_token, 'tools/call', { name: 'sql_schema', arguments: {} });
+      expect(JSON.parse(schema.body.result.content[0].text)).toEqual([
+        { table: 'games', columns: ['id', 'user_id'] },
+        { table: 'users', columns: ['id', 'name'] },
+      ]);
+
+      const query = await rpc(token.body.access_token, 'tools/call', { name: 'sql_query', arguments: { sql: 'select id from games' } });
+      expect(JSON.parse(query.body.result.content[0].text)).toMatchObject({ rows: [{ id: 1 }], rowCount: 1 });
+      expect(sqlRun).toEqual([
+        'SET SESSION max_execution_time = 10000',
+        'START TRANSACTION READ ONLY',
+        'WITH `games` AS (SELECT * FROM `app_db`.`games` WHERE `user_id` = 42) SELECT `id` FROM `games` LIMIT 200',
+        'ROLLBACK',
+        'SET SESSION max_execution_time = DEFAULT',
+      ]);
+      expect(audits[1]).toMatchObject({ userId: 9, entityId: 42, operation: 'sql_query', entityData: { sql: 'select id from games', rows: 1 } });
+
+      const refused = await rpc(token.body.access_token, 'tools/call', { name: 'sql_query', arguments: { sql: 'select * from lookups' } });
+      expect(refused.body.result.isError).toBe(true);
+      expect(audits[2]).toMatchObject({ operation: 'sql_refused' });
+    });
+
+    it('opens from the admin\'s own site session too', async () => {
+      const { login } = await connectWith(pickStep('42', '10', sessionApprove(siteCookie({ id: 9 }))));
+      expect(login.status).toBe(302);
+    });
+
+    it('refuses an admin or unknown user as the target, and a duration off the list', async () => {
+      expect((await connectWith(pickStep('9', '15'))).login.status).toBe(400);
+      expect((await connectWith(pickStep('12345', '15'))).login.status).toBe(400);
+      expect((await connectWith(pickStep('42', '600'))).login.status).toBe(400);
+      expect(audits).toHaveLength(0);
+    });
+
+    it('refuses a forged or expired pick', async () => {
+      const res = await request(server()).post('/mcp/oauth/support').type('form').send({ pick: 'x', userId: '42', minutes: '15' });
+      expect(res.status).toBe(400);
+    });
+
+    it('ends when the admin disconnects or stops being an admin', async () => {
+      const first = (await connectWith(pickStep('42', '15'))).token.body.access_token;
+      expect((await rpc(first, 'ping')).status).toBe(200);
+      await app.get(McpOAuthProvider).disconnectAll(9);
+      expect((await rpc(first, 'ping')).status).toBe(401);
+
+      const second = (await connectWith(pickStep('42', '15'))).token.body.access_token;
+      users[9].permissions = {};
+      expect((await rpc(second, 'ping')).status).toBe(401);
+    });
+
+    it('ends at the chosen time', async () => {
+      const token = (await connectWith(pickStep('42', '10'))).token.body.access_token;
+      const now = Date.now();
+      jest.spyOn(Date, 'now').mockReturnValue(now + 11 * 60 * 1000);
+      try {
+        expect((await rpc(token, 'ping')).status).toBe(401);
+      } finally {
+        jest.restoreAllMocks();
+      }
+    });
   });
 
   it('revoking a token disconnects the user', async () => {
@@ -211,7 +347,6 @@ describe('MCP endpoint with OAuth login', () => {
     expect((await connectWith(sessionApprove(user, 'https://evil.example'))).login.status).toBe(401);
     expect((await connectWith(sessionApprove(user, ''))).login.status).toBe(401);
     expect((await connectWith(sessionApprove(siteCookie({ id: 42, impersonated: true })))).login.status).toBe(401);
-    expect((await connectWith(sessionApprove(siteCookie({ id: 9 })))).login.status).toBe(401);
     expect((await connectWith(sessionApprove(siteCookie({ id: -1, permissions: { admin: true } })))).login.status).toBe(
       401,
     );

@@ -36,6 +36,8 @@ export interface BaseNraAppModuleOptions {
   mcpPrompts?: McpPrompt[];
   /** What the MCP login page says the connection gives access to. Defaults to read access to usage statistics. */
   mcpConsent?: McpConsent;
+  /** Serve `/mcp` even without tools, for admin support sessions (read-only SQL on one user's rows). */
+  mcpSupport?: boolean;
 }
 
 @Module({})
@@ -57,7 +59,7 @@ export class BaseNraAppModule {
         options.entitiesModule,
         AuthModule.forRoot({ userInitModule }),
         YemotModule.register(options.yemotHandlerService),
-        ...(options.mcpTools?.length ? [McpModule.forRoot({ tools: options.mcpTools, instructions: options.mcpInstructions, prompts: options.mcpPrompts, consent: options.mcpConsent })] : []),
+        ...(options.mcpTools?.length || options.mcpSupport ? [McpModule.forRoot({ tools: options.mcpTools ?? [], instructions: options.mcpInstructions, prompts: options.mcpPrompts, consent: options.mcpConsent })] : []),
       ],
       controllers: [AppController],
       providers: [
