@@ -34,6 +34,7 @@ describe('AuthService', () => {
                     provide: JwtService,
                     useValue: {
                         sign: jest.fn(),
+                        verify: jest.fn(),
                     },
                 },
                 {
@@ -581,6 +582,22 @@ describe('AuthService', () => {
                 await expect(service.updateProfile(userId, { mailAddressAlias: 'new-alias' })).rejects.toThrow(ServiceUnavailableException);
                 expect(userRepository.update).not.toHaveBeenCalled();
             });
+        });
+    });
+
+    describe('getUserFromToken', () => {
+        it('returns undefined without a token', () => {
+            expect(service.getUserFromToken(undefined)).toBeUndefined();
+        });
+
+        it('returns the verified payload', () => {
+            (jwtService.verify as jest.Mock).mockReturnValue({ id: 3 });
+            expect(service.getUserFromToken('tok')).toEqual({ id: 3 });
+        });
+
+        it('returns undefined for an invalid token', () => {
+            (jwtService.verify as jest.Mock).mockImplementation(() => { throw new Error('bad'); });
+            expect(service.getUserFromToken('tok')).toBeUndefined();
         });
     });
 });

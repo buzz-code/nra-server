@@ -33,6 +33,7 @@ describe('AppController', () => {
             getProfile: jest.fn().mockResolvedValue({}),
             updateSettings: jest.fn().mockResolvedValue({}),
             updateProfile: jest.fn().mockResolvedValue({}),
+            getUserFromToken: jest.fn().mockReturnValue(undefined),
           },
         },
         {
@@ -211,6 +212,25 @@ describe('AppController', () => {
       attachments: [{ filename: 'file.txt', path: body.files[0].src }],
     });
     expect(result).toEqual({ success: true });
+  });
+
+  it('should mark an anonymous contact form submission as not logged in', async () => {
+    await appController.submitContact({ name: 'A', email: 'a@b.com', message: 'hi' }, undefined, { cookies: {} } as any);
+
+    expect(mailSendService.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ html: expect.stringContaining('לא מחובר') }),
+    );
+  });
+
+  it('should add the logged in user to the contact form mail', async () => {
+    (authService.getUserFromToken as jest.Mock).mockReturnValue({ id: 7, email: 'user@school.com', name: 'School' });
+
+    await appController.submitContact({ name: 'A', email: 'a@b.com', message: 'hi' }, undefined, { cookies: { Authentication: 'tok' } } as any);
+
+    expect(authService.getUserFromToken).toHaveBeenCalledWith('tok');
+    expect(mailSendService.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ html: expect.stringContaining('user@school.com, מזהה 7') }),
+    );
   });
 
   it('should reject a contact form submission missing required fields', async () => {

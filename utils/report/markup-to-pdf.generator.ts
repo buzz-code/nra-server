@@ -82,7 +82,7 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
     }
 
     await acquireBrowserSlot(queueDeadline);
-    let browser;
+    let browser: Browser | undefined;
     try {
       browser = await puppeteer.launch({ args: PUPPETEER_LAUNCH_ARGS });
       return await this.renderPdfOnBrowser(browser, markup);

@@ -16,7 +16,7 @@ import { AppService } from './app.service';
 import { AuthService, UpdateProfileData } from '@shared/auth/auth.service';
 import { JwtAuthGuard } from '@shared/auth/jwt-auth.guard';
 import { LocalAuthGuard } from '@shared/auth/local-auth.guard';
-import { Response } from 'express';
+import { Request as ExpressRequest, Response } from 'express';
 import { LocalRegisterAuthGuard } from '@shared/auth/local-register-auth.guard';
 import { getUserIdFromUser } from '@shared/auth/auth.util';
 import { isAdmin } from '@shared/utils/permissionsUtil';
@@ -123,10 +123,11 @@ export class AppController {
 
   @Post('contact')
   @HttpCode(200)
-  async submitContact(@Body() body: ContactFormBody, @Headers('origin') origin?: string) {
+  async submitContact(@Body() body: ContactFormBody, @Headers('origin') origin?: string, @Request() req?: ExpressRequest) {
     if (!body?.name || !body?.email || !body?.message) {
       throw new BadRequestException('נא למלא שם, אימייל והודעה');
     }
+    const loggedInUser = this.authService.getUserFromToken(req?.cookies?.Authentication);
     const html = `
       <p><b>שם:</b> ${body.name}</p>
       <p><b>אימייל:</b> ${body.email}</p>
@@ -134,6 +135,7 @@ export class AppController {
       <p><b>הודעה:</b></p>
       <p>${body.message}</p>
       ${origin ? `<p><b>מקור:</b> ${origin}</p>` : ''}
+      <p><b>משתמש מחובר:</b> ${loggedInUser ? `${loggedInUser.name || ''} (${loggedInUser.email}, מזהה ${loggedInUser.id})` : 'לא מחובר'}</p>
     `;
     await this.mailSendService.sendMail({
       to: CONTACT_MAIL_TO,
