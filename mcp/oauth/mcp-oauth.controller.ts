@@ -26,7 +26,7 @@ export class McpOAuthController {
     }
     const user = await this.provider.login(body.email, body.password);
     if (!user) {
-      sendLoginPage(res, 401, this.provider.loginPage(request, 'מייל או סיסמה שגויים'));
+      sendLoginPage(res, 401, this.provider.loginPage(request, 'שם משתמש או סיסמה שגויים'));
       return;
     }
     await this.finishLogin(res, request, user);

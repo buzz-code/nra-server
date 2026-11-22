@@ -262,6 +262,28 @@ describe('MCP endpoint with OAuth login', () => {
       expect(audits[2]).toMatchObject({ operation: 'sql_refused' });
     });
 
+    it('opens for the built-in admin (ADMIN_USER), by password or site session', async () => {
+      process.env.ADMIN_USER = 'admin:topsecret';
+      try {
+        const byPassword = await connectWith(pickStep('42', '15', passwordLogin('admin', 'topsecret')));
+        expect(byPassword.token.status).toBe(200);
+        expect(audits[0]).toMatchObject({ userId: -1, entityId: 42, operation: 'support_grant' });
+        expect((await rpc(byPassword.token.body.access_token, 'ping')).status).toBe(200);
+
+        const bySession = await connectWith(pickStep('42', '10', sessionApprove(siteCookie({ id: -1, permissions: { admin: true } }))));
+        expect(bySession.login.status).toBe(302);
+
+        process.env.ADMIN_USER = 'admin:changed';
+        expect((await rpc(byPassword.token.body.access_token, 'ping')).status).toBe(401);
+      } finally {
+        delete process.env.ADMIN_USER;
+      }
+    });
+
+    it('refuses the built-in admin when ADMIN_USER is not set', async () => {
+      expect((await connectWith(passwordLogin('admin', 'topsecret'))).login.status).toBe(401);
+    });
+
     it('opens from the admin\'s own site session too', async () => {
       const { login } = await connectWith(pickStep('42', '10', sessionApprove(siteCookie({ id: 9 }))));
       expect(login.status).toBe(302);
