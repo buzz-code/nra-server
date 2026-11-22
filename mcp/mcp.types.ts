@@ -26,6 +26,8 @@ export const DEFAULT_MCP_CONSENT: McpConsent = {
 /** Who the call runs as. Always one real, non-admin user — set by shared code, never by a tool. */
 export interface McpToolContext {
   userId: number;
+  /** Set when an admin opened a time-limited support session on this user: only read-only tools, plus SQL. */
+  support?: { adminId: number; expiresAt: number };
   /** The server URL the client called (e.g. https://api.example.com), for links a tool returns. */
   baseUrl?: string;
 }

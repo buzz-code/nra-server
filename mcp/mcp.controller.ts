@@ -5,6 +5,7 @@ import { buildMcpServer } from './mcp-server.factory';
 import { MCP_INSTRUCTIONS, MCP_PROMPTS, MCP_TOOL, McpPrompt, McpTool } from './mcp.types';
 import { McpOAuthProvider } from './oauth/mcp-oauth.provider';
 import { mcpBaseUrl, resourceMetadataUrl } from './oauth/mcp-auth.middleware';
+import { McpSupportService } from './support/mcp-support.service';
 
 const methodNotAllowed = (res: Response) => res.status(405).setHeader('Allow', 'POST').json({ error: 'method not allowed' });
 
@@ -15,6 +16,7 @@ export class McpController {
   constructor(
     private readonly oauth: McpOAuthProvider,
     @Inject(MCP_TOOL) private readonly tools: McpTool[],
+    private readonly support: McpSupportService,
     @Optional() @Inject(MCP_INSTRUCTIONS) private readonly instructions?: string | null,
     @Optional() @Inject(MCP_PROMPTS) private readonly prompts?: McpPrompt[] | null,
   ) {}
@@ -32,9 +34,19 @@ export class McpController {
         .json({ error: 'unauthorized' });
       return;
     }
+    const adminId = auth.extra.adminId as number | undefined;
+    const ctx = {
+      userId: auth.extra.userId as number,
+      baseUrl: mcpBaseUrl(req) ?? undefined,
+      support: adminId ? { adminId, expiresAt: auth.expiresAt } : undefined,
+    };
+    // A support session only reads: the app's read-only tools, plus SQL on the user's rows.
+    const tools = adminId
+      ? [...this.tools.filter((t) => (t.annotations?.readOnlyHint ?? true) && !t.annotations?.destructiveHint), ...this.support.tools()]
+      : this.tools;
     const server = buildMcpServer(
-      this.tools,
-      { userId: auth.extra.userId as number, baseUrl: mcpBaseUrl(req) ?? undefined },
+      tools,
+      ctx,
       this.instructions ?? undefined,
       this.prompts ?? [],
     );

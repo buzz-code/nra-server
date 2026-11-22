@@ -6,6 +6,7 @@ import { DEFAULT_MCP_CONSENT, MCP_CONSENT, MCP_INSTRUCTIONS, MCP_PROMPTS, MCP_TO
 import { McpOAuthProvider } from './oauth/mcp-oauth.provider';
 import { McpOAuthController } from './oauth/mcp-oauth.controller';
 import { McpAuthMiddleware } from './oauth/mcp-auth.middleware';
+import { McpSupportService } from './support/mcp-support.service';
 
 export interface McpModuleOptions {
   tools: Type<McpTool>[];
@@ -37,6 +38,7 @@ export class McpModule implements NestModule {
       providers: [
         McpOAuthProvider,
         McpAuthMiddleware,
+        McpSupportService,
         ...options.tools,
         toolAggregator,
         { provide: MCP_INSTRUCTIONS, useValue: options.instructions ?? null },
