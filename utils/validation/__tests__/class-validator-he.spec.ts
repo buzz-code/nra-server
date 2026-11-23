@@ -10,6 +10,7 @@ import {
     MaxLength,
     IsNumber,
     IsInt,
+    IsHebrewYear,
     MaxCountByUserLimit,
     getTranslatedConstraint,
 } from '../class-validator-he';
@@ -133,6 +134,34 @@ describe('class-validator-he', () => {
             test.key = 1.7;
             const result = await validate(test);
             expect(result).not.toEqual([]);
+        });
+    });
+
+    describe('IsHebrewYear', () => {
+        class Test {
+            @IsHebrewYear() year: number;
+        }
+
+        it('should accept a Hebrew year', async () => {
+            const test = new Test();
+            test.year = 5787;
+            expect(await validate(test)).toEqual([]);
+        });
+
+        it('should reject a number outside the Hebrew year range with one message', async () => {
+            const test = new Test();
+            test.year = 300899044;
+            const result = await validate(test);
+            expect(result).toHaveLength(1);
+            expect(Object.values(result[0].constraints)).toEqual([
+                expect.stringContaining('שנה עברית בין 5780 ל-5900'),
+            ]);
+        });
+
+        it('should reject a Gregorian year', async () => {
+            const test = new Test();
+            test.year = 2026;
+            expect(await validate(test)).toHaveLength(1);
         });
     });
 

@@ -36,6 +36,13 @@ export const Min = (min: number, validationOptions?: ValidationOptions): Propert
     _Min(min, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות לפחות $constraint1') });
 export const Max = (max: number, validationOptions?: ValidationOptions): PropertyDecorator =>
     _Max(max, { ...validationOptions, message: getErrorMessageFunction('$property חייב להיות לכל היותר $constraint1') });
+// Hebrew year sanity range: rejects values from misaligned import columns (e.g. an ID number in the year column)
+export const MIN_HEBREW_YEAR = 5780;
+export const MAX_HEBREW_YEAR = 5900;
+export const IsHebrewYear = (validationOptions?: ValidationOptions): PropertyDecorator => {
+    const options = { ...validationOptions, message: getErrorMessageFunction(`$property חייב להיות שנה עברית בין ${MIN_HEBREW_YEAR} ל-${MAX_HEBREW_YEAR}$value`) };
+    return applyDecorators(_Min(MIN_HEBREW_YEAR, options), _Max(MAX_HEBREW_YEAR, options));
+};
 export const IsDate = (validationOptions?: ValidationOptions): PropertyDecorator =>
     _IsDate({ ...validationOptions, message: getErrorMessageFunction('$property חייב להיות תאריך $value') });
 export const IsBoolean = (validationOptions?: ValidationOptions): PropertyDecorator =>
