@@ -653,6 +653,16 @@ describe('BaseEntityService', () => {
               expect(result).toBe('עודכנו 2 רשומות');
             });
 
+            it('should reject a value the entity validation rejects, without updating', async () => {
+              (service as any).bulkEditFields = ['count'];
+              const bulkEditUtil = require('../../utils/entity/bulkEdit.util');
+              const spy = jest.spyOn(bulkEditUtil, 'validateBulkEditUpdate').mockRejectedValue(new Error('count must be a positive number'));
+
+              await expect(service.doAction(bulkEditReq, {})).rejects.toThrow('count must be a positive number');
+              expect((repository as any).update).not.toHaveBeenCalled();
+              spy.mockRestore();
+            });
+
             it('should ignore fields that are not in bulkEditFields', async () => {
               (service as any).bulkEditFields = ['count'];
               const req = { ...bulkEditReq, parsed: { ...bulkEditReq.parsed, extra: { action: 'bulkEdit', ids: '1', name: 'x' } } } as unknown as CrudRequest;

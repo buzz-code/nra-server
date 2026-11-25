@@ -1,4 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
+import { CrudValidationGroups } from '@dataui/crud';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { EntityMetadata } from 'typeorm';
 import { getAsBoolean, getAsDate, getAsNumber, getAsString } from '@shared/utils/queryParam.util';
 
@@ -67,4 +70,23 @@ export function getBulkEditFieldsByColumnType(metadata: EntityMetadata, fieldNam
     }
   }
   return fields;
+}
+
+/**
+ * Runs the entity's own update validation rules (class-validator, UPDATE group) on the
+ * bulk edit values, so a bulk edit cannot store a value that a single-row edit rejects.
+ * Only the fields being updated are checked. Throws BadRequestException on the first error.
+ */
+export async function validateBulkEditUpdate(entityClass: Function | string, update: Record<string, any>): Promise<void> {
+  if (typeof entityClass !== 'function') return;
+  const instance = plainToInstance(entityClass as new () => object, update);
+  const errors = await validate(instance, {
+    groups: [CrudValidationGroups.UPDATE],
+    skipMissingProperties: true,
+    validationError: { target: false },
+  });
+  const fieldError = errors.find((error) => error.property in update && error.constraints);
+  if (fieldError) {
+    throw new BadRequestException(Object.values(fieldError.constraints)[0]);
+  }
 }
