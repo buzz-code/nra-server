@@ -14,7 +14,7 @@ import { getUserIdFromUser } from "@shared/auth/auth.util";
 import { isAdmin } from "@shared/utils/permissionsUtil";
 import { getAsNumberArray } from "@shared/utils/queryParam.util";
 import { fixTimezoneShift } from "@shared/utils/entity/fixTimezoneShift.util";
-import { getBulkEditFieldsByColumnType, getBulkEditUpdate } from "@shared/utils/entity/bulkEdit.util";
+import { getBulkEditFieldsByColumnType, getBulkEditUpdate, validateBulkEditUpdate } from "@shared/utils/entity/bulkEdit.util";
 import { validateNotTrialEnded } from "./base-entity.util";
 
 export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
@@ -212,6 +212,7 @@ export class BaseEntityService<T extends Entity> extends TypeOrmCrudService<T> {
         if (Object.keys(update).length === 0) {
             return 'לא נבחרו שדות לעדכון';
         }
+        await validateBulkEditUpdate(repo.metadata.target, update);
         const result = await repo.update({ id: In(selectedIds) }, update);
         return `עודכנו ${result.affected} רשומות`;
     }

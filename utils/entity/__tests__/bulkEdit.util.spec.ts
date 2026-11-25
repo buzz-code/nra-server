@@ -1,4 +1,20 @@
-import { getBulkEditFieldsByColumnType, getBulkEditUpdate } from '../bulkEdit.util';
+import { CrudValidationGroups } from '@dataui/crud';
+import { IsNumber, IsOptional, IsPositive, MaxLength } from 'class-validator';
+import { getBulkEditFieldsByColumnType, getBulkEditUpdate, validateBulkEditUpdate } from '../bulkEdit.util';
+
+class TestEntity {
+  @IsOptional({ groups: [CrudValidationGroups.UPDATE] })
+  @IsNumber({}, { always: true })
+  @IsPositive({ always: true })
+  count: number;
+
+  @IsOptional({ always: true })
+  @IsNumber({}, { always: true })
+  other: number;
+
+  @MaxLength(5, { always: true })
+  comment: string;
+}
 
 describe('bulkEdit.util', () => {
   describe('getBulkEditUpdate', () => {
@@ -61,6 +77,25 @@ describe('bulkEdit.util', () => {
 
     it('should throw on a field that is not a column', () => {
       expect(() => getBulkEditFieldsByColumnType(metadata, ['missing'])).toThrow('missing');
+    });
+  });
+
+  describe('validateBulkEditUpdate', () => {
+    it('should reject a value the entity rejects on update', async () => {
+      await expect(validateBulkEditUpdate(TestEntity, { count: 0 })).rejects.toThrow('count must be a positive number');
+      await expect(validateBulkEditUpdate(TestEntity, { count: -1 })).rejects.toThrow('count must be a positive number');
+    });
+
+    it('should accept valid values', async () => {
+      await expect(validateBulkEditUpdate(TestEntity, { count: 2, other: 0 })).resolves.toBeUndefined();
+    });
+
+    it('should not check fields that are not updated', async () => {
+      await expect(validateBulkEditUpdate(TestEntity, { other: 0 })).resolves.toBeUndefined();
+    });
+
+    it('should skip validation when the target is not a class', async () => {
+      await expect(validateBulkEditUpdate('att_report', { count: 0 })).resolves.toBeUndefined();
     });
   });
 });
