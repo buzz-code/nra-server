@@ -85,7 +85,7 @@ export class McpSupportService {
       await runner.connect();
       await runner.query(`SET SESSION max_execution_time = ${QUERY_TIMEOUT_MS}`);
       await runner.query('START TRANSACTION READ ONLY');
-      const rows: any[] = await runner.query(scoped);
+      const rows: Record<string, unknown>[] = await runner.query(scoped);
       await this.audit(ctx.support.adminId, ctx.userId, 'sql_query', { sql, rows: rows.length, ms: Date.now() - started });
       return { rows: rows.map(trimRow), rowCount: rows.length, truncated: rows.length >= MAX_ROWS };
     } catch (e) {
