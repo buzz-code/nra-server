@@ -82,7 +82,7 @@ export class McpOAuthController {
     }
     const user = sameOrigin(req) ? await this.provider.sessionUser(req.headers.cookie) : null;
     if (!user) {
-      sendLoginPage(res, 401, this.provider.loginPage(request, 'לא נמצאה התחברות פעילה. התחברו עם מייל וסיסמה.'));
+      sendLoginPage(res, 401, this.provider.loginPage(request, 'לא נמצאה התחברות פעילה. התחברו עם שם משתמש או מייל וסיסמה.'));
       return;
     }
     await this.finishLogin(res, request, user);
