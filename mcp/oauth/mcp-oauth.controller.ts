@@ -16,7 +16,7 @@ const EXPIRED_PAGE = '<p dir="rtl">פג תוקף הבקשה. חזרו לאפלי
 export class McpOAuthController {
   constructor(private readonly provider: McpOAuthProvider, private readonly support: McpSupportService) {}
 
-  /** The login form from the authorize page; on success, redirects back to the client with a code. */
+  /** The login form from the authorize page; on success, redirects back to the client with a code (an admin picks a support session first). */
   @Post('login')
   async login(@Body() body: { request?: string; email?: string; password?: string }, @Res() res: Response) {
     const request = this.provider.verifyLoginRequest(body?.request ?? '');
@@ -82,7 +82,7 @@ export class McpOAuthController {
     }
     const user = sameOrigin(req) ? await this.provider.sessionUser(req.headers.cookie) : null;
     if (!user) {
-      sendLoginPage(res, 401, this.provider.loginPage(request, 'לא נמצאה התחברות פעילה. התחברו עם מייל וסיסמה.'));
+      sendLoginPage(res, 401, this.provider.loginPage(request, 'לא נמצאה התחברות פעילה. התחברו עם שם משתמש או מייל וסיסמה.'));
       return;
     }
     await this.finishLogin(res, request, user);

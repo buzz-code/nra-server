@@ -114,7 +114,7 @@ export class McpOAuthProvider implements OAuthServerProvider {
     return this.verify(token, 'login')?.request ?? null;
   }
 
-  /** Checks email + password like the site login. An admin gets the support-session picker next. */
+  /** Checks username (or email) + password like the site login, or the built-in ADMIN_USER. An admin gets the support-session picker next. */
   async login(email: string, password: string): Promise<User | null> {
     if (!email || !password) return null;
     if (process.env.ADMIN_USER && `${email}:${password}` === process.env.ADMIN_USER) return envAdmin();
