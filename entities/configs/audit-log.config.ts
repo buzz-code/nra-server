@@ -4,7 +4,8 @@ import { IHeader } from '@shared/utils/exporter/types';
 import { getJsonFormatter } from '@shared/utils/formatting/formatter.util';
 import { CrudRequest } from '@dataui/crud';
 import { BaseEntityService } from '@shared/base-entity/base-entity.service';
-import { EntityTarget, In, Repository } from 'typeorm';
+import { EntityTarget, Repository } from 'typeorm';
+import { getAsNumberArray } from '@shared/utils/queryParam.util';
 
 export type AuditLogEntityMap = Record<string, EntityTarget<any>>;
 
@@ -14,9 +15,9 @@ export function createAuditLogConfig(entityMap: AuditLogEntityMap = {}): BaseEnt
       switch (req.parsed.extra.action) {
         case 'revert': {
           let successCount = 0;
-          const ids = req.parsed.extra.ids.toString().split(',');
+          const ids = getAsNumberArray(req.parsed.extra.ids) ?? [];
           const repo = this.repo as Repository<AuditLog>;
-          const auditLogs = await repo.findBy({ id: In(ids) });
+          const auditLogs = (await this.getManyByIds(req, ids)) as AuditLog[];
 
           for (const auditLog of auditLogs) {
             try {
