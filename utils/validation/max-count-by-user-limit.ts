@@ -35,7 +35,7 @@ export function MaxCountByUserLimit(entity: Function, getMaxLimit: GetMaxLimitTy
                                 .countBy(entityFilter);
                             return count < maxLimit;
                         });
-                    } catch (error) {
+                    } catch {
                         return false;
                     }
                 },

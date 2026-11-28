@@ -104,7 +104,7 @@ export abstract class MarkupToPdfReportGenerator<T = any, U = any> extends BaseR
     try {
       try {
         await page.setContent(markup, { waitUntil: 'networkidle0', timeout: 10000 });
-      } catch (e) {
+      } catch {
         // A stray external reference in report markup shouldn't be able to
         // hang the whole request for the full default 30s - fall back to a
         // render that doesn't wait on network at all. Stuck requests would
